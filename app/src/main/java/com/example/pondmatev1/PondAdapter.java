@@ -1,6 +1,7 @@
 package com.example.pondmatev1;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.*;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -34,7 +35,6 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         PondModel pond = pondList.get(position);
 
-
         if ("ADD_BUTTON".equals(pond.getMode())) {
             if ("owner".equalsIgnoreCase(userType)) {
                 holder.pondImage.setImageResource(R.drawable.ic_addpond);
@@ -55,15 +55,11 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                         dialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "AddPondDialog");
                     }
                 });
-
             } else {
-
                 holder.itemView.setVisibility(View.GONE);
                 holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
             }
-
         } else {
-
             holder.pondImage.setImageResource(R.drawable.ic_pond);
             holder.pondName.setText(pond.getName());
             holder.pondName.setVisibility(View.VISIBLE);
@@ -72,6 +68,18 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
             ));
+
+
+            holder.itemView.setOnClickListener(v -> {
+                Intent intent = new Intent(context, MainActivity.class);
+                intent.putExtra("pond_name", pond.getName());
+                intent.putExtra("breed", pond.getBreed());
+                intent.putExtra("fish_count", pond.getFishCount());
+                intent.putExtra("cost_per_fish", pond.getCostPerFish());
+                intent.putExtra("date_started", pond.getDateStarted());
+                intent.putExtra("date_harvest", pond.getDateHarvest());
+                context.startActivity(intent);
+            });
         }
     }
 

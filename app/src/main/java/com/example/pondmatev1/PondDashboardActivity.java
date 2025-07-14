@@ -71,7 +71,7 @@ public class PondDashboardActivity extends AppCompatActivity {
 
 
         int spacing = getResources().getDimensionPixelSize(R.dimen.pond_card_spacing);
-        pondRecyclerView.addItemDecoration(new SpacingItemDecoration(spacing));  // MUST be after findViewById()
+        pondRecyclerView.addItemDecoration(new SpacingItemDecoration(spacing));
 
         pondList = new ArrayList<>();
         pondList.add(new PondModel("ADD_BUTTON"));

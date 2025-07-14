@@ -8,7 +8,7 @@
     android:background="#012E43"
     tools:context=".MainActivity">
 
-
+    <!-- 🔵 Top Bar -->
     <RelativeLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
@@ -18,7 +18,6 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
-        
         <ImageView
             android:id="@+id/appLogo"
             android:layout_width="40dp"
@@ -39,6 +38,15 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
+        <ImageView
+            android:id="@+id/adminIcon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="16dp"
+            android:layout_toStartOf="@id/profileIcon"
+            android:contentDescription="Admin Controls"
+            android:src="@drawable/ic_admin" />
 
         <ImageView
             android:id="@+id/profileIcon"
@@ -58,23 +66,38 @@
             android:layout_centerVertical="true"
             android:contentDescription="Notifications"
             android:src="@drawable/ic_notif" />
-
-
     </RelativeLayout>
 
-
+    <!-- 🔲 Fragment Container -->
     <FrameLayout
         android:id="@+id/con"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_above="@id/bottomNavigation"
         android:layout_below="@id/topBar"
         android:background="@drawable/group1">
+
+        <!-- 🔙 Floating Back Button -->
+        <ImageButton
+            android:id="@+id/backToDashboardBtn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="start|top"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/bg_round_white"
+            android:elevation="8dp"
+            android:padding="12dp"
+            android:contentDescription="Back to Pond Dashboard"
+            android:src="@drawable/ic_back"
+            app:tint="#000000" />
+
     </FrameLayout>
 
+    <!-- 🔽 Bottom Navigation -->
     <com.nafis.bottomnavigation.NafisBottomNavigation
         android:id="@+id/bottomNavigation"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="1dp"
@@ -87,5 +110,4 @@
         app:mbn_hasAnimation="true"
         app:mbn_rippleColor="#1E5B6B"
         app:mbn_selectedIconColor="#114B5B" />
-
 </RelativeLayout>
