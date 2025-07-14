@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pondCard"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp">
+
+        <FrameLayout
+            android:layout_width="225dp"
+            android:layout_height="210dp"
+            android:layout_gravity="center"
+
+            android:padding="4dp">
+
+                <View
+                    android:id="@+id/selectorBorder"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/selector_border"
+                    android:visibility="gone"
+                    android:layout_gravity="center"/>
+
+                <ImageView
+                    android:id="@+id/pondImage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:scaleType="centerCrop"
+                    android:background="@drawable/outer_border"
+                    android:padding="4dp"
+                    android:layout_margin="4dp"/>
+
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/pondLabel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:textSize="64sp"
+            android:textColor="#13252C" />
+</FrameLayout>
