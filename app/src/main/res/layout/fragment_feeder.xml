@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="#F4F4F4">
+    android:background="@drawable/bgapp">
 
     <TextView
         android:layout_width="match_parent"

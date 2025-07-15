@@ -41,7 +41,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 holder.pondName.setVisibility(View.GONE);
                 holder.itemView.setVisibility(View.VISIBLE);
                 holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
                 ));
 
@@ -60,12 +60,12 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
             }
         } else {
-            holder.pondImage.setImageResource(R.drawable.ic_pond);
+            holder.pondImage.setImageResource(R.drawable.pondicon);
             holder.pondName.setText(pond.getName());
             holder.pondName.setVisibility(View.VISIBLE);
             holder.itemView.setVisibility(View.VISIBLE);
             holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT
             ));
 

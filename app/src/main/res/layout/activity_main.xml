@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#012E43"
+    android:background="#C3A470"
     tools:context=".MainActivity">
 
     <!-- 🔵 Top Bar -->
@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_alignParentTop="true"
-        android:background="#116588"
+        android:background="#B17457"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
@@ -24,7 +24,7 @@
             android:layout_height="40dp"
             android:layout_centerVertical="true"
             android:contentDescription="App Logo"
-            android:src="@drawable/logoraw" />
+            android:src="@drawable/logo" />
 
         <TextView
             android:id="@+id/appName"
@@ -34,7 +34,7 @@
             android:layout_marginStart="8dp"
             android:layout_toEndOf="@id/appLogo"
             android:text="PONDMATE"
-            android:textColor="#ffffff"
+            android:textColor="#4A4947"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -75,7 +75,7 @@
         android:layout_height="match_parent"
         android:layout_above="@id/bottomNavigation"
         android:layout_below="@id/topBar"
-        android:background="@drawable/group1">
+        android:background="@drawable/bgapp">
 
         <!-- 🔙 Floating Back Button -->
         <ImageButton
@@ -85,12 +85,12 @@
             android:layout_gravity="start|top"
             android:layout_marginStart="16dp"
             android:layout_marginTop="16dp"
-            android:background="@drawable/bg_round_white"
             android:elevation="8dp"
             android:padding="12dp"
             android:contentDescription="Back to Pond Dashboard"
             android:src="@drawable/ic_back"
-            app:tint="#000000" />
+            app:tint="#000000"
+            android:background="@android:color/transparent"/>
 
     </FrameLayout>
 
@@ -101,13 +101,13 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="1dp"
-        app:mbn_backgroundBottomColor="#116588"
-        app:mbn_circleColor="#caf0f8"
-        app:mbn_countBackgroundColor="#047BA0"
-        app:mbn_countTextColor="#047BA0"
+        app:mbn_backgroundBottomColor="#B17457"
+        app:mbn_circleColor="#4A4947"
+        app:mbn_countBackgroundColor="#D8D2C2"
+        app:mbn_countTextColor="#D8D2C2"
         app:mbn_countTypeface="fonts/SourceSansPro-Regular.ttf"
-        app:mbn_defaultIconColor="#caf0f8"
+        app:mbn_defaultIconColor="#4A4947"
         app:mbn_hasAnimation="true"
-        app:mbn_rippleColor="#1E5B6B"
-        app:mbn_selectedIconColor="#114B5B" />
+        app:mbn_rippleColor="#FAF7F0"
+        app:mbn_selectedIconColor="#FAF7F0" />
 </RelativeLayout>

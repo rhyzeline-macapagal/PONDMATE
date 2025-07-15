@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_alignParentTop="true"
-        android:background="#116588"
+        android:background="#B17457"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
@@ -24,7 +24,7 @@
             android:layout_height="40dp"
             android:layout_centerVertical="true"
             android:contentDescription="App Logo"
-            android:src="@drawable/logoraw" />
+            android:src="@drawable/logo" />
 
         <TextView
             android:id="@+id/appName"
@@ -34,7 +34,7 @@
             android:layout_marginStart="8dp"
             android:layout_toEndOf="@id/appLogo"
             android:text="PONDMATE"
-            android:textColor="#ffffff"
+            android:textColor="#4A4947"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -75,7 +75,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/topBar"
-        android:background="@drawable/group1">
+        android:background="@drawable/bgapp">
 
 
         <androidx.recyclerview.widget.RecyclerView

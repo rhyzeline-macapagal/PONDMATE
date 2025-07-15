@@ -46,7 +46,6 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
-    implementation(libs.google.material)
     implementation(libs.firebase.crashlytics.buildtools)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
@@ -58,6 +57,7 @@ dependencies {
     implementation ("com.itextpdf:itext7-core:7.2.3")
     implementation ("androidx.lifecycle:lifecycle-viewmodel:2.7.0")
     implementation ("androidx.lifecycle:lifecycle-livedata:2.7.0")
+    implementation ("com.google.android.material:material:1.12.0")
     implementation ("com.prolificinteractive:material-calendarview:1.4.3")
 
 

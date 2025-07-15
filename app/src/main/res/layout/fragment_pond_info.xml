@@ -4,46 +4,43 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
-    android:background="#012E43"
+    android:background="@drawable/bgapp"
     android:padding="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:layout_marginTop="8dp">
 
         <!-- 🏷️ Title -->
         <TextView
-            android:id="@+id/title"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:gravity="center"
-            android:text="Pond Information"
-            android:textColor="#FFFFFF"
+            android:text="POND INFORMATION"
+            android:textColor="#4A4947"
+            android:layout_marginBottom="8dp"
+            android:fontFamily="sans-serif"
             android:textSize="22sp"
-            android:textStyle="bold" />
+            android:layout_gravity="center" />
 
-        <!-- ✅ Grid 2x3 -->
+        <!-- ✅ Grid 1X2 -->
         <GridLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
             android:alignmentMode="alignMargins"
             android:columnCount="2"
             android:columnOrderPreserved="false"
-            android:rowCount="3"
+            android:rowCount="1"
             android:rowOrderPreserved="false">
 
             <!-- 🐟 Pond Name -->
-            <androidx.cardview.widget.CardView
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="160dp"
+                android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:backgroundTint="#ffffff"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp">
+                android:layout_margin="2dp"
+                android:background="@drawable/cardviewpi">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -62,39 +59,42 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_ponds"
-                            app:tint="#116588" />
+                            app:tint="#4A4947" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif"
                             android:text="Pond Name"
-                            android:textColor="#666666"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
+                            android:textColor="#4A4947"
+                            android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
 
-                    <TextView
+                    <EditText
                         android:id="@+id/tvPondName"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif"
                         android:text="POND A"
-                        android:textColor="#012E43"
+                        android:textColor="#4A4947"
+                        android:inputType="text"
                         android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                        android:background="@android:color/transparent"/>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
 
             <!-- 🧬 Breed -->
-            <androidx.cardview.widget.CardView
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="160dp"
+                android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:backgroundTint="#ffffff"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp">
+                android:layout_margin="2dp"
+                android:background="@drawable/cardviewpi"
+                app:cardCornerRadius="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -113,15 +113,15 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_breed"
-                            app:tint="#116588" />
+                            app:tint="#4A4947" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif"
                             android:text="Breed"
-                            android:textColor="#666666"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
+                            android:textColor="#4A4947"
+                            android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
 
@@ -129,23 +129,36 @@
                         android:id="@+id/tvBreed"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:layout_marginTop="8dp"
-                        android:text="Tilapia"
-                        android:textColor="#012E43"
+                        android:fontFamily="sans-serif"
+                        android:text="TILAPIA"
+                        android:textColor="#4A4947"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
+
+        </GridLayout>
+
+        <!-- ✅ Grid 1X2 -->
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alignmentMode="alignMargins"
+            android:columnCount="2"
+            android:columnOrderPreserved="false"
+            android:rowCount="1"
+            android:rowOrderPreserved="false">
 
             <!-- 🧮 Fish Count -->
-            <androidx.cardview.widget.CardView
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="160dp"
+                android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:backgroundTint="#ffffff"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp">
+                android:layout_margin="2dp"
+                android:background="@drawable/cardviewpi"
+                app:cardCornerRadius="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -164,15 +177,15 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_fishcount"
-                            app:tint="#116588" />
+                            app:tint="#4A4947" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif"
                             android:text="Fish Count"
-                            android:textColor="#666666"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
+                            android:textColor="#4A4947"
+                            android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
 
@@ -180,23 +193,24 @@
                         android:id="@+id/tvFishCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif"
                         android:text="1000"
-                        android:textColor="#012E43"
+                        android:textColor="#4A4947"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
 
             <!-- 💰 Cost per Fish -->
-            <androidx.cardview.widget.CardView
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="160dp"
+                android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:backgroundTint="#ffffff"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp">
+                android:layout_margin="2dp"
+                android:background="@drawable/cardviewpi"
+                app:cardCornerRadius="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -216,39 +230,52 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_cost"
-                            app:tint="#116588" />
+                            app:tint="#4A4947" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif"
                             android:text="Cost per Fish"
-                            android:textColor="#666666"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
+                            android:textColor="#4A4947"
+                            android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
 
-                    <TextView
+                    <EditText
                         android:id="@+id/tvCostPerFish"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif"
                         android:text="₱4.50"
-                        android:textColor="#012E43"
+                        android:textColor="#4A4947"
                         android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:inputType="numberDecimal"
+                        android:textStyle="bold"
+                        android:background="@android:color/transparent"/>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
+        </GridLayout>
 
+        <!-- ✅ Grid 1X1 -->
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alignmentMode="alignMargins"
+            android:columnCount="1"
+            android:columnOrderPreserved="false"
+            android:rowCount="1"
+            android:rowOrderPreserved="false">
 
-            <androidx.cardview.widget.CardView
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="160dp"
+                android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:backgroundTint="#ffffff"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp">
+                android:layout_margin="2dp"
+                android:background="@drawable/cardviewpi"
+                app:cardCornerRadius="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -267,15 +294,15 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_startdate"
-                            app:tint="#116588" />
+                            app:tint="#4A4947" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Date Started (yyyy/mm/dd)"
-                            android:textColor="#666666"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
+                            android:fontFamily="sans-serif"
+                            android:text="Date Started"
+                            android:textColor="#4A4947"
+                            android:textSize="18sp"
                             tools:ignore="HardcodedText" />
 
                     </LinearLayout>
@@ -284,23 +311,35 @@
                         android:id="@+id/tvDateStarted"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif"
                         android:text="2025-03-12"
-                        android:textColor="#012E43"
+                        android:textColor="#4A4947"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
+        </GridLayout>
+
+        <!-- ✅ Grid 1X1 -->
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alignmentMode="alignMargins"
+            android:columnCount="1"
+            android:columnOrderPreserved="false"
+            android:rowCount="1"
+            android:rowOrderPreserved="false">
 
             <!-- 🌾 Harvest Date -->
-            <androidx.cardview.widget.CardView
+            <LinearLayout
                 android:layout_width="0dp"
-                android:layout_height="160dp"
+                android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
-                android:layout_margin="8dp"
-                android:backgroundTint="#ffffff"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp">
+                android:layout_margin="2dp"
+                android:background="@drawable/cardviewpi"
+                app:cardCornerRadius="5dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -319,15 +358,15 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_harvest"
-                            app:tint="#116588" />
+                            app:tint="#4A4947" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif"
                             android:text="Harvest Date"
-                            android:textColor="#666666"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
+                            android:textColor="#4A4947"
+                            android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
 
@@ -335,28 +374,146 @@
                         android:id="@+id/tvHarvestDate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif"
                         android:text="2025-07-10"
-                        android:textColor="#012E43"
+                        android:textColor="#4A4947"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-
+            </LinearLayout>
         </GridLayout>
+
+        <!-- ✅ Grid 1X2 -->
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alignmentMode="alignMargins"
+            android:columnCount="2"
+            android:columnOrderPreserved="false"
+            android:rowCount="1"
+            android:rowOrderPreserved="false">
+
+            <!-- 🌾 No. of Dead  -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:layout_margin="2dp"
+                android:background="@drawable/cardviewpi"
+                app:cardCornerRadius="5dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="8dp"
+                            android:src="@drawable/ic_mortr"
+                            app:tint="#4A4947" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif"
+                            android:text="Estimated Dead Fish"
+                            android:textColor="#4A4947"
+                            android:textSize="18sp"
+                            tools:ignore="HardcodedText" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvEstimatedDeadFish"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif"
+                        android:text="100"
+                        android:textColor="#4A4947"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 🌾 Mortality Rate  -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:layout_margin="2dp"
+                android:background="@drawable/cardviewpi"
+                app:cardCornerRadius="5dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="8dp"
+                            android:src="@drawable/ic_percent"
+                            app:tint="#4A4947" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="sans-serif"
+                            android:text="Mortality Rate"
+                            android:textColor="#4A4947"
+                            android:textSize="18sp"
+                            tools:ignore="HardcodedText" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvMortalityRate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="sans-serif"
+                        android:text="%"
+                        android:textColor="#4A4947"
+                        android:textSize="34sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </GridLayout>
+
+
         <!-- ✏️ Edit Button -->
         <Button
             android:id="@+id/btnEditPond"
-            android:layout_width="match_parent"
+            android:layout_width="100dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="40dp"
-            android:backgroundTint="#116588"
-            android:text="Edit Pond"
-            android:textAllCaps="false"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#4A4947"
+            android:text="EDIT"
+            android:layout_gravity="center"
+            app:cornerRadius="1dp"
+            android:fontFamily="sans-serif"
             android:textColor="#FFFFFF"
-            android:visibility="gone" />
+            />
 
 
     </LinearLayout>

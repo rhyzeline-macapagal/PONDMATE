@@ -5,18 +5,23 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.util.Locale;
+
 public class PondInfoFragment extends Fragment {
 
-    private TextView tvPondName, tvBreed, tvFishCount, tvCostPerFish, tvDateStarted, tvHarvestDate;
+    private TextView tvBreed, tvFishCount, tvDateStarted, tvHarvestDate, tvMortalityRate, tvEstDeadFish;
     private Button btnEdit;
 
     private PondModel pond;
+    private boolean isEditing = false;
+    private EditText tvPondName, tvCostPerFish;
 
     public PondInfoFragment() {}
 
@@ -49,15 +54,22 @@ public class PondInfoFragment extends Fragment {
         tvCostPerFish = view.findViewById(R.id.tvCostPerFish);
         tvDateStarted = view.findViewById(R.id.tvDateStarted);
         tvHarvestDate = view.findViewById(R.id.tvHarvestDate);
+        tvMortalityRate = view.findViewById(R.id.tvMortalityRate);
+        tvEstDeadFish = view.findViewById(R.id.tvEstimatedDeadFish);
         btnEdit = view.findViewById(R.id.btnEditPond);
 
         if (getArguments() != null) {
+            int fishCount = getArguments().getInt("fish_count");
+            double costPerFish = getArguments().getDouble("cost_per_fish");
+
             tvPondName.setText(getArguments().getString("name"));
             tvBreed.setText(getArguments().getString("breed"));
-            tvFishCount.setText("Fish Count: " + getArguments().getInt("fish_count"));
-            tvCostPerFish.setText("Cost per Fish: ₱" + getArguments().getDouble("cost_per_fish"));
-            tvDateStarted.setText("Date Started: " + getArguments().getString("date_started"));
-            tvHarvestDate.setText("Harvest Date: " + getArguments().getString("date_harvest"));
+            tvFishCount.setText(String.valueOf(getArguments().getInt("fish_count")));
+            tvCostPerFish.setText(String.valueOf(getArguments().getDouble("cost_per_fish")));
+            tvDateStarted.setText(getArguments().getString("date_started"));
+            tvHarvestDate.setText(getArguments().getString("date_harvest"));
+
+            updateMortalityData(fishCount);
         }
 
         String userType = new SessionManager(requireContext()).getUsertype();
@@ -68,7 +80,42 @@ public class PondInfoFragment extends Fragment {
         }
 
         btnEdit.setOnClickListener(v -> {
-            // TODO: Add edit logic or open edit dialog
+            if (!isEditing) {
+                // Switch to Edit mode
+                btnEdit.setText("Save");
+                tvPondName.setEnabled(true);
+                tvCostPerFish.setEnabled(true);
+                tvPondName.requestFocus();
+                isEditing = true;
+            } else {
+                // Switch to Save mode
+                btnEdit.setText("Edit");
+                tvPondName.setEnabled(false);
+                tvCostPerFish.setEnabled(false);
+
+                // Optionally save or process the updated values here
+                String newName = tvPondName.getText().toString().trim();
+                String newCost = tvCostPerFish.getText().toString().trim();
+                // TODO: Save these values (database)
+
+                isEditing = false;
+            }
         });
+
     }
+
+
+    private void updateMortalityData(int fishCount) {
+        if (fishCount > 0) {
+            int estimatedDead = (int) Math.ceil(fishCount * 0.10);
+            tvEstDeadFish.setText(String.valueOf(estimatedDead));
+
+            double mortalityRate = (estimatedDead / (double) fishCount) * 100;
+            tvMortalityRate.setText(String.format(Locale.US, "%.2f%%", mortalityRate));
+        } else {
+            tvEstDeadFish.setText("0");
+            tvMortalityRate.setText("0.00%");
+        }
+    }
+
 }

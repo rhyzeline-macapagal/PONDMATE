@@ -1,21 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="150dp"
-    android:layout_margin="8dp"
-    android:elevation="6dp"
-    android:radius="12dp">
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:cardBackgroundColor="@android:color/transparent"
+    app:cardCornerRadius="50dp">
 
-    <RelativeLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="12dp">
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center">
 
         <ImageView
             android:id="@+id/pondImage"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="centerInside"
+            android:layout_width="wrap_content"
+            android:layout_height="180dp"
+            android:background="@drawable/addbg"
+            android:scaleType="centerCrop"
             android:src="@drawable/ic_addpond" />
 
         <TextView
@@ -23,12 +25,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Pond Name"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:layout_alignParentBottom="true"
-            android:layout_alignParentStart="true"
-            android:layout_marginBottom="8dp"
-            android:visibility="gone"/>
+            android:textColor="#4A4947"
+            android:textSize="18sp"
+            android:paddingTop="1dp"
+            android:paddingBottom="1dp"
+            android:fontFamily="sans-serif"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </LinearLayout>
 
-    </RelativeLayout>
+
 </androidx.cardview.widget.CardView>

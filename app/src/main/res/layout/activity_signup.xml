@@ -23,7 +23,7 @@
             android:layout_height="40dp"
             android:layout_centerVertical="true"
             android:contentDescription="App Logo"
-            android:src="@drawable/logoraw" />
+            android:src="@drawable/logo" />
 
         <TextView
             android:id="@+id/appName"

@@ -4,4 +4,13 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">50%</item>
     </style>
+
+    <style name="CustomDatePickerTheme" parent="Theme.MaterialComponents.Light.Dialog">
+        <item name="colorAccent">#B17457</item>
+        <item name="android:textColorPrimary">#4A4947</item>
+        <item name="android:headerBackground">#B17457</item>
+        <item name="android:background">#D8D2C2</item>
+    </style>
+
+
 </resources>
