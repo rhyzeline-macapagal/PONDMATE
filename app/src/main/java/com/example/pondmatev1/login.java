@@ -90,6 +90,8 @@ public class login extends AppCompatActivity {
         loadPreferences();
 
         loginButton.setOnClickListener(v -> {
+            loginButton.setEnabled(false);
+
             String username = userName.getText().toString().trim();
             String password = passWord.getText().toString().trim();
 
@@ -163,17 +165,20 @@ public class login extends AppCompatActivity {
 
                         } else {
                             Toast.makeText(this, "❌ Invalid credentials", Toast.LENGTH_SHORT).show();
+                            loginButton.setEnabled(true);
                         }
 
                     } catch (Exception e) {
                         e.printStackTrace();
                         Toast.makeText(this, "⚠️ Error parsing response", Toast.LENGTH_SHORT).show();
+                        loginButton.setEnabled(true);
                     }
                 });
 
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> Toast.makeText(this, "⚠️ Network error", Toast.LENGTH_SHORT).show());
+                loginButton.setEnabled(true);
             }
         }).start();
     }
@@ -190,6 +195,7 @@ public class login extends AppCompatActivity {
             finish();
         } else {
             Toast.makeText(this, "❌ Invalid credentials (offline)", Toast.LENGTH_SHORT).show();
+            loginButton.setEnabled(true);
         }
     }
 
