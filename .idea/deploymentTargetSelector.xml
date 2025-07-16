@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="PONDMATE">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-07-15T12:33:53.040737800Z">
+        <DropdownSelection timestamp="2025-07-16T17:03:15.959778100Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=R83WB11ZFKT" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=RFCT105SDXY" />
             </handle>
           </Target>
         </DropdownSelection>

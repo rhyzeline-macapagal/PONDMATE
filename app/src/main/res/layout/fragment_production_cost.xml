@@ -26,7 +26,7 @@
             android:layout_gravity="center" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/rounded_container"
             android:elevation="4dp"
@@ -111,7 +111,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif"
-                        android:text="Amount per Piece:"
+                        android:text="Cost per Piece:"
                         android:textColor="#4A4947"
                         android:textSize="18sp"
                         />
@@ -140,7 +140,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="sans-serif"
                         android:layout_marginTop="4dp"
-                        android:text="Cost of Fingerlings:"
+                        android:text="Fingerlings Cost:"
                         android:textColor="#4A4947"
                         android:textSize="18sp"/>
 
@@ -487,6 +487,7 @@
                     android:orientation="vertical"
                     android:layout_gravity="center_horizontal"
                     android:padding="2dp">
+
                     <TextView
                         android:id="@+id/capital"
                         android:layout_width="150dp"
