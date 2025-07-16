@@ -1,5 +1,7 @@
 package com.example.pondmatev1;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -57,6 +59,13 @@ public class PondInfoFragment extends Fragment {
         tvMortalityRate = view.findViewById(R.id.tvMortalityRate);
         tvEstDeadFish = view.findViewById(R.id.tvEstimatedDeadFish);
         btnEdit = view.findViewById(R.id.btnEditPond);
+
+        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("fish_breed", tvBreed.getText().toString().trim());
+        editor.putString("fish_amount", tvCostPerFish.getText().toString().trim());
+        editor.putString("number_fish", tvFishCount.getText().toString().trim());
+        editor.apply();
 
         if (getArguments() != null) {
             int fishCount = getArguments().getInt("fish_count");
