@@ -59,6 +59,11 @@ public class PondDashboardActivity extends AppCompatActivity {
         String userType = new SessionManager(this).getUsertype();
 
         ImageView adminIcon = findViewById(R.id.adminIcon);
+        adminIcon.setOnClickListener(v -> {
+            Intent intent = new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class);
+            startActivity(intent);
+        });
+
 
 
         if (!"owner".equalsIgnoreCase(userType)) {

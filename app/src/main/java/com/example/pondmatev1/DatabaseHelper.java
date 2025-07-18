@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.util.ArrayList;
+
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database
@@ -60,7 +62,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // Drop and recreate tables if upgrading
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_PONDS);
         onCreate(db);
@@ -146,4 +147,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_PONDS, null);
     }
+
+    // ------------------- CARETAKER OPERATIONS -------------------
+    public ArrayList<CaretakerModel> getCaretakersList() {
+        ArrayList<CaretakerModel> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery("SELECT id, username, password, fullname, address FROM users WHERE usertype = 'Caretaker'", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(0);
+                String username = cursor.getString(1);
+                String password = cursor.getString(2);
+                String fullname = cursor.getString(3);
+                String address = cursor.getString(4);
+                list.add(new CaretakerModel(id, username, password, fullname, address));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return list;
+    }
+
+
 }
+
