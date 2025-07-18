@@ -31,7 +31,7 @@
         android:layout_height="wrap_content"
         android:hint="Username"
         android:inputType="textPersonName"
-        android:marginTop="10dp"/>
+        />
 
     <EditText
         android:id="@+id/editPassword"
@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:hint="Password"
         android:inputType="textPassword"
-        android:marginTop="10dp"/>
+        />
 
     <EditText
         android:id="@+id/editFullName"
@@ -47,7 +47,7 @@
         android:layout_height="wrap_content"
         android:hint="Full Name"
         android:inputType="textPersonName"
-        android:marginTop="10dp"/>
+        />
 
     <EditText
         android:id="@+id/editAddress"
@@ -55,7 +55,7 @@
         android:layout_height="wrap_content"
         android:hint="Address"
         android:inputType="textPostalAddress"
-        android:marginTop="10dp"/>
+        />
 
     <!-- Save Button -->
     <Button
