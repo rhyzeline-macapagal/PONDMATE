@@ -1,6 +1,8 @@
 package com.example.pondmatev1;
 
 import android.app.Dialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -68,6 +70,12 @@ public class AddPondDialogFragment extends DialogFragment {
             int fishCount = Integer.parseInt(etFishCount.getText().toString().trim());
             double cost = Double.parseDouble(etCostPerFish.getText().toString().trim());
 
+            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("fish_breed", etBreed.getText().toString().trim());
+            editor.putString("fish_amount", etCostPerFish.getText().toString().trim());
+            editor.putString("number_fish", etFishCount.getText().toString().trim());
+            editor.apply();
 
             String dateStartedStr = dateStarted.getYear() + "-" +
                     String.format(Locale.getDefault(), "%02d", (dateStarted.getMonth() + 1)) + "-" +

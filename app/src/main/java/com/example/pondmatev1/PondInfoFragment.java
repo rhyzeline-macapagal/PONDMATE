@@ -60,13 +60,6 @@ public class PondInfoFragment extends Fragment {
         tvEstDeadFish = view.findViewById(R.id.tvEstimatedDeadFish);
         btnEdit = view.findViewById(R.id.btnEditPond);
 
-        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("fish_breed", tvBreed.getText().toString().trim());
-        editor.putString("fish_amount", tvCostPerFish.getText().toString().trim());
-        editor.putString("number_fish", tvFishCount.getText().toString().trim());
-        editor.apply();
-
         if (getArguments() != null) {
             int fishCount = getArguments().getInt("fish_count");
             double costPerFish = getArguments().getDouble("cost_per_fish");
@@ -112,8 +105,6 @@ public class PondInfoFragment extends Fragment {
         });
 
     }
-
-
     private void updateMortalityData(int fishCount) {
         if (fishCount > 0) {
             int estimatedDead = (int) Math.ceil(fishCount * 0.10);
