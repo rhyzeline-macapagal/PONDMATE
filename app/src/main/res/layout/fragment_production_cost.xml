@@ -209,7 +209,7 @@
                         android:padding="8dp"
                         android:backgroundTint="#4CD3D3D3"
                         android:fontFamily="sans-serif-light"
-                        android:textColor="#000000"
+                        android:textColor="#4A4947"
                         app:cornerRadius="10dp"
                         android:drawableEnd="@drawable/ic_dropdown_arrow"/>
 
@@ -227,7 +227,7 @@
                         android:inputType="numberDecimal"
                         android:paddingStart="8dp"
                         android:textAlignment="textEnd"
-                        android:textColorHint="#000000"
+                        android:textColorHint="#4A4947"
                         android:textSize="14sp"
                         android:background="@drawable/rounded_edittext"
                         android:layout_marginBottom="8dp"
@@ -301,7 +301,7 @@
                         android:hint="Select"
                         android:padding="8dp"
                         android:textAlignment="textStart"
-                        android:textColor="#000000"
+                        android:textColor="#4A4947"
                         android:textSize="14sp"
                         app:cornerRadius="10dp" />
 
@@ -319,7 +319,7 @@
                         android:inputType="numberDecimal"
                         android:paddingStart="8dp"
                         android:textAlignment="textEnd"
-                        android:textColorHint="#000000"
+                        android:textColorHint="#4A4947"
                         android:textSize="14sp"
                         android:background="@drawable/rounded_edittext"
                         android:padding="12dp"/>
@@ -408,7 +408,7 @@
                         android:inputType="numberDecimal"
                         android:paddingStart="8dp"
                         android:textAlignment="textEnd"
-                        android:textColorHint="#000000"
+                        android:textColorHint="#4A4947"
                         android:textSize="14sp"
                         android:background="@drawable/rounded_edittext"
                         android:padding="12dp"/>
@@ -456,7 +456,7 @@
                         android:backgroundTint="#4A4947"
                         android:text="EDIT"
                         android:layout_gravity="center"
-                        app:cornerRadius="1dp"
+                        app:cornerRadius="5dp"
                         android:fontFamily="sans-serif"
                         android:textColor="#FFFFFF"
                         />
@@ -516,7 +516,7 @@
             android:fontFamily="sans-serif"
             android:text="VIEW SUMMARY"
             android:textColor="#FFFFFF"
-            app:cornerRadius="1dp" />
+            app:cornerRadius="5dp" />
 
         <LinearLayout
         android:layout_width="match_parent"
@@ -633,7 +633,7 @@
             android:backgroundTint="#4A4947"
             android:text="EDIT"
             android:layout_gravity="center"
-            app:cornerRadius="1dp"
+            app:cornerRadius="5dp"
             android:fontFamily="sans-serif"
             android:textColor="#FFFFFF" />
     </LinearLayout>
