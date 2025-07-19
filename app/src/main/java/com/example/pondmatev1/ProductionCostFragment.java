@@ -26,16 +26,18 @@ import androidx.fragment.app.Fragment;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 
 public class ProductionCostFragment extends Fragment {
 
-    TextView tvfishbreed, tvfishamount, tvnumberoffish, tvfishcost, tvcapital;
+    TextView tvfishbreed, tvfishamount, tvnumberoffish, tvfishcost, tvcapital, tvreturnoi;
     LinearLayout linlfeederscont, linlmaintenancecont, linlsalarycont, feederslist, maintenancelist, salarylist;
-    Button btnedit, btnviewsummary, btnfeedertype, btnmaintenancetype,btnsalarydate;
+    Button btnedit, btnviewsummary, btnfeedertype, btnmaintenancetype,btnsalarydate,btnedittocalculate;
     ImageButton btnaddfeedslist, btnaddmaintenancelist, btnaddsalarylist;
-    EditText etfeedercost, etmaintenancecost, etsalarycost;
+    EditText etfeedercost, etmaintenancecost, etsalarycost, etsales;
 
     public ProductionCostFragment() {}
+    private boolean isEditingROI = false;
 
     @Nullable
     @Override
@@ -75,6 +77,10 @@ public class ProductionCostFragment extends Fragment {
         btnaddsalarylist = view.findViewById(R.id.addSalaryButton);
         salarylist = view.findViewById(R.id.salaryList);
 
+        btnedittocalculate = view.findViewById(R.id.edittocalculateroi);
+        etsales = view.findViewById(R.id.etsales);
+        tvreturnoi = view.findViewById(R.id.tvroi);
+
         etfeedercost.setEnabled(false);
         etmaintenancecost.setEnabled(false);
         etsalarycost.setEnabled(false);
@@ -88,6 +94,7 @@ public class ProductionCostFragment extends Fragment {
         btnsalarydate.setEnabled(false);
 
         btnviewsummary.setEnabled(false);
+        etsales.setEnabled(false);
 
         setupFeederTypeButton(btnfeedertype, etfeedercost);
         setupMaintenanceTypeButton(btnmaintenancetype, etmaintenancecost);
@@ -366,6 +373,28 @@ public class ProductionCostFragment extends Fragment {
                 }
             });
         });
+
+        btnedittocalculate.setOnClickListener(v->{
+            if (!isEditingROI) {
+                etsales.setEnabled(true);
+                etsales.requestFocus();
+                btnedittocalculate.setText("CALCULATE ROI");
+                isEditingROI = true;
+            } else {
+                try {
+                    double capital = Double.parseDouble(tvcapital.getText().toString().replace("₱", "").trim());
+                    double sales = Double.parseDouble(etsales.getText().toString().trim());
+                    double roi = ((sales - capital) / capital) * 100;
+                    tvreturnoi.setText(String.format(Locale.getDefault(), "%.2f%%", roi));
+
+                    etsales.setEnabled(false);
+                    btnedittocalculate.setText("EDIT");
+                    isEditingROI = false;
+                } catch (NumberFormatException e) {
+                    etsales.setError("Invalid number");
+                }
+            }
+        });
     }
     private final TextWatcher capitalWatcher = new TextWatcher() {
         @Override
@@ -410,7 +439,6 @@ public class ProductionCostFragment extends Fragment {
             builder.show();
         });
     }
-
     private void setupMaintenanceTypeButton(Button btnmaintenancetype, EditText costField  ) {
         String[] options = {
                 "Water Change", "Water Monitoring", "Waste Removal", "Algae Control",
@@ -445,7 +473,6 @@ public class ProductionCostFragment extends Fragment {
             builder.show();
         });
     }
-
     private void setupSalaryDateButton(Button btnSalaryDate) {
         btnSalaryDate.setOnClickListener(v -> {
             java.util.Calendar calendar = java.util.Calendar.getInstance();
@@ -464,7 +491,6 @@ public class ProductionCostFragment extends Fragment {
             datePickerDialog.show();
         });
     }
-
     private void calculateTotalCapital() {
         double capital = 0.0;
         // Fish cost from TextView
@@ -511,7 +537,6 @@ public class ProductionCostFragment extends Fragment {
         tvcapital.setText(String.format("%.2f", capital));
         btnviewsummary.setEnabled(true);
     }
-
     @Override
     public void onResume() {
         super.onResume();
@@ -538,7 +563,6 @@ public class ProductionCostFragment extends Fragment {
 
         calculateTotalCapital();
     }
-
     private double parseDoubleOrZero(String value) {
         try {
             return Double.parseDouble(value.replace("₱", "").trim());
@@ -546,7 +570,6 @@ public class ProductionCostFragment extends Fragment {
             return 0;
         }
     }
-
     private void addBreakdownRow(LinearLayout container, String label, String value) {
         View row = LayoutInflater.from(getContext()).inflate(R.layout.row_breakdown, container, false);
 
@@ -558,7 +581,4 @@ public class ProductionCostFragment extends Fragment {
 
         container.addView(row);
     }
-
-
-
 }

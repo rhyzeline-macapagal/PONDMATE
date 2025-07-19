@@ -626,12 +626,12 @@
             </LinearLayout>
 
         <Button
-            android:id="@+id/calculateroi"
+            android:id="@+id/edittocalculateroi"
             android:layout_width="200dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:backgroundTint="#4A4947"
-            android:text="CALCULATE ROI"
+            android:text="EDIT"
             android:layout_gravity="center"
             app:cornerRadius="1dp"
             android:fontFamily="sans-serif"
