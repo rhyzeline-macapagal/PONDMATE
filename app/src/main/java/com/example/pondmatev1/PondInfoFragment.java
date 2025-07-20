@@ -13,6 +13,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import java.util.Locale;
 
@@ -72,6 +73,18 @@ public class PondInfoFragment extends Fragment {
             tvHarvestDate.setText(getArguments().getString("date_harvest"));
 
             updateMortalityData(fishCount);
+
+            pond = new PondModel(
+                    getArguments().getString("name"),
+                    getArguments().getString("breed"),
+                    getArguments().getInt("fish_count"),
+                    getArguments().getDouble("cost_per_fish"),
+                    getArguments().getString("date_started"),
+                    getArguments().getString("date_harvest")
+            );
+
+            PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
+            viewModel.setSelectedPond(pond);
         }
 
         String userType = new SessionManager(requireContext()).getUsertype();

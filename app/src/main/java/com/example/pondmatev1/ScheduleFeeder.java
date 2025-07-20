@@ -27,6 +27,7 @@ import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -42,13 +43,14 @@ public class ScheduleFeeder extends Fragment {
 
     private ImageButton addTbtn;
 
-    private EditText Fweight;
+    private EditText Fweight, feedqttycont;
     private Button selectDate, selectTime, setManual, Createbtn;
 
-    private TextView dateFS, timeFS, feedqttycont;
+    private TextView dateFS, timeFS;
     private TableLayout SummaryT;
     private boolean isCreating = true;
-
+    private boolean isManualMode = false;
+    private boolean isManualFeed = false;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -67,45 +69,53 @@ public class ScheduleFeeder extends Fragment {
         feedqttycont = view.findViewById(R.id.feedquantity);
         Fweight = view.findViewById(R.id.weight);
 
-        // Auto-compute feed quantity when weight is entered
-        Fweight.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+        PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        viewModel.getSelectedPond().observe(getViewLifecycleOwner(), pond -> {
+            if (pond == null) return;
 
-            @Override
-            public void afterTextChanged(Editable s) {
-                String weightStr = s.toString().trim();
+            // Auto-compute feed quantity when weight is entered
+            Fweight.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-                if (weightStr.isEmpty()) {
-                    feedqttycont.setText("--");
-                    return;
-                }
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
-                try {
-                    float fishweight = Float.parseFloat(weightStr);
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (isManualMode) return;
+                    String weightStr = s.toString().trim();
 
-                    // Retrieve numFingerlings from SharedPreferences
-                    SharedPreferences prefs = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-                    float numFingerlings = prefs.getFloat("numFingerlings", 0f);
-
-                    if (numFingerlings == 0f) {
+                    if (weightStr.isEmpty()) {
                         feedqttycont.setText("--");
                         return;
                     }
 
-                    float feedPercentage = 0.04f; // 4% default
-                    float computedFeedQty = feedPercentage * fishweight * numFingerlings;
+                    try {
+                        float fishWeight = Float.parseFloat(weightStr);
+                        int fishCount = pond.getFishCount();
 
-                    feedqttycont.setText(String.format(Locale.getDefault(), "%.2f grams", computedFeedQty));
+                        if (fishCount == 0) {
+                            feedqttycont.setText("--");
+                            return;
+                        }
 
-                } catch (NumberFormatException e) {
-                    feedqttycont.setText("--");
+                        float feedPercentage = 0.04f; // 4% default
+                        float computedFeedQty = feedPercentage * fishWeight * fishCount;
+                        float computedKg = computedFeedQty / 1000f;
+
+                        feedqttycont.setText(String.format(Locale.getDefault(), "%.2f kg", computedKg));
+                    } catch (NumberFormatException e) {
+                        feedqttycont.setText("--");
+                        feedqttycont.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+                        feedqttycont.setTypeface(Typeface.SANS_SERIF);
+                        feedqttycont.setTextColor(Color.parseColor("#908D8D"));
+                    }
                 }
-            }
+            });
         });
+
 
         //select date and time
         selectDate.setOnClickListener(v -> {
@@ -171,6 +181,13 @@ public class ScheduleFeeder extends Fragment {
             timePickerDialog.show();
         });
 
+        setManual.setOnClickListener(v -> {
+            isManualMode = true;
+            feedqttycont.setEnabled(true);
+            feedqttycont.requestFocus();
+            feedqttycont.setText("");
+        });
+
         //dynamically added row
         addTbtn.setOnClickListener(v ->addTimeRow(inflater));
 
@@ -194,13 +211,32 @@ public class ScheduleFeeder extends Fragment {
 
                 Createbtn.setText("Save");
                 isCreating = false;
+                isManualMode = false;
 
             } else {
-                // 💾 Save logic
-
                 String staticDate = dateFS.getText().toString();
                 String staticTime = timeFS.getText().toString();
-                String feedQuantity = feedqttycont.getText().toString();
+
+                // Extract and clean feed quantity
+                String feedQuantityStr = feedqttycont.getText().toString().trim();
+                String cleanedFeedQtyStr = feedQuantityStr.replaceAll("[^\\d.]", "");
+
+                float feedAmount;
+                try {
+                    feedAmount = Float.parseFloat(cleanedFeedQtyStr);
+                } catch (NumberFormatException e) {
+                    feedAmount = 0.0f;
+                }
+
+                // Format depending on manual or auto mode
+                String feedQuantity;
+                if (isManualMode) {
+                    // Manual input is already in kg
+                    feedQuantity = String.format(Locale.getDefault(), "%.2f kg", feedAmount);
+                } else {
+                    // Auto input is in grams, convert to kg
+                    feedQuantity = String.format(Locale.getDefault(), "%.2f kg", feedAmount);
+                }
 
                 int dynamicTimeCount = containert.getChildCount();
 
@@ -211,7 +247,9 @@ public class ScheduleFeeder extends Fragment {
 
                 if (!staticTime.isEmpty()) {
                     String status = getStatus(staticDate, staticTime);
+                    String note = isManualMode ? "Manual" : "Auto";
                     addTableRow(staticDate, staticTime, feedQuantity, status);
+                    Toast.makeText(getContext(), note, Toast.LENGTH_SHORT).show();
                 }
 
                 for (int i = 0; i < dynamicTimeCount; i++) {
@@ -221,11 +259,11 @@ public class ScheduleFeeder extends Fragment {
 
                     if (!time.isEmpty() && !time.equals(staticTime)) {
                         String dynamicStatus = getStatus(staticDate, time);
-                        addTableRow(staticDate, time, "", dynamicStatus);
+                        addTableRow(staticDate, time, feedQuantity, dynamicStatus);
                     }
                 }
 
-                // 🔒 Disable inputs
+                // Disable fields after save
                 selectDate.setEnabled(false);
                 selectTime.setEnabled(false);
                 addTbtn.setEnabled(false);
@@ -241,7 +279,7 @@ public class ScheduleFeeder extends Fragment {
                     if (removeTimeBtn != null) removeTimeBtn.setEnabled(false);
                 }
 
-                // 🔄 Reset fields
+                // Clear inputs
                 dateFS.setText("");
                 timeFS.setText("");
                 feedqttycont.setText("");
@@ -257,13 +295,11 @@ public class ScheduleFeeder extends Fragment {
                     if (timeText != null) timeText.setText("");
                 }
 
-                // 🔁 Reset button
                 Createbtn.setText("Create");
                 isCreating = true;
             }
         });
 
-        // Disable initially
         selectDate.setEnabled(false);
         selectTime.setEnabled(false);
         setManual.setEnabled(false);
@@ -324,7 +360,7 @@ public class ScheduleFeeder extends Fragment {
         tv.setGravity(Gravity.CENTER);
 
         tv.setTextColor(Color.parseColor("#4A4947"));
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         tv.setTypeface(Typeface.SANS_SERIF);
         return tv;
     }
@@ -352,7 +388,7 @@ public class ScheduleFeeder extends Fragment {
             long minutes = totalMinutes % 60;
 
             if (hours > 0) {
-                return hours + " hr" + (hours > 1 ? "s" : "") + " and " + minutes + " mn" + (minutes != 1 ? "s" : "") + " left";
+                return hours + " hr" + (hours > 1 ? "s" : "") + ", " + minutes + " mn" + (minutes != 1 ? "s" : "") + " left";
             } else {
                 return minutes + " mn" + (minutes != 1 ? "s" : "") + " left";
             }

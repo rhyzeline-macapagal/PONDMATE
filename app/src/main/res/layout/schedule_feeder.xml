@@ -187,7 +187,7 @@
                 android:orientation="horizontal"
                 android:foregroundGravity="center_vertical">
 
-                <TextView
+                <EditText
                     android:id="@+id/feedquantity"
                     android:layout_width="192dp"
                     android:layout_height="wrap_content"
@@ -196,9 +196,9 @@
                     android:enabled="true"
                     android:hint="--"
                     android:textAlignment="textEnd"
-                    android:textColor="#000000"
+                    android:textColor="#908D8D"
                     android:layout_marginStart="10dp"
-                    android:fontFamily="sans-serif-medium"
+                    android:fontFamily="sans-serif"
                     android:textSize="14sp" />
 
                 <Button
@@ -249,47 +249,62 @@
 
         <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent">
 
             <TableLayout
                 android:id="@+id/summaryTable"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:stretchColumns="*"
-                android:elevation="2dp"
-                android:background="@drawable/tablebg">
+                android:background="@drawable/tablebg"
+                android:elevation="4dp"
+                android:padding="8dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginHorizontal="8dp">
 
                 <TableRow
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:elevation="2dp"
-                    android:background="@drawable/tableheader">
-                    <TextView android:text="Date"
-                        android:padding="8dp"
+                    android:background="@drawable/tableheader"
+                    android:paddingVertical="10dp"
+                    android:layout_marginBottom="4dp">
+
+                    <TextView
+                        android:text="Date"
+                        android:paddingHorizontal="8dp"
                         android:textColor="#FFFFFF"
-                        android:layout_gravity="center"
-                        android:fontFamily="sans-serif"
-                        android:textSize="14sp" />
-                    <TextView android:text="Time"
-                        android:padding="8dp"
+                        android:gravity="center"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:text="Time"
+                        android:paddingHorizontal="8dp"
                         android:textColor="#FFFFFF"
-                        android:layout_gravity="center"
-                        android:fontFamily="sans-serif"
-                        android:textSize="14sp"/>
-                    <TextView android:text="Feed Quantity"
-                        android:padding="8dp"
+                        android:gravity="center"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:text="Feed Qty"
+                        android:paddingHorizontal="8dp"
                         android:textColor="#FFFFFF"
-                        android:layout_gravity="center"
-                        android:fontFamily="sans-serif"
-                        android:textSize="14sp"/>
-                    <TextView android:text="Status"
-                        android:padding="8dp"
+                        android:gravity="center"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:text="Status"
+                        android:paddingHorizontal="8dp"
                         android:textColor="#FFFFFF"
-                        android:layout_gravity="center"
-                        android:fontFamily="sans-serif"
-                        android:textSize="14sp"/>
+                        android:gravity="center"
+                        android:fontFamily="sans-serif-medium"
+                        android:textSize="15sp" />
                 </TableRow>
             </TableLayout>
         </ScrollView>
+
     </LinearLayout>
 </ScrollView>
