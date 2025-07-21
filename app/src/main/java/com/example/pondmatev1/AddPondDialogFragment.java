@@ -47,6 +47,9 @@ public class AddPondDialogFragment extends DialogFragment {
         dateStarted = view.findViewById(R.id.dateStarted);
         tvDateHarvest = view.findViewById(R.id.tvDateHarvest);
         btnSave = view.findViewById(R.id.btnSavePond);
+        TextView closeDialog = view.findViewById(R.id.btnClose);
+
+        closeDialog.setOnClickListener(v -> dismiss());
 
         Calendar today = Calendar.getInstance();
         dateStarted.init(
@@ -64,19 +67,37 @@ public class AddPondDialogFragment extends DialogFragment {
                     tvDateHarvest.setText("Harvest Date: " + sdf.format(harvestCalendar.getTime()));
                 });
 
-        btnSave.setOnClickListener(v -> {
+        btnSave.setOnClickListener(v ->  {
             String name = etPondName.getText().toString().trim();
             String breed = etBreed.getText().toString().trim();
-            int fishCount = Integer.parseInt(etFishCount.getText().toString().trim());
-            double cost = Double.parseDouble(etCostPerFish.getText().toString().trim());
+            String fishCountStr = etFishCount.getText().toString().trim();
+            String costStr = etCostPerFish.getText().toString().trim();
 
+            if (name.isEmpty() || breed.isEmpty() || fishCountStr.isEmpty() || costStr.isEmpty()) {
+                Toast.makeText(getContext(), "Please fill out all fields.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int fishCount;
+            double cost;
+
+            try {
+                fishCount = Integer.parseInt(fishCountStr);
+                cost = Double.parseDouble(costStr);
+            } catch (NumberFormatException e) {
+                Toast.makeText(getContext(), "Invalid number format.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Save to SharedPreferences
             SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("fish_breed", etBreed.getText().toString().trim());
-            editor.putString("fish_amount", etCostPerFish.getText().toString().trim());
-            editor.putString("number_fish", etFishCount.getText().toString().trim());
+            editor.putString("fish_breed", breed);
+            editor.putString("fish_amount", costStr);
+            editor.putString("number_fish", fishCountStr);
             editor.apply();
 
+            // Format dates
             String dateStartedStr = dateStarted.getYear() + "-" +
                     String.format(Locale.getDefault(), "%02d", (dateStarted.getMonth() + 1)) + "-" +
                     String.format(Locale.getDefault(), "%02d", dateStarted.getDayOfMonth());
@@ -93,8 +114,10 @@ public class AddPondDialogFragment extends DialogFragment {
             PondSyncManager.uploadPondToServer(getContext(), pond);
 
             if (listener != null) listener.onPondAdded(pond);
+
             dismiss();
         });
+
 
         return view;
     }

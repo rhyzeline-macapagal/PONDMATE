@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:gravity="center_horizontal"
+    android:orientation="vertical"
     android:padding="20dp">
 
     <LinearLayout
@@ -16,13 +17,31 @@
         android:maxWidth="360dp"
         android:padding="15dp">
 
-        <ScrollView
+        <!-- ✖ Close Button Header -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/btnClose"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✖"
+                android:textSize="20sp"
+                android:textColor="#4A4947"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                android:padding="8dp"
+                android:layout_marginBottom="4dp"/>
+        </RelativeLayout>
+
+        <ScrollView  
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical">
 
                 <TextView
@@ -34,6 +53,7 @@
                     android:fontFamily="sans-serif"
                     android:textSize="20sp"
                     android:layout_gravity="center" />
+
                 <EditText
                     android:id="@+id/etPondName"
                     android:layout_width="match_parent"
@@ -110,9 +130,7 @@
                     app:cornerRadius="1dp"
                     android:fontFamily="sans-serif"
                     android:textColor="#FFFFFF"/>
-
             </LinearLayout>
         </ScrollView>
-
     </LinearLayout>
 </LinearLayout>

@@ -148,7 +148,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_PONDS, null);
     }
 
-    // ------------------- CARETAKER OPERATIONS -------------------
+
     public ArrayList<CaretakerModel> getCaretakersList() {
         ArrayList<CaretakerModel> list = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -169,6 +169,65 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         return list;
     }
+
+    public ArrayList<PondModel> getAllPondsList() {
+        ArrayList<PondModel> list = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_PONDS, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                PondModel pond = new PondModel(
+                        cursor.getString(cursor.getColumnIndexOrThrow("name")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("breed")),
+                        cursor.getInt(cursor.getColumnIndexOrThrow("fish_count")),
+                        cursor.getDouble(cursor.getColumnIndexOrThrow("cost_per_fish")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("date_started")),
+                        cursor.getString(cursor.getColumnIndexOrThrow("date_harvest")),
+                        "DATA"  // assuming you use this tag in your adapter
+                );
+                list.add(pond);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return list;
+    }
+
+
+    // Inside DatabaseHelper.java
+    // Check if pond already exists
+    public boolean isPondExists(String name, String dateStarted) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_PONDS +
+                " WHERE name = ? AND date_started = ?", new String[]{name, dateStarted});
+        boolean exists = cursor.getCount() > 0;
+        cursor.close();
+        return exists;
+    }
+
+
+
+
+    public void insertPond(String name, String breed, int fishCount, double costPerFish, String dateStarted, String dateHarvest) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("name", name);
+        values.put("breed", breed);
+        values.put("fish_count", fishCount);
+        values.put("cost_per_fish", costPerFish);
+        values.put("date_started", dateStarted);
+        values.put("date_harvest", dateHarvest);
+        db.insert(TABLE_PONDS, null, values);
+    }
+
+    public void clearPondsTable() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("DELETE FROM " + TABLE_PONDS);
+        db.close();
+    }
+
+
 
 
 }

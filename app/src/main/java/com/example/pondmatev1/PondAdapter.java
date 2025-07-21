@@ -1,5 +1,6 @@
 package com.example.pondmatev1;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.view.*;
@@ -43,6 +44,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
+
                 ));
 
                 holder.itemView.setOnClickListener(v -> {
@@ -79,6 +81,9 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 intent.putExtra("date_started", pond.getDateStarted());
                 intent.putExtra("date_harvest", pond.getDateHarvest());
                 context.startActivity(intent);
+                if (context instanceof Activity) {
+                    ((Activity) context).overridePendingTransition(R.anim.fade_in,0);
+                }
             });
         }
     }

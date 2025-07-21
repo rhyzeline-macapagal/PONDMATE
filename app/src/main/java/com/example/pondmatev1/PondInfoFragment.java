@@ -14,6 +14,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.google.gson.Gson;
+
 import java.util.Locale;
 
 public class PondInfoFragment extends Fragment {
@@ -60,16 +62,21 @@ public class PondInfoFragment extends Fragment {
         tvEstDeadFish = view.findViewById(R.id.tvEstimatedDeadFish);
         btnEdit = view.findViewById(R.id.btnEditPond);
 
-        if (getArguments() != null) {
-            int fishCount = getArguments().getInt("fish_count");
-            double costPerFish = getArguments().getDouble("cost_per_fish");
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
 
-            tvPondName.setText(getArguments().getString("name"));
-            tvBreed.setText(getArguments().getString("breed"));
-            tvFishCount.setText(String.valueOf(getArguments().getInt("fish_count")));
-            tvCostPerFish.setText(String.valueOf(getArguments().getDouble("cost_per_fish")));
-            tvDateStarted.setText(getArguments().getString("date_started"));
-            tvHarvestDate.setText(getArguments().getString("date_harvest"));
+        if (pondJson != null) {
+            PondModel selectedPond = new Gson().fromJson(pondJson, PondModel.class);
+
+            int fishCount = selectedPond.getFishCount();
+            double costPerFish = selectedPond.getCostPerFish();
+
+            tvPondName.setText(selectedPond.getName());
+            tvBreed.setText(selectedPond.getBreed());
+            tvFishCount.setText(String.valueOf(fishCount));
+            tvCostPerFish.setText(String.valueOf(costPerFish));
+            tvDateStarted.setText(selectedPond.getDateStarted());
+            tvHarvestDate.setText(selectedPond.getDateHarvest());
 
             updateMortalityData(fishCount);
         }

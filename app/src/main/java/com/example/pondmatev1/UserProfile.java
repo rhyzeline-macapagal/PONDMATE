@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -47,11 +48,24 @@ public class UserProfile extends Fragment {
 
         Button logoutButton = view.findViewById(R.id.btnLogout);
         logoutButton.setOnClickListener(v -> {
-            sessionManager.clearSession();
-            Intent intent = new Intent(requireContext(), login.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
+            new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Logout")
+                    .setMessage("Are you sure you want to logout?")
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        sessionManager.clearSession();
+                        Intent intent = new Intent(requireContext(), login.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                    })
+                    .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                    .show();
         });
+
+        ImageButton btnClose = view.findViewById(R.id.btnCloseProfile);
+        btnClose.setOnClickListener(v -> {
+            requireActivity().getSupportFragmentManager().popBackStack();
+        });
+
 
         imgProfilePhoto = view.findViewById(R.id.imgProfilePhoto);
         Button changePhotoButton = view.findViewById(R.id.btnChangePhoto);

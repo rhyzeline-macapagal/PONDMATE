@@ -40,6 +40,8 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         caretakers = dbHelper.getCaretakersList();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
+        TextView closecaretaker = findViewById(R.id.closeCaretaker);
+        closecaretaker.setOnClickListener(v -> finish());
 
 
         adapter = new CaretakerAdapter(this, caretakers, new CaretakerAdapter.OnItemClickListener() {
@@ -68,7 +70,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         TextView closeDialog = dialog.findViewById(R.id.closeDialog);
         closeDialog.setOnClickListener(v -> dialog.dismiss());
 
-        // Input fields
+
         EditText username = dialog.findViewById(R.id.editUsername);
         EditText password = dialog.findViewById(R.id.editPassword);
         EditText fullName = dialog.findViewById(R.id.editFullName);

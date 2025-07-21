@@ -84,7 +84,7 @@ public class login extends AppCompatActivity {
         // Sync data from server if online
         if (isInternetAvailable()) {
             syncUsersFromServer();
-            syncPondsFromServer();
+            //syncPondsFromServer();
         }
 
         loadPreferences();
@@ -161,6 +161,7 @@ public class login extends AppCompatActivity {
                             }
 
                             startActivity(new Intent(this, PondDashboardActivity.class));
+                            overridePendingTransition(R.anim.zoom_in, R.anim.fade_out);
                             finish();
 
                         } else {
@@ -192,6 +193,8 @@ public class login extends AppCompatActivity {
             session.saveUsertype(usertype);
             Toast.makeText(this, "✅ Offline login successful", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, PondDashboardActivity.class));
+            overridePendingTransition(R.anim.slide_in_bottom, R.anim.fade_out);
+
             finish();
         } else {
             Toast.makeText(this, "❌ Invalid credentials (offline)", Toast.LENGTH_SHORT).show();
@@ -249,7 +252,7 @@ public class login extends AppCompatActivity {
         }).start();
     }
 
-    private void syncPondsFromServer() {
+    /*private void syncPondsFromServer() {
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/get_ponds.php");
@@ -291,7 +294,7 @@ public class login extends AppCompatActivity {
                 e.printStackTrace();
             }
         }).start();
-    }
+    }*/
 
     private boolean isInternetAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
