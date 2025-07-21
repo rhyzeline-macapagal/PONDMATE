@@ -20,7 +20,7 @@
         android:padding="8dp"
         android:backgroundTint="#4CD3D3D3"
         android:fontFamily="sans-serif-light"
-        android:textColor="#000000"
+        android:textColor="#4A4947"
         app:cornerRadius="10dp"
         android:drawableEnd="@drawable/ic_dropdown_arrow"/>
 
@@ -38,7 +38,7 @@
         android:inputType="numberDecimal"
         android:paddingStart="8dp"
         android:textAlignment="textEnd"
-        android:textColorHint="#000000"
+        android:textColorHint="#4A4947"
         android:textSize="14sp"
         android:background="@drawable/rounded_edittext"
         android:padding="12dp"/>

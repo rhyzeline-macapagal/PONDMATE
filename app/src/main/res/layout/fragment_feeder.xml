@@ -2,16 +2,35 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:gravity="center"
     android:background="@drawable/bgapp">
 
-    <TextView
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="📍 Feeder"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="#333"  />
+        android:layout_height="wrap_content"
+        android:padding="8dp">
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/tablayout_feeders"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            app:tabMode="fixed"
+            app:tabGravity="fill"
+            app:tabSelectedTextColor="#DCD5C5"
+            app:tabTextColor="#585653"
+            app:tabIndicatorColor="@android:color/transparent"
+            app:tabIndicatorFullWidth="true"
+            app:tabIndicator="@drawable/indicator_inset"
+            app:tabRippleColor="@android:color/transparent"
+            android:background="@drawable/tab_layout"/>
+    </FrameLayout>
+
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </LinearLayout>
