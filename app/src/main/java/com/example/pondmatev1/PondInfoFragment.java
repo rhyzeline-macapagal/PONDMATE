@@ -49,6 +49,7 @@ public class PondInfoFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_pond_info, container, false);
     }
 
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -81,50 +82,32 @@ public class PondInfoFragment extends Fragment {
 
             updateMortalityData(fishCount);
 
-            pond = new PondModel(
-                    getArguments().getString("name"),
-                    getArguments().getString("breed"),
-                    getArguments().getInt("fish_count"),
-                    getArguments().getDouble("cost_per_fish"),
-                    getArguments().getString("date_started"),
-                    getArguments().getString("date_harvest")
-            );
+            pond = selectedPond;
 
             PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
             viewModel.setSelectedPond(pond);
         }
 
         String userType = new SessionManager(requireContext()).getUsertype();
-        if ("owner".equalsIgnoreCase(userType)) {
-            btnEdit.setVisibility(View.VISIBLE);
-        } else {
-            btnEdit.setVisibility(View.GONE);
-        }
+        btnEdit.setVisibility("owner".equalsIgnoreCase(userType) ? View.VISIBLE : View.GONE);
 
         btnEdit.setOnClickListener(v -> {
             if (!isEditing) {
-                // Switch to Edit mode
                 btnEdit.setText("Save");
                 tvPondName.setEnabled(true);
                 tvCostPerFish.setEnabled(true);
                 tvPondName.requestFocus();
                 isEditing = true;
             } else {
-                // Switch to Save mode
                 btnEdit.setText("Edit");
                 tvPondName.setEnabled(false);
                 tvCostPerFish.setEnabled(false);
-
-                // Optionally save or process the updated values here
-                String newName = tvPondName.getText().toString().trim();
-                String newCost = tvCostPerFish.getText().toString().trim();
-                // TODO: Save these values (database)
-
+                // TODO: Save updated values
                 isEditing = false;
             }
         });
-
     }
+
     private void updateMortalityData(int fishCount) {
         if (fishCount > 0) {
             int estimatedDead = (int) Math.ceil(fishCount * 0.10);
