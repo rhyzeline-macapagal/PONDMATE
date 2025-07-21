@@ -19,7 +19,8 @@ import java.util.Locale;
 
 public class AddPondDialogFragment extends DialogFragment {
 
-    private EditText etPondName, etBreed, etFishCount, etCostPerFish;
+    private EditText etPondName, etFishCount, etCostPerFish;
+    private Spinner spinnerBreed;
     private DatePicker dateStarted;
     private TextView tvDateHarvest;
     private Button btnSave;
@@ -41,13 +42,20 @@ public class AddPondDialogFragment extends DialogFragment {
         View view = inflater.inflate(R.layout.dialog_add_pond, container, false);
 
         etPondName = view.findViewById(R.id.etPondName);
-        etBreed = view.findViewById(R.id.etBreed);
+        spinnerBreed = view.findViewById(R.id.spinnerBreed);
         etFishCount = view.findViewById(R.id.etFishCount);
         etCostPerFish = view.findViewById(R.id.etCostPerFish);
         dateStarted = view.findViewById(R.id.dateStarted);
         tvDateHarvest = view.findViewById(R.id.tvDateHarvest);
         btnSave = view.findViewById(R.id.btnSavePond);
         TextView closeDialog = view.findViewById(R.id.btnClose);
+
+        // Populate spinner with fish breeds
+        String[] fishBreeds = {"Tilapia", "Bangus", "Alimango"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_spinner_item, fishBreeds);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerBreed.setAdapter(adapter);
 
         closeDialog.setOnClickListener(v -> dismiss());
 
@@ -69,7 +77,7 @@ public class AddPondDialogFragment extends DialogFragment {
 
         btnSave.setOnClickListener(v ->  {
             String name = etPondName.getText().toString().trim();
-            String breed = etBreed.getText().toString().trim();
+            String breed = spinnerBreed.getSelectedItem().toString(); // Get breed from spinner
             String fishCountStr = etFishCount.getText().toString().trim();
             String costStr = etCostPerFish.getText().toString().trim();
 
@@ -117,7 +125,6 @@ public class AddPondDialogFragment extends DialogFragment {
 
             dismiss();
         });
-
 
         return view;
     }

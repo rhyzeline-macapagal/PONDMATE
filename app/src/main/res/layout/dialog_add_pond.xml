@@ -30,7 +30,6 @@
                 android:textSize="20sp"
                 android:textColor="#4A4947"
                 android:layout_alignParentEnd="true"
-                android:layout_alignParentRight="true"
                 android:padding="8dp"
                 android:layout_marginBottom="4dp"/>
         </RelativeLayout>
@@ -54,51 +53,92 @@
                     android:textSize="20sp"
                     android:layout_gravity="center" />
 
+                <!-- Pond Name -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Pond Name:"
+                    android:textColor="#4A4947"
+                    android:textSize="16sp"
+                    android:layout_marginTop="4dp"/>
+
                 <EditText
                     android:id="@+id/etPondName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="18sp"
-                    android:layout_marginBottom="6dp"
-                    android:backgroundTint="#787575"
-                    android:fontFamily="sans-serif"
-                    android:hint="Pond Name"
-                    android:textColor="#4A4947" />
-
-                <EditText
-                    android:id="@+id/etBreed"
-                    android:hint="Fish Breed"
+                    android:hint="Enter pond name"
                     android:backgroundTint="#787575"
                     android:textColor="#4A4947"
-                    android:fontFamily="sans-serif"
                     android:textSize="18sp"
                     android:layout_marginBottom="6dp"
+                    android:fontFamily="sans-serif" />
+
+                <!-- Fish Breed -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fish Breed:"
+                    android:textColor="#4A4947"
+                    android:textSize="16sp"
+                    android:layout_marginTop="4dp"/>
+
+                <Spinner
+                    android:id="@+id/spinnerBreed"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:spinnerMode="dropdown" />
+
+                <!-- Fish Count -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No. of Fishes:"
+                    android:textColor="#4A4947"
+                    android:textSize="16sp"
+                    android:layout_marginTop="4dp"/>
 
                 <EditText
                     android:id="@+id/etFishCount"
-                    android:hint="No. of Fishes"
-                    android:inputType="number"
-                    android:fontFamily="sans-serif"
-                    android:backgroundTint="#787575"
-                    android:textSize="18sp"
-                    android:textColor="#31312F"
-                    android:layout_marginBottom="6dp"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+                    android:layout_height="wrap_content"
+                    android:hint="Enter number"
+                    android:inputType="number"
+                    android:backgroundTint="#787575"
+                    android:textColor="#31312F"
+                    android:textSize="18sp"
+                    android:layout_marginBottom="6dp"
+                    android:fontFamily="sans-serif"/>
+
+                <!-- Cost per Fingerling -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cost per Fingerling:"
+                    android:textColor="#4A4947"
+                    android:textSize="16sp"
+                    android:layout_marginTop="4dp"/>
 
                 <EditText
                     android:id="@+id/etCostPerFish"
-                    android:hint="Cost per Fingerling"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Enter cost"
                     android:inputType="numberDecimal"
                     android:backgroundTint="#787575"
-                    android:fontFamily="sans-serif"
-                    android:textSize="18sp"
                     android:textColor="#4A4947"
+                    android:textSize="18sp"
                     android:layout_marginBottom="6dp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"/>
+                    android:fontFamily="sans-serif"/>
+
+                <!-- Date Started -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Date Started:"
+                    android:textColor="#4A4947"
+                    android:textSize="16sp"
+                    android:layout_marginTop="4dp"/>
 
                 <DatePicker
                     android:id="@+id/dateStarted"
@@ -107,29 +147,38 @@
                     android:layout_gravity="center"
                     android:theme="@style/CustomDatePickerTheme" />
 
+                <!-- Estimated Harvest Date -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Estimated Harvest Date:"
+                    android:textColor="#4A4947"
+                    android:textSize="16sp"
+                    android:layout_marginTop="6dp"/>
+
                 <TextView
                     android:id="@+id/tvDateHarvest"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Estimated Harvest Date"
+                    android:text="Tap to calculate"
                     android:fontFamily="sans-serif"
                     android:textColor="#4A4947"
                     android:background="#D8D2C2"
                     android:textSize="18sp"
-                    android:layout_marginTop="6dp"
                     android:layout_marginBottom="10dp" />
 
+                <!-- Save Button -->
                 <Button
                     android:id="@+id/btnSavePond"
-                    android:text="SAVE"
                     android:layout_width="200dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:text="CREATE POND"
                     android:backgroundTint="#4A4947"
+                    android:textColor="#FFFFFF"
                     android:layout_gravity="center"
-                    app:cornerRadius="1dp"
+                    android:layout_marginTop="8dp"
                     android:fontFamily="sans-serif"
-                    android:textColor="#FFFFFF"/>
+                    app:cornerRadius="1dp"/>
             </LinearLayout>
         </ScrollView>
     </LinearLayout>

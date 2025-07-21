@@ -88,6 +88,7 @@ public class PondInfoFragment extends Fragment {
             viewModel.setSelectedPond(pond);
         }
 
+
         String userType = new SessionManager(requireContext()).getUsertype();
         btnEdit.setVisibility("owner".equalsIgnoreCase(userType) ? View.VISIBLE : View.GONE);
 
