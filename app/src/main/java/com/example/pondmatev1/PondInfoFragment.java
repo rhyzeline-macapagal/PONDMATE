@@ -20,16 +20,12 @@ import com.google.gson.Gson;
 import java.util.Locale;
 
 public class PondInfoFragment extends Fragment {
-
     private TextView tvBreed, tvFishCount, tvDateStarted, tvHarvestDate, tvMortalityRate, tvEstDeadFish;
     private Button btnEdit;
-
     private PondModel pond;
     private boolean isEditing = false;
     private EditText tvPondName, tvCostPerFish;
-
     public PondInfoFragment() {}
-
     public static PondInfoFragment newInstance(PondModel pond) {
         PondInfoFragment fragment = new PondInfoFragment();
         Bundle args = new Bundle();
@@ -82,7 +78,12 @@ public class PondInfoFragment extends Fragment {
 
             updateMortalityData(fishCount);
 
-            pond = selectedPond;
+            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("fish_breed", tvBreed.getText().toString().trim());
+            editor.putString("fish_amount", tvCostPerFish.getText().toString().trim());
+            editor.putString("number_fish", tvFishCount.getText().toString().trim());
+            editor.apply();
 
             PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
             viewModel.setSelectedPond(pond);

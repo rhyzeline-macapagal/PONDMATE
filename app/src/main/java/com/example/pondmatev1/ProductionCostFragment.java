@@ -551,16 +551,7 @@ public class ProductionCostFragment extends Fragment {
         tvfishamount.setText(amount);
         tvnumberoffish.setText(number);
 
-        try {
-            double amountPerPiece = Double.parseDouble(amount);
-            int numberOfFish = Integer.parseInt(number);
-            double totalCost = amountPerPiece * numberOfFish;
-
-            tvfishcost.setText(String.format("%.2f", totalCost));
-        } catch (NumberFormatException e) {
-            tvfishcost.setText("0.00");
-        }
-
+        calculateFishCost(tvfishamount.getText().toString(), tvnumberoffish.getText().toString());
         calculateTotalCapital();
     }
     private double parseDoubleOrZero(String value) {
@@ -581,4 +572,19 @@ public class ProductionCostFragment extends Fragment {
 
         container.addView(row);
     }
+
+    private void calculateFishCost(String amountStr, String numberStr) {
+        try {
+            double amountPerPiece = Double.parseDouble(amountStr.trim());
+            double numberOfFish = Double.parseDouble(numberStr.trim());
+            double totalCost = amountPerPiece * numberOfFish;
+            tvfishcost.setText(String.format("%.2f", totalCost));
+        } catch (NumberFormatException e) {
+            tvfishcost.setText("0.00");
+        }
+
+        calculateTotalCapital();
+    }
+
+
 }
