@@ -80,9 +80,8 @@ public class MainActivity extends AppCompatActivity {
         profileIcon.setOnClickListener(v -> {
             bottomNavigation.setVisibility(View.GONE);
             backBtn.setVisibility(View.GONE);
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.con, new UserProfile())
-                    .commit();
+            UserProfileDialogFragment dialog = new UserProfileDialogFragment();
+            dialog.show(getSupportFragmentManager(), "UserProfileDialog");
         });
 
 

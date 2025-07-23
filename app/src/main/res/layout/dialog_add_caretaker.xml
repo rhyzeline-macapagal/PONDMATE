@@ -24,38 +24,47 @@
             android:layout_gravity="end"/>
     </RelativeLayout>
 
+    <!-- Title -->
+    <TextView
+        android:id="@+id/dialogTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Create New Caretaker Account"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        android:gravity="center"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="20dp"/>
+
     <!-- Input fields -->
     <EditText
         android:id="@+id/editUsername"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Username"
-        android:inputType="textPersonName"
-        />
+        android:inputType="textPersonName" />
 
     <EditText
         android:id="@+id/editPassword"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Password"
-        android:inputType="textPassword"
-        />
+        android:inputType="textPassword" />
 
     <EditText
         android:id="@+id/editFullName"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Full Name"
-        android:inputType="textPersonName"
-        />
+        android:inputType="textPersonName" />
 
     <EditText
         android:id="@+id/editAddress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Address"
-        android:inputType="textPostalAddress"
-        />
+        android:inputType="textPostalAddress" />
 
     <!-- Save Button -->
     <Button

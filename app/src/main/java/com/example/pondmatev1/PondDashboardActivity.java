@@ -38,9 +38,8 @@ public class PondDashboardActivity extends AppCompatActivity {
         ImageView profileIcon = findViewById(R.id.profileIcon);
 
         profileIcon.setOnClickListener(v -> {
-            getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.con, new UserProfile())
-                    .commit();
+            UserProfileDialogFragment dialog = new UserProfileDialogFragment();
+            dialog.show(getSupportFragmentManager(), "UserProfileDialog");
         });
 
 

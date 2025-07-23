@@ -1,37 +1,32 @@
 package com.example.pondmatev1;
 
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.fragment.app.Fragment;
-import android.app.Activity;
-import android.content.Intent;
-import android.net.Uri;
-import android.provider.MediaStore;
-import android.widget.ImageView;
-
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.fragment.app.DialogFragment;
+
 import com.google.android.material.imageview.ShapeableImageView;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class UserProfile extends Fragment {
+public class UserProfileDialogFragment extends DialogFragment {
 
     private DatabaseHelper dbHelper;
     private SessionManager sessionManager;
@@ -41,11 +36,28 @@ public class UserProfile extends Fragment {
     private ShapeableImageView imgProfilePhoto;
     private ActivityResultLauncher<Intent> imagePickerLauncher;
 
+    @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_user_profile, container, false);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_user_profile, container, false);
+    }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        Dialog dialog = getDialog();
+        if (getDialog() != null && getDialog().getWindow() != null) {
+            Window window = getDialog().getWindow();
+            window.setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setGravity(Gravity.CENTER);
+        }
+
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         Button logoutButton = view.findViewById(R.id.btnLogout);
         logoutButton.setOnClickListener(v -> {
             new androidx.appcompat.app.AlertDialog.Builder(requireContext())
@@ -56,16 +68,14 @@ public class UserProfile extends Fragment {
                         Intent intent = new Intent(requireContext(), login.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                         startActivity(intent);
+                        dismiss(); // close the dialog
                     })
                     .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                     .show();
         });
 
-        ImageButton btnClose = view.findViewById(R.id.btnCloseProfile);
-        btnClose.setOnClickListener(v -> {
-            requireActivity().getSupportFragmentManager().popBackStack();
-        });
-
+        TextView closeCaretaker = view.findViewById(R.id.closeCaretaker);
+        closeCaretaker.setOnClickListener(v -> dismiss());
 
         imgProfilePhoto = view.findViewById(R.id.imgProfilePhoto);
         Button changePhotoButton = view.findViewById(R.id.btnChangePhoto);
@@ -107,10 +117,7 @@ public class UserProfile extends Fragment {
         }
 
         loadSavedProfilePhoto();
-
-        return view;
     }
-
 
     private void saveProfileImage(Uri imageUri) {
         try {
@@ -127,12 +134,10 @@ public class UserProfile extends Fragment {
             outputStream.close();
             inputStream.close();
 
-            // save path to sharedpref
             SharedPreferences prefs = requireContext().getSharedPreferences("user_profile", Activity.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
             editor.putString("profile_photo_path_" + sessionManager.getUsername(), file.getAbsolutePath());
             editor.apply();
-
 
             imgProfilePhoto.setImageURI(Uri.fromFile(file));
 
@@ -141,7 +146,6 @@ public class UserProfile extends Fragment {
         }
     }
 
-    // pang load ng pis from internal storage
     private void loadSavedProfilePhoto() {
         SharedPreferences prefs = requireContext().getSharedPreferences("user_profile", Activity.MODE_PRIVATE);
         String path = prefs.getString("profile_photo_path_" + sessionManager.getUsername(), null);
@@ -152,4 +156,5 @@ public class UserProfile extends Fragment {
             }
         }
     }
+    
 }
