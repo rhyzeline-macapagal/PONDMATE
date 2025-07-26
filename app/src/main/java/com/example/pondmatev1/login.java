@@ -178,8 +178,10 @@ public class login extends AppCompatActivity {
 
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "⚠️ Network error", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> {
+                Toast.makeText(this, "⚠️ Network error", Toast.LENGTH_SHORT).show();
                 loginButton.setEnabled(true);
+                });
             }
         }).start();
     }

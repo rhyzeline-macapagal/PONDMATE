@@ -18,8 +18,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="POND INFORMATION"
-            android:textColor="#4A4947"
             android:layout_marginBottom="8dp"
+            android:textColor="#4A4947"
             android:fontFamily="sans-serif"
             android:textSize="22sp"
             android:layout_gravity="center" />

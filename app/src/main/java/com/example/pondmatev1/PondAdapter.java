@@ -62,7 +62,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
             }
         } else {
-            holder.pondImage.setImageResource(R.drawable.pondicon);
+            holder.pondImage.setImageResource(R.drawable.pondv);
             holder.pondName.setText(pond.getName());
             holder.pondName.setVisibility(View.VISIBLE);
             holder.itemView.setVisibility(View.VISIBLE);

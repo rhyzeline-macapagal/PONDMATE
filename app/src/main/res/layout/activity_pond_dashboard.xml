@@ -5,7 +5,6 @@
     android:id="@+id/pondDashboardLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#012E43"
     android:fitsSystemWindows="true"
     tools:context=".PondDashboardActivity">
 
@@ -81,9 +80,10 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/pondRecyclerView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:padding="8dp"
-            android:clipToPadding="false" />
+            android:clipToPadding="false"
+            android:background="@android:color/transparent" />
     </FrameLayout>
 
 </RelativeLayout>

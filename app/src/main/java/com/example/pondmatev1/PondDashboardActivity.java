@@ -9,6 +9,7 @@ import android.widget.ImageView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
@@ -52,10 +53,12 @@ public class PondDashboardActivity extends AppCompatActivity {
         pondRecyclerView = findViewById(R.id.pondRecyclerView);
         int spacing = getResources().getDimensionPixelSize(R.dimen.pond_card_spacing);
         pondRecyclerView.addItemDecoration(new SpacingItemDecoration(spacing));
+        pondRecyclerView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
 
         pondList = new ArrayList<>();
         pondAdapter = new PondAdapter(this, pondList, userType);
-        pondRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        pondRecyclerView.setLayoutManager(layoutManager);
         pondRecyclerView.setAdapter(pondAdapter);
 
         PondSyncManager.syncPondsFromServer(this);

@@ -2,6 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:fitsSystemWindows="true"
     android:background="#F5F5F5">
 
@@ -20,7 +21,7 @@
             android:layout_height="wrap_content"
             android:text="✖"
             android:textSize="18sp"
-            android:textColor="#000000"
+            android:textColor="#4A4947"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
             android:layout_gravity="end"/>
@@ -30,9 +31,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Caretaker List"
+            android:fontFamily="sans-serif"
+            android:textColor="#4A4947"
             android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_gravity="center_horizontal"
+            android:layout_gravity="center"
             android:layout_marginBottom="16dp" />
 
 
@@ -40,16 +43,21 @@
             android:id="@+id/btnAddCaretaker"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add Caretaker"
+            android:text="+ Caretaker"
             android:layout_gravity="end"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            android:backgroundTint="#4A4947"
+            android:gravity="center"
+            app:cornerRadius="5dp"
+            android:fontFamily="sans-serif"
+            android:textColor="#FFFFFF"/>
 
         <!-- Table Headers -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:background="#CCCCCC"
+            android:background="@drawable/tableheader"
             android:padding="8dp"
             android:layout_marginBottom="4dp">
 
@@ -58,50 +66,53 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Username"
-                android:textStyle="bold"
                 android:gravity="center"
-                android:background="@drawable/border_bg" />
+                android:textColor="#FFFFFF"
+                android:fontFamily="sans-serif" />
 
             <TextView
                 android:layout_weight="1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Password"
-                android:textStyle="bold"
                 android:gravity="center"
-                android:background="@drawable/border_bg" />
+                android:textColor="#FFFFFF"
+                android:fontFamily="sans-serif" />
 
             <TextView
                 android:layout_weight="1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Full Name"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:background="@drawable/border_bg" />
+                android:textColor="#FFFFFF"
+                android:fontFamily="sans-serif"
+                android:gravity="center" />
 
             <TextView
                 android:layout_weight="1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Address"
-                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:fontFamily="sans-serif"
                 android:gravity="center"
-                android:background="@drawable/border_bg" />
+                />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="✏️"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/border_bg" />
+                android:textColor="#FFFFFF"
+                android:fontFamily="sans-serif"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="🗑️"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/border_bg" />
+                android:textColor="#FFFFFF"
+                android:fontFamily="sans-serif" />
         </LinearLayout>
 
         <!-- RecyclerView list -->
