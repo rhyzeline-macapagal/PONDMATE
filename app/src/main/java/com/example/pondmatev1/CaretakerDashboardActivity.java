@@ -39,7 +39,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
 
         caretakers = dbHelper.getCaretakersList();
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-
+ 
         TextView closecaretaker = findViewById(R.id.closeCaretaker);
         closecaretaker.setOnClickListener(v -> finish());
 
