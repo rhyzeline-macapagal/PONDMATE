@@ -78,8 +78,6 @@ public class MainActivity extends AppCompatActivity {
         ImageView profileIcon = findViewById(R.id.profileIcon);
 
         profileIcon.setOnClickListener(v -> {
-            bottomNavigation.setVisibility(View.GONE);
-            backBtn.setVisibility(View.GONE);
             UserProfileDialogFragment dialog = new UserProfileDialogFragment();
             dialog.show(getSupportFragmentManager(), "UserProfileDialog");
         });
