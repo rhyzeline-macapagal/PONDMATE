@@ -83,7 +83,10 @@ public class PondInfoFragment extends Fragment {
             editor.putString("fish_breed", tvBreed.getText().toString().trim());
             editor.putString("fish_amount", tvCostPerFish.getText().toString().trim());
             editor.putString("number_fish", tvFishCount.getText().toString().trim());
+            editor.putString("date_started", tvDateStarted.getText().toString().trim());
+            editor.putString("date_harvest", tvHarvestDate.getText().toString().trim());
             editor.apply();
+
 
             PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
             viewModel.setSelectedPond(pond);

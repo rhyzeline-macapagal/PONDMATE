@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- res/drawable/bg_activity_list.xml -->
+    <shape xmlns:android="http://schemas.android.com/apk/res/android"
+        android:shape="rectangle">
+        <solid android:color="#F0F8FF" /> <!-- light bluish background -->
+        <corners android:radius="12dp" />
+        <padding android:left="8dp" android:top="8dp" android:right="8dp" android:bottom="8dp" />
+    </shape>
+
+</selector>

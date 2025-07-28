@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="calendar_modes">
+        <item>Show Calendar</item>
+        <item>Hide Calendar</item>
+    </string-array>
+
+</resources>

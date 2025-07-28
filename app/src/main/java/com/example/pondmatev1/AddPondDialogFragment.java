@@ -77,7 +77,7 @@ public class AddPondDialogFragment extends DialogFragment {
 
         btnSave.setOnClickListener(v ->  {
             String name = etPondName.getText().toString().trim();
-            String breed = spinnerBreed.getSelectedItem().toString(); // Get breed from spinner
+            String breed = spinnerBreed.getSelectedItem().toString();
             String fishCountStr = etFishCount.getText().toString().trim();
             String costStr = etCostPerFish.getText().toString().trim();
 
@@ -97,34 +97,34 @@ public class AddPondDialogFragment extends DialogFragment {
                 return;
             }
 
-            // Save to SharedPreferences
-            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("fish_breed", breed);
-            editor.putString("fish_amount", costStr);
-            editor.putString("number_fish", fishCountStr);
-            editor.apply();
-
-            // Format dates
+            // ✅ Format dates first
             String dateStartedStr = dateStarted.getYear() + "-" +
                     String.format(Locale.getDefault(), "%02d", (dateStarted.getMonth() + 1)) + "-" +
                     String.format(Locale.getDefault(), "%02d", dateStarted.getDayOfMonth());
 
             String dateHarvestStr = tvDateHarvest.getText().toString().replace("Harvest Date: ", "");
 
+            // ✅ Now save to SharedPreferences
+            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString("fish_breed", breed);
+            editor.putString("fish_amount", costStr);
+            editor.putString("number_fish", fishCountStr);
+            editor.putString("date_started", dateStartedStr);
+            editor.apply();
+
+            // Continue with saving pond
             PondModel pond = new PondModel(name, breed, fishCount, cost, dateStartedStr, dateHarvestStr, "DATA");
 
-            // Save to SQLite
             DatabaseHelper dbHelper = new DatabaseHelper(getContext());
             dbHelper.insertPond(pond);
-
-            // Sync to server
             PondSyncManager.uploadPondToServer(getContext(), pond);
 
             if (listener != null) listener.onPondAdded(pond);
 
             dismiss();
         });
+
 
         return view;
     }

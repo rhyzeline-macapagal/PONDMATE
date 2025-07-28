@@ -1,19 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:background="@drawable/bgapp">
+    android:background="#FAFAFA">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <LinearLayout
+        android:id="@+id/layout_activity"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="📍 Activity"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="#333" />
+        <TextView
+            android:id="@+id/tvProductionTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Production Activity"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
 
-</LinearLayout>
+        <!-- Spinner to toggle calendar -->
+        <Spinner
+            android:id="@+id/spinnerCalendarToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:minHeight="48dp"
+            android:paddingHorizontal="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="@android:drawable/btn_dropdown"
+            android:entries="@array/calendar_modes" />
+
+        <!-- Calendar with light brown background -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#F5E7D0"
+            android:elevation="4dp"
+            android:padding="8dp"
+            android:orientation="vertical"
+            android:layout_marginBottom="12dp">
+
+            <com.prolificinteractive.materialcalendarview.MaterialCalendarView
+                android:id="@+id/calendarView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:mcv_showOtherDates="all"
+                app:mcv_firstDayOfWeek="sunday"
+                app:mcv_selectionColor="@android:color/holo_blue_light"
+                app:mcv_weekDayTextAppearance="@style/TextAppearance.AppCompat.Medium"
+                app:mcv_dateTextAppearance="@style/TextAppearance.AppCompat.Small" />
+        </LinearLayout>
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/tvMyActivitiesTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="My Activities"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:layout_marginBottom="4dp"
+            android:padding="4dp"
+            android:textColor="#333333" />
+
+        <!-- Activity List Section -->
+        <LinearLayout
+            android:id="@+id/llActivityList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_activity_list"
+            android:padding="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="12dp" />
+
+    </LinearLayout>
+</ScrollView>
