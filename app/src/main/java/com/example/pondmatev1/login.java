@@ -83,6 +83,7 @@ public class login extends AppCompatActivity {
 
         // Sync data from server if online
         if (isInternetAvailable()) {
+            SyncManager.syncUsersToServer(this, dbHelper);
             syncUsersFromServer();
             //syncPondsFromServer();
         }
