@@ -22,6 +22,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,6 +39,7 @@ public class ProductionCostFragment extends Fragment {
 
     public ProductionCostFragment() {}
     private boolean isEditingROI = false;
+    private PondSharedViewModel pondSharedViewModel;
 
     @Nullable
     @Override
@@ -45,6 +47,7 @@ public class ProductionCostFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_production_cost, container, false);
+
     }
 
     @Override
@@ -103,6 +106,18 @@ public class ProductionCostFragment extends Fragment {
         etfeedercost.addTextChangedListener(capitalWatcher);
         etmaintenancecost.addTextChangedListener(capitalWatcher);
         etsalarycost.addTextChangedListener(capitalWatcher);
+
+        pondSharedViewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
+        String countStr = tvnumberoffish.getText().toString().trim();
+        if (!countStr.isEmpty()) {
+            try {
+                int fishCount = Integer.parseInt(countStr);
+                pondSharedViewModel.setFishCount(fishCount);  // ⬅️ this is crucial
+            } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid fish count", Toast.LENGTH_SHORT).show();
+            }
+        }
+
 
         btnedit.setOnClickListener(new View.OnClickListener() {
             private boolean isEditing = false;
@@ -550,6 +565,16 @@ public class ProductionCostFragment extends Fragment {
         tvfishbreed.setText(breed);
         tvfishamount.setText(amount);
         tvnumberoffish.setText(number);
+
+        String fishCountStr = tvnumberoffish.getText().toString().trim();
+        if (!fishCountStr.isEmpty()) {
+            try {
+                int fishCount = Integer.parseInt(fishCountStr);
+                pondSharedViewModel.setFishCount(fishCount);
+            } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid fish count", Toast.LENGTH_SHORT).show();
+            }
+        }
 
         calculateFishCost(tvfishamount.getText().toString(), tvnumberoffish.getText().toString());
         calculateTotalCapital();

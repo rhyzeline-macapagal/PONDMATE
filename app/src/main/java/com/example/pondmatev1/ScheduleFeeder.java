@@ -44,13 +44,13 @@ public class ScheduleFeeder extends Fragment {
     private ImageButton addTbtn;
 
     private EditText Fweight, feedqttycont;
-    private Button selectDate, selectTime, setManual, Createbtn;
-
+    private Button selectDate, selectTime, Createbtn;
     private TextView dateFS, timeFS;
     private TableLayout SummaryT;
     private boolean isCreating = true;
-    private boolean isManualMode = false;
-    private boolean isManualFeed = false;
+    private PondSharedViewModel pondSharedViewModel;
+    private PondModel currentPond;
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -63,59 +63,33 @@ public class ScheduleFeeder extends Fragment {
         timeFS = view.findViewById(R.id.timeoffeeding);
         selectDate = view.findViewById(R.id.btnselectdate);
         selectTime = view.findViewById(R.id.btnselecttime);
-        setManual = view.findViewById(R.id.btnsetmanually);
         Createbtn = view.findViewById(R.id.createbtn);
         SummaryT= view.findViewById(R.id.summaryTable);
         feedqttycont = view.findViewById(R.id.feedquantity);
         Fweight = view.findViewById(R.id.weight);
 
-        PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
-
-        viewModel.getSelectedPond().observe(getViewLifecycleOwner(), pond -> {
-            if (pond == null) return;
-
-            // Auto-compute feed quantity when weight is entered
-            Fweight.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-                @Override
-                public void afterTextChanged(Editable s) {
-                    if (isManualMode) return;
-                    String weightStr = s.toString().trim();
-
-                    if (weightStr.isEmpty()) {
-                        feedqttycont.setText("--");
-                        return;
-                    }
-
-                    try {
-                        float fishWeight = Float.parseFloat(weightStr);
-                        int fishCount = pond.getFishCount();
-
-                        if (fishCount == 0) {
-                            feedqttycont.setText("--");
-                            return;
-                        }
-
-                        float feedPercentage = 0.04f; // 4% default
-                        float computedFeedQty = feedPercentage * fishWeight * fishCount;
-                        float computedKg = computedFeedQty / 1000f;
-
-                        feedqttycont.setText(String.format(Locale.getDefault(), "%.2f kg", computedKg));
-                    } catch (NumberFormatException e) {
-                        feedqttycont.setText("--");
-                        feedqttycont.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-                        feedqttycont.setTypeface(Typeface.SANS_SERIF);
-                        feedqttycont.setTextColor(Color.parseColor("#908D8D"));
-                    }
-                }
-            });
+        pondSharedViewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
+        pondSharedViewModel.getFishCount().observe(getViewLifecycleOwner(), count -> {
+            computeFeedQuantityIfReady();
         });
 
+        if (pondSharedViewModel.getFishCount().getValue() != null) {
+            computeFeedQuantityIfReady();
+        }
+
+        feedqttycont.setFocusable(false);
+        feedqttycont.setClickable(false);
+        feedqttycont.setCursorVisible(false);
+        feedqttycont.setKeyListener(null);
+
+        Fweight.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override public void afterTextChanged(Editable s) {
+                computeFeedQuantityIfReady();
+            }
+        });
 
         //select date and time
         selectDate.setOnClickListener(v -> {
@@ -181,13 +155,6 @@ public class ScheduleFeeder extends Fragment {
             timePickerDialog.show();
         });
 
-        setManual.setOnClickListener(v -> {
-            isManualMode = true;
-            feedqttycont.setEnabled(true);
-            feedqttycont.requestFocus();
-            feedqttycont.setText("");
-        });
-
         //dynamically added row
         addTbtn.setOnClickListener(v ->addTimeRow(inflater));
 
@@ -195,11 +162,12 @@ public class ScheduleFeeder extends Fragment {
             if (isCreating) {
                 // 🔓 Entering create mode
                 selectDate.setEnabled(true);
-                selectTime.setEnabled(true);
-                setManual.setEnabled(true);
+                selectTime.setEnabled (true);
                 addTbtn.setEnabled(true);
                 Fweight.setEnabled(true);
-                feedqttycont.setEnabled(true);
+                feedqttycont.setEnabled(false);
+
+                computeFeedQuantityIfReady();
 
                 for (int i = 0; i < containert.getChildCount(); i++) {
                     View timeRow = containert.getChildAt(i);
@@ -211,7 +179,6 @@ public class ScheduleFeeder extends Fragment {
 
                 Createbtn.setText("Save");
                 isCreating = false;
-                isManualMode = false;
 
             } else {
                 String staticDate = dateFS.getText().toString();
@@ -228,15 +195,7 @@ public class ScheduleFeeder extends Fragment {
                     feedAmount = 0.0f;
                 }
 
-                // Format depending on manual or auto mode
-                String feedQuantity;
-                if (isManualMode) {
-                    // Manual input is already in kg
-                    feedQuantity = String.format(Locale.getDefault(), "%.2f kg", feedAmount);
-                } else {
-                    // Auto input is in grams, convert to kg
-                    feedQuantity = String.format(Locale.getDefault(), "%.2f kg", feedAmount);
-                }
+                String feedQuantity = String.format(Locale.getDefault(), "%.2f kg", feedAmount);
 
                 int dynamicTimeCount = containert.getChildCount();
 
@@ -247,9 +206,8 @@ public class ScheduleFeeder extends Fragment {
 
                 if (!staticTime.isEmpty()) {
                     String status = getStatus(staticDate, staticTime);
-                    String note = isManualMode ? "Manual" : "Auto";
                     addTableRow(staticDate, staticTime, feedQuantity, status);
-                    Toast.makeText(getContext(), note, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "Automatic", Toast.LENGTH_SHORT).show();
                 }
 
                 for (int i = 0; i < dynamicTimeCount; i++) {
@@ -267,7 +225,6 @@ public class ScheduleFeeder extends Fragment {
                 selectDate.setEnabled(false);
                 selectTime.setEnabled(false);
                 addTbtn.setEnabled(false);
-                setManual.setEnabled(false);
                 feedqttycont.setEnabled(false);
                 Fweight.setEnabled(false);
 
@@ -302,7 +259,6 @@ public class ScheduleFeeder extends Fragment {
 
         selectDate.setEnabled(false);
         selectTime.setEnabled(false);
-        setManual.setEnabled(false);
         feedqttycont.setEnabled(false);
         addTbtn.setEnabled(false);
         Fweight.setEnabled(false);
@@ -397,6 +353,54 @@ public class ScheduleFeeder extends Fragment {
             return "Invalid";
         }
     }
+
+    private void computeFeedQuantity(int fishCount) {
+        String weightStr = Fweight.getText().toString().trim();
+
+        if (weightStr.isEmpty()) {
+            feedqttycont.setText("--");
+            return;
+        }
+
+        try {
+            float fishWeight = Float.parseFloat(weightStr);
+
+            if (fishCount == 0) {
+                feedqttycont.setText("--");
+                return;
+            }
+
+            float feedPercentage = 0.04f;
+            float computedFeedQty = feedPercentage * fishWeight * fishCount;
+            float computedKg = computedFeedQty / 1000f;
+
+            feedqttycont.setText(String.format(Locale.getDefault(), "%.2f kg", computedKg));
+        } catch (NumberFormatException e) {
+            feedqttycont.setText("--");
+        }
+    }
+
+    private void computeFeedQuantityIfReady() {
+        String weightStr = Fweight.getText().toString().trim();
+        Integer fishCount = pondSharedViewModel.getFishCount().getValue();
+
+        if (weightStr.isEmpty() || fishCount == null || fishCount == 0) {
+            feedqttycont.setText("--");
+            return;
+        }
+
+        try {
+            float fishWeight = Float.parseFloat(weightStr);
+            float feedPercentage = 0.04f;
+            float computedFeedQty = feedPercentage * fishWeight * fishCount;
+            float computedKg = computedFeedQty / 1000f;
+
+            feedqttycont.setText(String.format(Locale.getDefault(), "%.2f kg", computedKg));
+        } catch (NumberFormatException e) {
+            feedqttycont.setText("--");
+        }
+    }
+
 
 
 }

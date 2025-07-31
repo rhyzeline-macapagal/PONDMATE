@@ -171,47 +171,38 @@
             </LinearLayout>
 
             <!-- Feed Quantity -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Feed Quantity per Cycle:"
-                android:layout_marginTop="1dp"
-                android:textColor="#4A4947"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif"
-                android:layout_marginBottom="5dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:foregroundGravity="center_vertical">
+                android:gravity="right"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Feed Quantity per Cycle:"
+                    android:layout_marginTop="1dp"
+                    android:textColor="#4A4947"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginBottom="5dp" />
 
                 <EditText
                     android:id="@+id/feedquantity"
-                    android:layout_width="192dp"
+                    android:layout_width="150dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
                     android:background="@drawable/rounded_edittext"
-                    android:padding="12dp"
                     android:enabled="true"
+                    android:fontFamily="sans-serif"
                     android:hint="--"
+                    android:padding="12dp"
                     android:textAlignment="textEnd"
                     android:textColor="#908D8D"
-                    android:layout_marginStart="10dp"
-                    android:fontFamily="sans-serif"
                     android:textSize="14sp" />
 
-                <Button
-                    android:id="@+id/btnsetmanually"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="#4A4947"
-                    android:text="Set Manually"
-                    android:layout_gravity="center"
-                    app:cornerRadius="5dp"
-                    android:layout_marginStart="5dp"
-                    android:fontFamily="sans-serif"
-                    android:textColor="#FFFFFF"/>
             </LinearLayout>
 
             <!-- Buttons -->

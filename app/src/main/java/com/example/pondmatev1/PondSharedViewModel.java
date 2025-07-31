@@ -7,6 +7,13 @@ import androidx.lifecycle.ViewModel;
 public class PondSharedViewModel extends ViewModel {
 
     private final MutableLiveData<PondModel> selectedPond = new MutableLiveData<>();
+    private final MutableLiveData<Integer> fishCount = new MutableLiveData<>();
+    public void setFishCount(int count) {
+        fishCount.setValue(count);
+    }
+    public LiveData<Integer> getFishCount() {
+        return fishCount;
+    }
 
     public void setSelectedPond(PondModel pond) {
         selectedPond.setValue(pond);
