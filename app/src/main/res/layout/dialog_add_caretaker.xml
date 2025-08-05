@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="20dp"
-    android:background="@drawable/dialog_background"
+    android:background="@drawable/rounded_dialog_bg"
     android:elevation="8dp">
 
     <!-- Close button -->

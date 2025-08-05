@@ -2,636 +2,477 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:background="@drawable/bgapp">
+    android:background="@drawable/bgapp"
+    android:padding="16dp">
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_gravity="center"
-        android:padding="16dp"
-        android:layout_marginTop="40dp">
-
-        <!-- 🏷️ Title -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="PRODUCTION COST"
-            android:textColor="#4A4947"
-            android:layout_marginBottom="8dp"
-            android:layout_marginTop="8dp"
-            android:fontFamily="sans-serif"
-            android:textSize="22sp"
-            android:layout_gravity="center" />
+        android:orientation="vertical">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/rounded_container"
-            android:elevation="4dp"
-            android:padding="16dp"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
+            android:weightSum="2">
+
+            <Button
+                android:id="@+id/btnAddProductionCost"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Add Maintenance"
+                android:textAllCaps="false"
+                android:backgroundTint="@color/white"
+                android:textColor="@android:color/black"
+                android:drawableLeft="@drawable/ic_add"
+                android:drawablePadding="8dp" />
+
+            <Space
+                android:layout_width="8dp"
+                android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/btnGenerateReport"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="GenerateReport"
+                android:textAllCaps="false"
+                android:backgroundTint="@color/white"
+                android:textColor="@android:color/black"
+                android:drawableLeft="@drawable/ic_pdf"
+                android:drawablePadding="8dp" />
+        </LinearLayout>
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_gravity="center">
+            android:background="@drawable/rounded_edittext"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp"
+            android:elevation="4dp">
 
-
-            <GridLayout
+            <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:alignmentMode="alignMargins"
-                android:columnCount="2"
-                android:columnOrderPreserved="false"
-                android:rowCount="1"
-                android:rowOrderPreserved="false"
-                android:orientation="horizontal">
+                android:layout_height="wrap_content"
+                android:text="Pond Info"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#4A4947"
+                android:layout_marginBottom="12dp" />
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="2dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
-                        android:text="Type of Fingerlings:"
-                        android:textColor="#4A4947"
-                        android:textSize="18sp"
-                        />
-
-                    <TextView
-                        android:id="@+id/fishbreedpcostdisplay"
-                        android:layout_width="180dp"
-                        android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="--"
-                        android:paddingStart="8dp"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
-                        android:layout_marginTop="2dp"
-                        android:background="@drawable/rounded_edittext"
-                        android:padding="12dp"/>
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="No. of Fingerlings:"
-                        android:textColor="#4A4947"
-                        android:textSize="18sp"
-                        android:fontFamily="sans-serif"/>
+                        android:text="Fingerling Type"
+                        android:textColor="#4A4947" />
 
+                    <TextView
+                        android:id="@+id/fishbreedpcostdisplay"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/rounded_edittext"
+                        android:padding="10dp"
+                        android:hint="--"
+                        android:textColor="#4A4947" />
+                </LinearLayout>
+
+                <Space
+                    android:layout_width="12dp"
+                    android:layout_height="wrap_content" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="No. of Fingerlings"
+                        android:textColor="#4A4947" />
 
                     <TextView
                         android:id="@+id/numoffingerlings"
-                        android:layout_width="180dp"
-                        android:layout_height="wrap_content"
-                        android:textSize="14sp"
-                        android:background="@drawable/rounded_edittext"
-                        android:padding="12dp"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="--"
-                        android:paddingStart="8dp"
-                        android:layout_marginTop="2dp"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:textStyle="bold"/>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="2dp">
-
-                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
-                        android:text="Cost per Piece:"
-                        android:textColor="#4A4947"
-                        android:textSize="18sp"
-                        />
+                        android:background="@drawable/rounded_edittext"
+                        android:padding="10dp"
+                        android:hint="--"
+                        android:textColor="#4A4947" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Amount per Piece"
+                        android:textColor="#4A4947" />
 
                     <TextView
                         android:id="@+id/amtperpiece"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="--"
-                        android:inputType="numberDecimal"
-                        android:padding="12dp"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:layout_marginTop="2dp"
-                        android:textStyle="bold"
                         android:background="@drawable/rounded_edittext"
-                        android:textSize="14sp" />
+                        android:padding="10dp"
+                        android:hint="₱--"
+                        android:textColor="#4A4947" />
+                </LinearLayout>
+
+                <Space
+                    android:layout_width="12dp"
+                    android:layout_height="wrap_content" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif"
-                        android:text="Fingerlings Cost:"
-                        android:textColor="#4A4947"
-                        android:textSize="18sp"/>
+                        android:text="Total Fingerlings Cost"
+                        android:textColor="#4A4947" />
 
                     <TextView
                         android:id="@+id/amtoffingerlings"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="--"
-                        android:inputType="numberDecimal"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:layout_marginTop="2dp"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
                         android:background="@drawable/rounded_edittext"
-                        android:padding="12dp"/>
-
-                </LinearLayout>
-            </GridLayout>
-
-            <GridLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:alignmentMode="alignMargins"
-                android:columnCount="1"
-                android:columnOrderPreserved="false"
-                android:rowCount="1"
-                android:rowOrderPreserved="false"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="2dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Type of Feeds:"
-                        android:textColor="#4A4947"
-                        android:textSize="18sp"
-                        android:fontFamily="sans-serif"/>
-                </LinearLayout>
-            </GridLayout>
-
-            <LinearLayout
-                android:id="@+id/feeders_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:foregroundGravity="center_vertical">
-                    <Button
-                        android:id="@+id/typeoffeeders"
-                        android:layout_width="180dp"
-                        android:layout_height="wrap_content"
-                        android:hint="Select"
-                        android:textAlignment="textStart"
-                        android:textSize="14sp"
-                        android:padding="8dp"
-                        android:backgroundTint="#4CD3D3D3"
-                        android:fontFamily="sans-serif-light"
-                        android:textColor="#4A4947"
-                        app:cornerRadius="10dp"
-                        android:drawableEnd="@drawable/ic_dropdown_arrow"/>
-
-                    <EditText
-                        android:id="@+id/amtoffeeders"
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:clickable="false"
-                        android:cursorVisible="false"
-                        android:focusable="false"
-                        android:layout_marginStart="5dp"
-                        android:focusableInTouchMode="false"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="₱1,500"
-                        android:inputType="numberDecimal"
-                        android:paddingStart="8dp"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:textSize="14sp"
-                        android:background="@drawable/rounded_edittext"
-                        android:layout_marginBottom="8dp"
-                        android:padding="12dp"/>
-
-                    <ImageButton
-                        android:id="@+id/addToFeedsbtn"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:backgroundTint="#00FFFFFF"
-                        android:layout_marginStart="2dp"
-                        android:contentDescription="Add Image"
-                        android:src="@android:drawable/ic_menu_add"/>
-
+                        android:padding="10dp"
+                        android:hint="₱--"
+                        android:textColor="#4A4947" />
                 </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/feedersList"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
-            </LinearLayout>
-
-            <GridLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:alignmentMode="alignMargins"
-                android:columnCount="1"
-                android:columnOrderPreserved="false"
-                android:rowCount="1"
-                android:rowOrderPreserved="false"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="2dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Other Maintenance:"
-                        android:textColor="#4A4947"
-                        android:textSize="18sp"
-                        android:fontFamily="sans-serif"/>
-                </LinearLayout>
-            </GridLayout>
-
-            <LinearLayout
-                android:id="@+id/maintenance_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <Button
-                        android:id="@+id/initialMaintenanceType"
-                        android:layout_width="180dp"
-                        android:layout_height="wrap_content"
-                        android:backgroundTint="#4BD3D3D3"
-                        android:drawableEnd="@drawable/ic_dropdown_arrow"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="Select"
-                        android:padding="8dp"
-                        android:textAlignment="textStart"
-                        android:textColor="#4A4947"
-                        android:textSize="14sp"
-                        app:cornerRadius="10dp" />
-
-                    <EditText
-                        android:id="@+id/initialMaintenanceCost"
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:clickable="false"
-                        android:cursorVisible="false"
-                        android:focusable="false"
-                        android:layout_marginStart="5dp"
-                        android:focusableInTouchMode="false"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="₱1,500"
-                        android:inputType="numberDecimal"
-                        android:paddingStart="8dp"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:textSize="14sp"
-                        android:background="@drawable/rounded_edittext"
-                        android:padding="12dp"/>
-
-                    <ImageButton
-                        android:id="@+id/addMaintenanceButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:backgroundTint="#00FFFFFF"
-                        android:layout_marginStart="2dp"
-                        android:contentDescription="Add Image"
-                        android:src="@android:drawable/ic_menu_add"/>
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/maintenanceList"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-            </LinearLayout>
-
-            <GridLayout
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:alignmentMode="alignMargins"
-                android:columnCount="1"
-                android:columnOrderPreserved="false"
-                android:rowCount="1"
-                android:rowOrderPreserved="false"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="2dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Salary:"
-                        android:textColor="#4A4947"
-                        android:textSize="18sp"
-                        android:fontFamily="sans-serif"/>
-                </LinearLayout>
-            </GridLayout>
-
-            <LinearLayout
-                android:id="@+id/salary_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-
-                    <Button
-                        android:id="@+id/initialSalaryDate"
-                        android:layout_width="180dp"
-                        android:layout_height="wrap_content"
-                        android:backgroundTint="#4BD3D3D3"
-                        android:fontFamily="sans-serif-light"
-                        android:text="Select Date"
-                        android:padding="8dp"
-                        android:textAlignment="textStart"
-                        android:textColor="#9E9993"
-                        android:textSize="14sp"
-                        app:cornerRadius="10dp" />
-
-                    <EditText
-                        android:id="@+id/initialSalaryCost"
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:clickable="false"
-                        android:cursorVisible="false"
-                        android:focusable="false"
-                        android:layout_marginStart="5dp"
-                        android:focusableInTouchMode="false"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="₱1,500"
-                        android:inputType="numberDecimal"
-                        android:paddingStart="8dp"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:textSize="14sp"
-                        android:background="@drawable/rounded_edittext"
-                        android:padding="12dp"/>
-
-                    <ImageButton
-                        android:id="@+id/addSalaryButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:backgroundTint="#00FFFFFF"
-                        android:layout_marginStart="2dp"
-                        android:contentDescription="Add Image"
-                        android:src="@android:drawable/ic_menu_add"/>
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/salaryList"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-            </LinearLayout>
-
-            <GridLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:alignmentMode="alignMargins"
-                android:columnCount="3"
-                android:columnOrderPreserved="false"
-                android:rowCount="1"
-                android:rowOrderPreserved="false"
                 android:orientation="horizontal"
-                android:layout_marginTop="10dp">
+                android:layout_marginTop="12dp">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:padding="2dp">
-
-                    <Button
-                        android:id="@+id/editpcost"
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:backgroundTint="#4A4947"
-                        android:text="EDIT"
-                        android:layout_gravity="center"
-                        app:cornerRadius="5dp"
-                        android:fontFamily="sans-serif"
-                        android:textColor="#FFFFFF"
-                        />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:padding="2dp">
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Total:"
-                        android:textColor="#4A4947"
-                        android:layout_marginTop="15dp"
-                        android:layout_marginStart="5dp"
-                        android:textSize="18sp"
-                        android:fontFamily="sans-serif"/>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_gravity="center_horizontal"
-                    android:padding="2dp">
+                        android:text="Feed Type"
+                        android:textColor="#4A4947" />
 
                     <TextView
-                        android:id="@+id/capital"
-                        android:layout_width="150dp"
+                        android:id="@+id/typeoffeeders"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="₱"
-                        android:inputType="numberDecimal"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:layout_marginTop="15dp"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
                         android:background="@drawable/rounded_edittext"
-                        android:padding="12dp"/>
+                        android:padding="10dp"
+                        android:hint="e.g. Starter, Grower"
+                        android:textColor="#4A4947" />
                 </LinearLayout>
-            </GridLayout>
+
+                <Space
+                    android:layout_width="12dp"
+                    android:layout_height="wrap_content" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total Feed Cost"
+                        android:textColor="#4A4947" />
+
+                    <TextView
+                        android:id="@+id/amtoffeeders"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/rounded_edittext"
+                        android:padding="10dp"
+                        android:hint="₱--"
+                        android:textColor="#4A4947" />
+                </LinearLayout>
+            </LinearLayout>
         </LinearLayout>
 
-        <Button
-            android:id="@+id/btnsummary"
-            android:layout_width="200dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
-            android:backgroundTint="#4A4947"
-            android:fontFamily="sans-serif"
-            android:text="VIEW SUMMARY"
-            android:textColor="#FFFFFF"
-            app:cornerRadius="5dp" />
+            android:orientation="vertical"
+            android:background="@drawable/rounded_edittext"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp"
+            android:elevation="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Total Production Cost Summary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#4A4947"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Header Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Category"
+                    android:textStyle="bold"
+                    android:textColor="#4A4947"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Amount"
+                    android:textStyle="bold"
+                    android:textColor="#4A4947"
+                    android:textAlignment="textEnd"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Fingerlings"
+                    android:textColor="#4A4947"/>
+
+                <TextView
+                    android:id="@+id/tvSummaryFingerlings"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="₱--"
+                    android:textColor="#4A4947"
+                    android:textAlignment="textEnd"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Feeds"
+                    android:textColor="#4A4947"/>
+
+                <TextView
+                    android:id="@+id/tvSummaryFeeds"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="₱--"
+                    android:textColor="#4A4947"
+                    android:textAlignment="textEnd"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Maintenance"
+                    android:textColor="#4A4947"/>
+
+                <TextView
+                    android:id="@+id/tvSummaryMaintenance"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="₱--"
+                    android:textColor="#4A4947"
+                    android:textAlignment="textEnd"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingVertical="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Total"
+                    android:textColor="#4A4947"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/tvSummaryTotal"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="₱--"
+                    android:textStyle="bold"
+                    android:textColor="#4A4947"
+                    android:textAlignment="textEnd"/>
+            </LinearLayout>
+        </LinearLayout>
 
         <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/rounded_container"
-        android:elevation="4dp"
-        android:padding="16dp"
-        android:orientation="vertical"
-        android:layout_gravity="center">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="TOTAL SALES"
-                        android:textColor="#4A4947"
-                        android:fontFamily="sans-serif"
-                        android:textSize="22sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="From Harvest"
-                        android:textColor="#4A4947"
-                        android:fontFamily="sans-serif"
-                        android:textSize="14sp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="end">
-                    <EditText
-                        android:id="@+id/etsales"
-                        android:layout_width="150dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="5dp"
-                        android:background="@drawable/rounded_edittext"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="₱"
-                        android:inputType="numberDecimal"
-                        android:padding="12dp"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="ROI"
-                        android:textColor="#4A4947"
-                        android:fontFamily="sans-serif"
-                        android:textSize="22sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Return on Money Invested"
-                        android:textColor="#4A4947"
-                        android:fontFamily="sans-serif"
-                        android:textSize="14sp" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="end">
-                    <TextView
-                        android:id="@+id/tvroi"
-                        android:layout_width="150dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="5dp"
-                        android:background="@drawable/rounded_edittext"
-                        android:fontFamily="sans-serif-light"
-                        android:hint="₱"
-                        android:inputType="numberDecimal"
-                        android:padding="12dp"
-                        android:textAlignment="textEnd"
-                        android:textColorHint="#4A4947"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-            </LinearLayout>
-
-        <Button
-            android:id="@+id/edittocalculateroi"
-            android:layout_width="200dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:backgroundTint="#4A4947"
-            android:text="EDIT"
-            android:layout_gravity="center"
-            app:cornerRadius="5dp"
-            android:fontFamily="sans-serif"
-            android:textColor="#FFFFFF" />
-    </LinearLayout>
+            android:orientation="vertical"
+            android:background="@drawable/rounded_edittext"
+            android:padding="16dp"
+            android:elevation="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ROI Estimation"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="#4A4947"
+                android:layout_marginBottom="12dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Estimated Revenue (Harvest)"
+                    android:textColor="#4A4947" />
+
+                <EditText
+                    android:id="@+id/etEstimatedSales"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="10dp"
+                    android:hint="₱"
+                    android:inputType="numberDecimal"
+                    android:textColor="#4A4947" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Capital"
+                    android:textColor="#4A4947" />
+
+                <TextView
+                    android:id="@+id/tvROICapital"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="10dp"
+                    android:text="₱--"
+                    android:textColor="#4A4947" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Estimated ROI (Amount)"
+                    android:textColor="#4A4947" />
+
+                <TextView
+                    android:id="@+id/tvROIAmount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="10dp"
+                    android:text="₱--"
+                    android:textColor="#4A4947" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Estimated ROI (%)"
+                    android:textColor="#4A4947" />
+
+                <TextView
+                    android:id="@+id/tvROI"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="10dp"
+                    android:text="--%"
+                    android:textColor="#4A4947" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

@@ -135,7 +135,6 @@
                     android:layout_gravity="center"
                     android:layout_marginTop="8dp"
                     android:backgroundTint="#4A4947"
-                    android:fontFamily="sans-serif"
                     android:text="LOG IN"
                     android:textColor="#FFFFFF"
                     app:cornerRadius="1dp" />

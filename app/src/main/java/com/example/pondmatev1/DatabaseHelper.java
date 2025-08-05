@@ -32,6 +32,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COLUMN_DATE_STARTED = "date_started";
     private static final String COLUMN_DATE_HARVEST = "date_harvest";
 
+    private static final String TABLE_PRODUCTION_COSTS = "production_costs";
+    public static final String COLUMN_PRODCOST_ID = "id";
+    public static final String COLUMN_POND_ID_FK = "pond_id";
+    public static final String COLUMN_COST_TYPE = "cost_type";
+    public static final String COLUMN_DESCRIPTION = "description";
+    public static final String COLUMN_QUANTITY = "quantity";
+    public static final String COLUMN_UNIT = "unit";
+    public static final String COLUMN_COST_PER_UNIT = "cost_per_unit";
+    public static final String COLUMN_AMOUNT = "amount";
+    public static final String COLUMN_DATE_RECORDED = "date_recorded";
+    public static final String COLUMN_CREATED_AT = "created_at";
+
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -58,12 +70,30 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COLUMN_DATE_STARTED + " TEXT, " +
                 COLUMN_DATE_HARVEST + " TEXT)";
         db.execSQL(CREATE_POND_TABLE);
+
+        String CREATE_PRODUCTION_COSTS_TABLE = "CREATE TABLE " + TABLE_PRODUCTION_COSTS + " (" +
+                COLUMN_PRODCOST_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COLUMN_POND_ID_FK + " INTEGER, " +
+                COLUMN_COST_TYPE + " TEXT, " +
+                COLUMN_DESCRIPTION + " TEXT, " +
+                COLUMN_QUANTITY + " INTEGER, " +
+                COLUMN_UNIT + " TEXT, " +
+                COLUMN_COST_PER_UNIT + " REAL, " +
+                COLUMN_AMOUNT + " REAL, " +
+                COLUMN_DATE_RECORDED + " TEXT, " +
+                COLUMN_CREATED_AT + " TEXT)";
+        db.execSQL(CREATE_PRODUCTION_COSTS_TABLE);
+        db.execSQL("PRAGMA foreign_keys=ON;");
+
+
+
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_PONDS);
+        db.execSQL("DROP TABLE IF EXISTS " + TABLE_PRODUCTION_COSTS);
         onCreate(db);
     }
 
@@ -195,8 +225,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
 
-    // Inside DatabaseHelper.java
-    // Check if pond already exists
+
     public boolean isPondExists(String name, String dateStarted) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_PONDS +
@@ -224,6 +253,31 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void clearPondsTable() {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM " + TABLE_PONDS);
+        db.close();
+    }
+
+    public void clearProductionCostsTable() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete("production_costs", null, null);
+        db.close();
+    }
+
+    public void insertProductionCost(int pondId, String costType, String description,
+                                     int quantity, String unit, double costPerUnit,
+                                     double amount, String dateRecorded, String createdAt) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put("pond_id", pondId);
+        values.put("cost_type", costType);
+        values.put("description", description);
+        values.put("quantity", quantity);
+        values.put("unit", unit);
+        values.put("cost_per_unit", costPerUnit);
+        values.put("amount", amount);
+        values.put("date_recorded", dateRecorded);
+        values.put("created_at", createdAt);
+
+        db.insert("production_costs", null, values);
         db.close();
     }
 

@@ -3,6 +3,6 @@
     <font
         android:fontStyle="normal"
         android:fontWeight="400"
-        android:font="@font/gillsansmt" />
+        android:font="@font/poppins_reg" />
 
 </font-family>

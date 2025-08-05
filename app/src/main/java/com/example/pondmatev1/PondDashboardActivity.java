@@ -62,7 +62,9 @@ public class PondDashboardActivity extends AppCompatActivity {
         pondRecyclerView.setAdapter(pondAdapter);
 
         PondSyncManager.syncPondsFromServer(this);
-        loadLocalPonds();  // Make sure this is called only once unless manually refreshed
+        loadLocalPonds();
+        PondSyncManager.syncProductionCostsFromServer(this);
+
     }
 
     private void loadLocalPonds() {

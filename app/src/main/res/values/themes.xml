@@ -3,7 +3,7 @@
     <style name="Base.Theme.PONDMATEv1" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-        <item name="android:fontFamily">@font/gill_sans_mt</item>
+        <item name="android:fontFamily">@font/poppins</item>
     </style>
 
     <style name="Theme.PONDMATEv1" parent="Base.Theme.PONDMATEv1" />

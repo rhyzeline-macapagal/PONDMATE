@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.pdf.PdfDocument;
 import android.os.Bundle;
 import android.text.Editable;
@@ -11,10 +13,13 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,589 +32,169 @@ import androidx.lifecycle.ViewModelProvider;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 
 public class ProductionCostFragment extends Fragment {
 
-    TextView tvfishbreed, tvfishamount, tvnumberoffish, tvfishcost, tvcapital, tvreturnoi;
-    LinearLayout linlfeederscont, linlmaintenancecont, linlsalarycont, feederslist, maintenancelist, salarylist;
-    Button btnedit, btnviewsummary, btnfeedertype, btnmaintenancetype,btnsalarydate,btnedittocalculate;
-    ImageButton btnaddfeedslist, btnaddmaintenancelist, btnaddsalarylist;
-    EditText etfeedercost, etmaintenancecost, etsalarycost, etsales;
-
-    public ProductionCostFragment() {}
-    private boolean isEditingROI = false;
-    private PondSharedViewModel pondSharedViewModel;
+    TextView tvBreed, tvCount, tvAmountPerPiece, tvTotalCost;
+    TextView tvSummaryFingerlings, tvSummaryFeeds, tvSummaryMaintenance, tvSummaryTotal;
+    TextView tvCapital, tvROIAmount, tvROI;
+    EditText etEstimatedSales;
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_production_cost, container, false);
-
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        tvfishbreed = view.findViewById(R.id.fishbreedpcostdisplay);
-        tvfishamount = view.findViewById(R.id.amtperpiece);
-        tvnumberoffish = view.findViewById(R.id.numoffingerlings);
-        tvfishcost = view.findViewById(R.id.amtoffingerlings);
-        tvcapital = view.findViewById(R.id.capital);
-        btnedit = view.findViewById(R.id.editpcost);
-        btnviewsummary = view.findViewById(R.id.btnsummary);
+        Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
+        btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
 
-        linlfeederscont = view.findViewById(R.id.feeders_container);
-        btnfeedertype = view.findViewById(R.id.typeoffeeders);
-        etfeedercost = view.findViewById(R.id.amtoffeeders);
-        btnaddfeedslist = view.findViewById(R.id.addToFeedsbtn);
-        feederslist = view.findViewById(R.id.feedersList);
 
-        linlmaintenancecont = view.findViewById(R.id.maintenance_container);
-        btnmaintenancetype = view.findViewById(R.id.initialMaintenanceType);
-        etmaintenancecost = view.findViewById(R.id.initialMaintenanceCost);
-        btnaddmaintenancelist = view.findViewById(R.id.addMaintenanceButton);
-        maintenancelist = view.findViewById(R.id.maintenanceList);
+        tvBreed = view.findViewById(R.id.fishbreedpcostdisplay);
+        tvCount = view.findViewById(R.id.numoffingerlings);
+        tvAmountPerPiece = view.findViewById(R.id.amtperpiece);
+        tvTotalCost = view.findViewById(R.id.amtoffingerlings);
 
-        linlsalarycont = view.findViewById(R.id.salary_container);
-        btnsalarydate = view.findViewById(R.id.initialSalaryDate);
-        etsalarycost = view.findViewById(R.id.initialSalaryCost);
-        btnaddsalarylist = view.findViewById(R.id.addSalaryButton);
-        salarylist = view.findViewById(R.id.salaryList);
+        tvSummaryFingerlings = view.findViewById(R.id.tvSummaryFingerlings);
+        tvSummaryFeeds = view.findViewById(R.id.tvSummaryFeeds);
+        tvSummaryMaintenance = view.findViewById(R.id.tvSummaryMaintenance);
+        tvSummaryTotal = view.findViewById(R.id.tvSummaryTotal);
 
-        btnedittocalculate = view.findViewById(R.id.edittocalculateroi);
-        etsales = view.findViewById(R.id.etsales);
-        tvreturnoi = view.findViewById(R.id.tvroi);
+        tvCapital = view.findViewById(R.id.tvROICapital);
+        tvROIAmount = view.findViewById(R.id.tvROIAmount);
+        tvROI = view.findViewById(R.id.tvROI);
+        etEstimatedSales = view.findViewById(R.id.etEstimatedSales);
 
-        etfeedercost.setEnabled(false);
-        etmaintenancecost.setEnabled(false);
-        etsalarycost.setEnabled(false);
-
-        btnaddfeedslist.setEnabled(false);
-        btnaddmaintenancelist.setEnabled(false);
-        btnaddsalarylist.setEnabled(false);
-
-        btnfeedertype.setEnabled(false);
-        btnmaintenancetype.setEnabled(false);
-        btnsalarydate.setEnabled(false);
-
-        btnviewsummary.setEnabled(false);
-        etsales.setEnabled(false);
-
-        setupFeederTypeButton(btnfeedertype, etfeedercost);
-        setupMaintenanceTypeButton(btnmaintenancetype, etmaintenancecost);
-        setupSalaryDateButton(btnsalarydate);
-
-        etfeedercost.addTextChangedListener(capitalWatcher);
-        etmaintenancecost.addTextChangedListener(capitalWatcher);
-        etsalarycost.addTextChangedListener(capitalWatcher);
-
-        pondSharedViewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
-        String countStr = tvnumberoffish.getText().toString().trim();
-        if (!countStr.isEmpty()) {
-            try {
-                int fishCount = Integer.parseInt(countStr);
-                pondSharedViewModel.setFishCount(fishCount);  // ⬅️ this is crucial
-            } catch (NumberFormatException e) {
-                Toast.makeText(requireContext(), "Invalid fish count", Toast.LENGTH_SHORT).show();
-            }
-        }
-
-
-        btnedit.setOnClickListener(new View.OnClickListener() {
-            private boolean isEditing = false;
-
-            @Override
-            public void onClick(View v) {
-                if (!isEditing) {
-                    // Switch to editing mode
-                    isEditing = true;
-                    btnedit.setText("Save");
-
-                    // Enable input fields
-                    etfeedercost.setEnabled(true);
-                    etfeedercost.setFocusableInTouchMode(true);
-
-                    etmaintenancecost.setEnabled(true);
-                    etmaintenancecost.setFocusableInTouchMode(true);
-
-                    etsalarycost.setEnabled(true);
-                    etsalarycost.setFocusableInTouchMode(true);
-
-                    // Enable action buttons
-                    btnaddfeedslist.setEnabled(true);
-                    btnaddmaintenancelist.setEnabled(true);
-                    btnaddsalarylist.setEnabled(true);
-
-                    btnfeedertype.setEnabled(true);
-                    btnmaintenancetype.setEnabled(true);
-                    btnsalarydate.setEnabled(true);
-
-                } else {
-                    isEditing = false;
-                    btnedit.setText("Edit");
-                    // Disable input fields
-                    etfeedercost.setEnabled(false);
-                    etmaintenancecost.setEnabled(false);
-                    etsalarycost.setEnabled(false);
-                    // Disable action buttons
-                    btnaddfeedslist.setEnabled(false);
-                    btnaddmaintenancelist.setEnabled(false);
-                    btnaddsalarylist.setEnabled(false);
-                    btnfeedertype.setEnabled(false);
-                    btnmaintenancetype.setEnabled(false);
-                    btnsalarydate.setEnabled(false);
-
-                    // TODO: Save logic (if needed)
-                    // e.g., store values to DB, SharedPreferences, etc.
-                }
-            }
-        });
-
-        btnaddfeedslist.setOnClickListener(v -> {
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            View newRow = inflater.inflate(R.layout.row_feeds, feederslist, false);
-
-            ImageButton btnRemove = newRow.findViewById(R.id.removeToFeedsbtn);
-            btnRemove.setOnClickListener(removeView -> {
-                feederslist.removeView(newRow);
-                calculateTotalCapital();
-            });
-
-            Button dynamicFeederTypeBtn = newRow.findViewById(R.id.typeoffeeders);
-            EditText dynamicAmount = newRow.findViewById(R.id.amtoffeeders);
-            dynamicAmount.addTextChangedListener(capitalWatcher);
-
-            dynamicAmount.setEnabled(true);
-            dynamicAmount.setFocusableInTouchMode(true);
-            dynamicAmount.setFocusable(true);
-            dynamicAmount.setCursorVisible(true);
-
-            setupFeederTypeButton(dynamicFeederTypeBtn, dynamicAmount);
-
-            feederslist.addView(newRow);
-        });
-
-        btnaddmaintenancelist.setOnClickListener(v ->{
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            View newRow = inflater.inflate(R.layout.row_maintenance, maintenancelist, false);
-
-            Button dynamicType = newRow.findViewById(R.id.initialMaintenanceType);
-            EditText dynamicCost = newRow.findViewById(R.id.initialMaintenanceCost);
-            dynamicCost.addTextChangedListener(capitalWatcher);
-
-            dynamicCost.setEnabled(true);
-            dynamicCost.setFocusable(true);
-            dynamicCost.setFocusableInTouchMode(true);
-            dynamicCost.setCursorVisible(true);
-
-            setupMaintenanceTypeButton(dynamicType, dynamicCost);
-
-            ImageButton btnRemove = newRow.findViewById(R.id.removeMaintenanceButton);
-            btnRemove.setOnClickListener(removeView ->{
-                maintenancelist.removeView(newRow);
-                calculateTotalCapital();
-            });
-
-            maintenancelist.addView(newRow);
-        });
-
-        btnaddsalarylist.setOnClickListener(v ->{
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            View newRow = inflater.inflate(R.layout.row_salary, salarylist, false);
-
-            ImageButton btnRemove = newRow.findViewById(R.id.removeSalaryButton);
-            btnRemove.setOnClickListener(removeView ->{
-                salarylist.removeView(newRow);
-                calculateTotalCapital();
-            });
-
-            Button dynamicSalaryDateBtn = newRow.findViewById(R.id.initialSalaryDate);
-            setupSalaryDateButton(dynamicSalaryDateBtn);
-
-            EditText dynamicSalaryCost = newRow.findViewById(R.id.initialSalaryCost);
-            dynamicSalaryCost.addTextChangedListener(capitalWatcher);
-
-            dynamicSalaryCost.setEnabled(true);
-            dynamicSalaryCost.setFocusableInTouchMode(true);
-
-            salarylist.addView(newRow);
-        });
-
-        btnviewsummary.setOnClickListener(v -> {
-            LayoutInflater inflater = LayoutInflater.from(getContext());
-            View dialogView = inflater.inflate(R.layout.dialog_summary, null);
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-            builder.setView(dialogView);
-            AlertDialog dialog = builder.create();
-
-            // Summary TextViews
-            TextView tvFingerlings = dialogView.findViewById(R.id.value_fingerlings);
-            TextView tvFeed = dialogView.findViewById(R.id.value_feed);
-            TextView tvMaintenance = dialogView.findViewById(R.id.value_maintenance);
-            TextView tvSalary = dialogView.findViewById(R.id.value_salary);
-            TextView tvCapital = dialogView.findViewById(R.id.value_total_capital);
-
-            // Breakdown Layouts
-            LinearLayout layoutFeederBreakdown = dialogView.findViewById(R.id.layoutFeederBreakdown);
-            LinearLayout layoutMaintenanceBreakdown = dialogView.findViewById(R.id.layoutMaintenanceBreakdown);
-            LinearLayout layoutSalaryBreakdown = dialogView.findViewById(R.id.layoutSalaryBreakdown);
-
-            // Source Fields
-            TextView tvBreed = view.findViewById(R.id.fishbreedpcostdisplay);
-            TextView tvAmountPerPiece = view.findViewById(R.id.amtperpiece);
-            TextView tvNumberOfFish = view.findViewById(R.id.numoffingerlings);
-            EditText tvFeederCost = view.findViewById(R.id.amtoffeeders);
-            EditText tvMaintenanceCost = view.findViewById(R.id.initialMaintenanceCost);
-            EditText tvSalaryCost = view.findViewById(R.id.initialSalaryCost);
-
-            Button btnfeedertype = view.findViewById(R.id.typeoffeeders);
-            Button btnmaintenancetype = view.findViewById(R.id.initialMaintenanceType);
-            Button btnsalarydate = view.findViewById(R.id.initialSalaryDate);
-
-            double amountPerPiece = parseDoubleOrZero(tvAmountPerPiece.getText().toString());
-            double numberOfFish = parseDoubleOrZero(tvNumberOfFish.getText().toString());
-            double fingerlingsCost = amountPerPiece * numberOfFish;
-
-            double feedCost = parseDoubleOrZero(tvFeederCost.getText().toString());
-            double maintenanceCost = parseDoubleOrZero(tvMaintenanceCost.getText().toString());
-            double salaryCost = parseDoubleOrZero(tvSalaryCost.getText().toString());
-
-            // Initial breakdowns
-            addBreakdownRow(layoutFeederBreakdown, btnfeedertype.getText().toString(), String.format("₱%.2f", feedCost));
-            addBreakdownRow(layoutMaintenanceBreakdown, btnmaintenancetype.getText().toString(), String.format("₱%.2f", maintenanceCost));
-            addBreakdownRow(layoutSalaryBreakdown, btnsalarydate.getText().toString(), String.format("₱%.2f", salaryCost));
-
-            // Dynamic Feeders
-            double dynamicFeederTotal = 0;
-            for (int i = 0; i < feederslist.getChildCount(); i++) {
-                View row = feederslist.getChildAt(i);
-                Button type = row.findViewById(R.id.typeoffeeders);
-                EditText cost = row.findViewById(R.id.amtoffeeders);
-                if (type != null && cost != null && !cost.getText().toString().isEmpty()) {
-                    double value = parseDoubleOrZero(cost.getText().toString());
-                    dynamicFeederTotal += value;
-                    addBreakdownRow(layoutFeederBreakdown, type.getText().toString(), String.format("₱%.2f", value));
-                }
-            }
-
-            // Dynamic Maintenance
-            double dynamicMaintenanceTotal = 0;
-            for (int i = 0; i < maintenancelist.getChildCount(); i++) {
-                View row = maintenancelist.getChildAt(i);
-                Button type = row.findViewById(R.id.initialMaintenanceType);
-                EditText cost = row.findViewById(R.id.initialMaintenanceCost);
-                if (type != null && cost != null && !cost.getText().toString().isEmpty()) {
-                    double value = parseDoubleOrZero(cost.getText().toString());
-                    dynamicMaintenanceTotal += value;
-                    addBreakdownRow(layoutMaintenanceBreakdown, type.getText().toString(), String.format("₱%.2f", value));
-                }
-            }
-
-            // Dynamic Salaries
-            double dynamicSalaryTotal = 0;
-            for (int i = 0; i < salarylist.getChildCount(); i++) {
-                View row = salarylist.getChildAt(i);
-                Button type = row.findViewById(R.id.initialSalaryDate);
-                EditText cost = row.findViewById(R.id.initialSalaryCost);
-                if (type != null && cost != null && !cost.getText().toString().isEmpty()) {
-                    double value = parseDoubleOrZero(cost.getText().toString());
-                    dynamicSalaryTotal += value;
-                    addBreakdownRow(layoutSalaryBreakdown, type.getText().toString(), String.format("₱%.2f", value));
-                }
-            }
-
-            double totalFeeder = feedCost + dynamicFeederTotal;
-            double totalMaintenance = maintenanceCost + dynamicMaintenanceTotal;
-            double totalSalary = salaryCost + dynamicSalaryTotal;
-            double capital = fingerlingsCost + totalFeeder + totalMaintenance + totalSalary;
-
-            tvFingerlings.setText(String.format("₱%.2f", fingerlingsCost));
-            tvFeed.setText(String.format("₱%.2f", totalFeeder));
-            tvMaintenance.setText(String.format("₱%.2f", totalMaintenance));
-            tvSalary.setText(String.format("₱%.2f", totalSalary));
-            tvCapital.setText(String.format("₱%.2f", capital));
-
-            dialog.show();
-
-            // ===== PDF GENERATION BUTTON INSIDE DIALOG =====
-            Button btnGeneratePDF = dialogView.findViewById(R.id.btn_generate_pdf); // Add this button in dialog_summary.xml
-
-            btnGeneratePDF.setOnClickListener(printView -> {
-                View pdfContentView = inflater.inflate(R.layout.pdf_summary_layout, null);
-
-                pdfContentView.measure(
-                        View.MeasureSpec.makeMeasureSpec(595, View.MeasureSpec.AT_MOST),
-                        View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-                );
-                pdfContentView.layout(0, 0, pdfContentView.getMeasuredWidth(), pdfContentView.getMeasuredHeight());
-
-                Bitmap bitmap = Bitmap.createBitmap(
-                        pdfContentView.getMeasuredWidth(),
-                        pdfContentView.getMeasuredHeight(),
-                        Bitmap.Config.ARGB_8888
-                );
-                Canvas canvasBitmap = new Canvas(bitmap);
-                pdfContentView.draw(canvasBitmap);
-
-                int pageWidth = 595;
-                int pageHeight = 842;
-                PdfDocument document = new PdfDocument();
-                PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
-                PdfDocument.Page page = document.startPage(pageInfo);
-                Canvas canvas = page.getCanvas();
-
-                float scale = 0.5f;
-                float centerX = (pageWidth - (bitmap.getWidth() * scale)) / 2;
-                float centerY = (pageHeight - (bitmap.getHeight() * scale)) / 2;
-                canvas.save();
-                canvas.translate(centerX, centerY);
-                canvas.scale(scale, scale);
-                canvas.drawBitmap(bitmap, 0, 0, null);
-                canvas.restore();
-
-                document.finishPage(page);
-
-                String fileName = "Summary_" + System.currentTimeMillis() + ".pdf";
-                File pdfFile = new File(requireContext().getExternalFilesDir(null), fileName);
-                try {
-                    FileOutputStream fos = new FileOutputStream(pdfFile);
-                    document.writeTo(fos);
-                    document.close();
-                    fos.close();
-                    Toast.makeText(getContext(), "PDF saved: " + pdfFile.getAbsolutePath(), Toast.LENGTH_LONG).show();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Toast.makeText(getContext(), "Failed to save PDF", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        btnedittocalculate.setOnClickListener(v->{
-            if (!isEditingROI) {
-                etsales.setEnabled(true);
-                etsales.requestFocus();
-                btnedittocalculate.setText("CALCULATE ROI");
-                isEditingROI = true;
-            } else {
-                try {
-                    double capital = Double.parseDouble(tvcapital.getText().toString().replace("₱", "").trim());
-                    double sales = Double.parseDouble(etsales.getText().toString().trim());
-                    double roi = ((sales - capital) / capital) * 100;
-                    tvreturnoi.setText(String.format(Locale.getDefault(), "%.2f%%", roi));
-
-                    etsales.setEnabled(false);
-                    btnedittocalculate.setText("EDIT");
-                    isEditingROI = false;
-                } catch (NumberFormatException e) {
-                    etsales.setError("Invalid number");
-                }
-            }
-        });
-    }
-    private final TextWatcher capitalWatcher = new TextWatcher() {
-        @Override
-        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-        @Override
-        public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-        @Override
-        public void afterTextChanged(Editable s) {
-            calculateTotalCapital();
-        }
-    };
-    private void setupFeederTypeButton(Button btnfeedertype, EditText amountField) {
-        String[] options = {"Starter", "Grower", "Finisher", "Others"};
-
-        btnfeedertype.setOnClickListener(v -> {
-            androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(requireContext());
-            builder.setTitle("Select Feed Type");
-            builder.setItems(options, (dialog, which) -> {
-                String selected = options[which];
-                if (selected.equals("Others")) {
-                    // Prompt user to enter custom feed type
-                    EditText input = new EditText(requireContext());
-                    input.setHint("Enter custom type");
-
-                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                            .setTitle("Custom Feed Type")
-                            .setView(input)
-                            .setPositiveButton("OK", (d, w) -> {
-                                String customType = input.getText().toString().trim();
-                                if (!customType.isEmpty()) {
-                                    btnfeedertype.setText(customType);
-                                }
-                            })
-                            .setNegativeButton("Cancel", null)
-                            .show();
-                } else {
-                    btnfeedertype.setText(selected);
-                }
-            });
-            builder.show();
-        });
-    }
-    private void setupMaintenanceTypeButton(Button btnmaintenancetype, EditText costField  ) {
-        String[] options = {
-                "Water Change", "Water Monitoring", "Waste Removal", "Algae Control",
-                "Cleaning Ponds & Filters", "Leak Repair", "Inspection",
-                "Pump & Pipe Maintenance", "Parasite Treatment", "Net or Screen Repair", "Others"
-        };
-
-        btnmaintenancetype.setOnClickListener(v -> {
-            androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(requireContext());
-            builder.setTitle("Select Maintenance Type");
-            builder.setItems(options, (dialog, which) -> {
-                String selected = options[which];
-                if (selected.equals("Others")) {
-                    // Show input dialog
-                    EditText input = new EditText(requireContext());
-                    input.setHint("Enter custom type");
-                    new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                            .setTitle("Custom Maintenance Type")
-                            .setView(input)
-                            .setPositiveButton("OK", (d, w) -> {
-                                String custom = input.getText().toString().trim();
-                                if (!custom.isEmpty()) {
-                                    btnmaintenancetype.setText(custom);
-                                }
-                            })
-                            .setNegativeButton("Cancel", null)
-                            .show();
-                } else {
-                    btnmaintenancetype.setText(selected);
-                }
-            });
-            builder.show();
-        });
-    }
-    private void setupSalaryDateButton(Button btnSalaryDate) {
-        btnSalaryDate.setOnClickListener(v -> {
-            java.util.Calendar calendar = java.util.Calendar.getInstance();
-            int year = calendar.get(java.util.Calendar.YEAR);
-            int month = calendar.get(java.util.Calendar.MONTH);
-            int day = calendar.get(java.util.Calendar.DAY_OF_MONTH);
-
-            android.app.DatePickerDialog datePickerDialog = new android.app.DatePickerDialog(
-                    requireContext(),
-                    (view, selectedYear, selectedMonth, selectedDay) -> {
-                        String dateString = (selectedMonth + 1) + "/" + selectedDay + "/" + selectedYear;
-                        btnSalaryDate.setText(dateString);
-                    },
-                    year, month, day
-            );
-            datePickerDialog.show();
-        });
-    }
-    private void calculateTotalCapital() {
-        double capital = 0.0;
-        // Fish cost from TextView
-        try {
-            capital += Double.parseDouble(tvfishcost.getText().toString());
-        } catch (NumberFormatException ignored) {}
-        // Initial feeder cost
-        try {
-            capital += Double.parseDouble(etfeedercost.getText().toString());
-        } catch (NumberFormatException ignored) {}
-        // Initial maintenance cost
-        try {
-            capital += Double.parseDouble(etmaintenancecost.getText().toString());
-        } catch (NumberFormatException ignored) {}
-        // Initial salary cost
-        try {
-            capital += Double.parseDouble(etsalarycost.getText().toString());
-        } catch (NumberFormatException ignored) {}
-        // Dynamic feeder rows
-        for (int i = 0; i < feederslist.getChildCount(); i++) {
-            View row = feederslist.getChildAt(i);
-            EditText dynamicCost = row.findViewById(R.id.amtoffeeders);
-            try {
-                capital += Double.parseDouble(dynamicCost.getText().toString());
-            } catch (NumberFormatException ignored) {}
-        }
-        // Dynamic maintenance rows
-        for (int i = 0; i < maintenancelist.getChildCount(); i++) {
-            View row = maintenancelist.getChildAt(i);
-            EditText dynamicCost = row.findViewById(R.id.initialMaintenanceCost);
-            try {
-                capital += Double.parseDouble(dynamicCost.getText().toString());
-            } catch (NumberFormatException ignored) {}
-        }
-
-        for (int i = 0; i < salarylist.getChildCount(); i++) {
-            View row = salarylist.getChildAt(i);
-            EditText dynamicCost = row.findViewById(R.id.initialSalaryCost);
-            try {
-                capital += Double.parseDouble(dynamicCost.getText().toString());
-            } catch (NumberFormatException ignored) {}
-        }
-        // Set calculated capital to TextView
-        tvcapital.setText(String.format("%.2f", capital));
-        btnviewsummary.setEnabled(true);
-    }
-    @Override
-    public void onResume() {
-        super.onResume();
-
+        // Load values from SharedPreferences
         SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
+        String breed = sharedPreferences.getString("fish_breed", "--");
+        String amountStr = sharedPreferences.getString("fish_amount", "0");
+        String countStr = sharedPreferences.getString("number_fish", "0");
 
-        String breed = sharedPreferences.getString("fish_breed", "");
-        String amount = sharedPreferences.getString("fish_amount", "0");
-        String number = sharedPreferences.getString("number_fish", "0");
+        tvBreed.setText(breed);
+        tvAmountPerPiece.setText("₱" + amountStr);
+        tvCount.setText(countStr);
 
-        tvfishbreed.setText(breed);
-        tvfishamount.setText(amount);
-        tvnumberoffish.setText(number);
+        double amountPerPiece = parseDouble(amountStr);
+        double count = parseDouble(countStr);
+        double totalFingerlingCost = amountPerPiece * count;
 
-        String fishCountStr = tvnumberoffish.getText().toString().trim();
-        if (!fishCountStr.isEmpty()) {
-            try {
-                int fishCount = Integer.parseInt(fishCountStr);
-                pondSharedViewModel.setFishCount(fishCount);
-            } catch (NumberFormatException e) {
-                Toast.makeText(requireContext(), "Invalid fish count", Toast.LENGTH_SHORT).show();
+        tvTotalCost.setText("₱" + formatPrice(totalFingerlingCost));
+        tvSummaryFingerlings.setText("₱" + formatPrice(totalFingerlingCost));
+
+        // For now feeds and maintenance are placeholders
+        double feedCost = 0.0;  // Replace later when you implement feeds
+        double maintenanceCost = 0.0; // Replace later when you add maintenance entries
+
+        tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
+        tvSummaryMaintenance.setText("₱" + formatPrice(maintenanceCost));
+
+        double totalCost = totalFingerlingCost + feedCost + maintenanceCost;
+
+        tvSummaryTotal.setText("₱" + formatPrice(totalCost));
+        tvCapital.setText("₱" + formatPrice(totalCost));
+
+        // ROI calculation listener
+        etEstimatedSales.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            public void afterTextChanged(Editable s) {
+                double estimatedRevenue = parseDouble(s.toString());
+                double roiAmount = estimatedRevenue - totalCost;
+                double roiPercent = (totalCost > 0) ? (roiAmount / totalCost) * 100 : 0;
+
+                tvROIAmount.setText("₱" + formatPrice(roiAmount));
+                tvROI.setText(formatPrice(roiPercent) + "%");
             }
-        }
+        });
 
-        calculateFishCost(tvfishamount.getText().toString(), tvnumberoffish.getText().toString());
-        calculateTotalCapital();
     }
-    private double parseDoubleOrZero(String value) {
+
+    private double parseDouble(String str) {
         try {
-            return Double.parseDouble(value.replace("₱", "").trim());
-        } catch (NumberFormatException e) {
+            return Double.parseDouble(str.replace("₱", "").trim());
+        } catch (Exception e) {
             return 0;
         }
     }
-    private void addBreakdownRow(LinearLayout container, String label, String value) {
-        View row = LayoutInflater.from(getContext()).inflate(R.layout.row_breakdown, container, false);
 
-        TextView tvLabel = row.findViewById(R.id.tvBreakdownLabel);
-        TextView tvCost = row.findViewById(R.id.tvBreakdownCost);
-
-        tvLabel.setText(label);
-        tvCost.setText(value);
-
-        container.addView(row);
+    private String formatPrice(double value) {
+        return String.format("%.2f", value);
     }
 
-    private void calculateFishCost(String amountStr, String numberStr) {
-        try {
-            double amountPerPiece = Double.parseDouble(amountStr.trim());
-            double numberOfFish = Double.parseDouble(numberStr.trim());
-            double totalCost = amountPerPiece * numberOfFish;
-            tvfishcost.setText(String.format("%.2f", totalCost));
-        } catch (NumberFormatException e) {
-            tvfishcost.setText("0.00");
-        }
+    private void showAddMaintenanceDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_maintenance, null);
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
 
-        calculateTotalCapital();
+        Spinner spinnerType = dialogView.findViewById(R.id.spinnerMaintenanceType);
+        EditText etOtherType = dialogView.findViewById(R.id.etOtherMaintenanceType);
+        EditText etCost = dialogView.findViewById(R.id.etMaintenanceCost);
+        Button btnAdd = dialogView.findViewById(R.id.btnAddMaintenance);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancelMaintenance);
+        TextView btnClose = dialogView.findViewById(R.id.btnClose);
+
+        // Sample maintenance types
+        List<String> types = Arrays.asList("Water Change", "Water Monitoring", "Waste Removal", "Algae Control",
+                "Cleaning Ponds & Filters", "Leak Repair", "Inspection",
+                "Pump & Pipe Maintenance", "Parasite Treatment", "Net or Screen Repair", "Others");
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, types);
+        spinnerType.setAdapter(adapter);
+
+        // Show/hide "Other" field
+        spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selected = parent.getItemAtPosition(position).toString();
+                etOtherType.setVisibility(selected.equals("Other") ? View.VISIBLE : View.GONE);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        // Cancel or Close
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        // Add Maintenance Handler
+        btnAdd.setOnClickListener(v -> {
+            String selectedType = spinnerType.getSelectedItem().toString();
+            String description = selectedType.equals("Other") ? etOtherType.getText().toString().trim() : selectedType;
+            String costStr = etCost.getText().toString().trim();
+
+            if (description.isEmpty() || costStr.isEmpty()) {
+                Toast.makeText(requireContext(), "Please fill in all fields", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            double amount;
+            try {
+                amount = Double.parseDouble(costStr);
+            } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid cost", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Sample: You can store to database here or display it dynamically
+            Toast.makeText(requireContext(), "Added: " + description + " ₱" + amount, Toast.LENGTH_SHORT).show();
+
+            // You may call calculateTotalCapital() here if needed
+            dialog.dismiss();
+        });
+
+        dialog.show();
     }
-
 
 }

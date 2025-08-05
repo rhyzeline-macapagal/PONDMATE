@@ -86,6 +86,8 @@ public class login extends AppCompatActivity {
             SyncManager.syncUsersToServer(this, dbHelper);
             syncUsersFromServer();
             //syncPondsFromServer();
+
+
         }
 
         loadPreferences();

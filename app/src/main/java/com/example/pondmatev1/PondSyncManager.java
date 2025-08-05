@@ -94,6 +94,97 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void uploadProductionCostToServer(Context context,
+                                                    int pondId,
+                                                    String costType,
+                                                    String description,
+                                                    int quantity,
+                                                    String unit,
+                                                    double costPerUnit,
+                                                    double amount,
+                                                    String dateRecorded,
+                                                    String createdAt) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/add_production_cost.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData =
+                        "pond_id=" + pondId +
+                                "&cost_type=" + URLEncoder.encode(costType, "UTF-8") +
+                                "&description=" + URLEncoder.encode(description, "UTF-8") +
+                                "&quantity=" + quantity +
+                                "&unit=" + URLEncoder.encode(unit, "UTF-8") +
+                                "&cost_per_unit=" + costPerUnit +
+                                "&amount=" + amount +
+                                "&date_recorded=" + URLEncoder.encode(dateRecorded, "UTF-8") +
+                                "&created_at=" + URLEncoder.encode(createdAt, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                String response = reader.readLine();
+                reader.close();
+
+                Log.d("ProdCostUpload", "Server response: " + response);
+            } catch (Exception e) {
+                Log.e("ProdCostUpload", "Error uploading production cost: " + e.getMessage());
+            }
+        }).start();
+    }
+
+
+    public static void syncProductionCostsFromServer(Context context) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_production_costs.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                JSONArray costsArray = new JSONArray(response.toString());
+
+                DatabaseHelper db = new DatabaseHelper(context);
+                db.clearProductionCostsTable();  // 🧹 clear old data
+
+                for (int i = 0; i < costsArray.length(); i++) {
+                    JSONObject cost = costsArray.getJSONObject(i);
+
+                    int pondId = cost.getInt("pond_id");
+                    String costType = cost.getString("cost_type");
+                    String description = cost.getString("description");
+                    int quantity = cost.getInt("quantity");
+                    String unit = cost.getString("unit");
+                    double costPerUnit = cost.getDouble("cost_per_unit");
+                    double amount = cost.getDouble("amount");
+                    String dateRecorded = cost.getString("date_recorded");
+                    String createdAt = cost.getString("created_at");
+
+                    db.insertProductionCost(pondId, costType, description, quantity, unit, costPerUnit, amount, dateRecorded, createdAt);
+                }
+
+                Log.d("SYNC_COSTS", "Production cost sync complete. Total: " + costsArray.length());
+
+            } catch (Exception e) {
+                Log.e("SYNC_COSTS", "Error syncing costs: " + e.getMessage());
+            }
+        }).start();
+    }
+
+
 
 
 }
