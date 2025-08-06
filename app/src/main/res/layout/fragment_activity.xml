@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFA">
+    android:background="#A6C4F1FF">
 
     <LinearLayout
         android:id="@+id/layout_activity"
@@ -19,7 +19,7 @@
             android:text="Production Activity"
             android:textStyle="bold"
             android:textSize="20sp"
-            android:textColor="#000000"
+            android:textColor="#01082D"
             android:gravity="center"
             android:layout_marginBottom="8dp" />
 
@@ -38,7 +38,6 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#F5E7D0"
             android:elevation="4dp"
             android:padding="8dp"
             android:orientation="vertical"
@@ -52,7 +51,8 @@
                 app:mcv_firstDayOfWeek="sunday"
                 app:mcv_selectionColor="@android:color/holo_blue_light"
                 app:mcv_weekDayTextAppearance="@style/TextAppearance.AppCompat.Medium"
-                app:mcv_dateTextAppearance="@style/TextAppearance.AppCompat.Small" />
+                app:mcv_dateTextAppearance="@style/TextAppearance.AppCompat.Small"
+                android:theme="@style/CustomDatePickerTheme"/>
         </LinearLayout>
 
         <!-- Title -->
@@ -65,7 +65,7 @@
             android:textSize="18sp"
             android:layout_marginBottom="4dp"
             android:padding="4dp"
-            android:textColor="#333333" />
+            android:textColor="#01082D" />
 
         <!-- Activity List Section -->
         <LinearLayout

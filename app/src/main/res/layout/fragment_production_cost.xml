@@ -2,7 +2,8 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bgapp"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="#A6C4F1FF"
     android:padding="16dp">
 
     <LinearLayout
@@ -22,12 +23,14 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Add Maintenance"
+                android:text="Add
+                Maintenance"
                 android:textAllCaps="false"
-                android:backgroundTint="@color/white"
-                android:textColor="@android:color/black"
+                android:backgroundTint="#00448D"
                 android:drawableLeft="@drawable/ic_add"
-                android:drawablePadding="8dp" />
+                android:drawablePadding="8dp"
+                app:cornerRadius="1dp"
+                android:textColor="#FFFFFF"/>
 
             <Space
                 android:layout_width="8dp"
@@ -38,12 +41,13 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="GenerateReport"
+                android:text="Generate Report"
                 android:textAllCaps="false"
-                android:backgroundTint="@color/white"
-                android:textColor="@android:color/black"
+                android:backgroundTint="#00448D"
                 android:drawableLeft="@drawable/ic_pdf"
-                android:drawablePadding="8dp" />
+                android:drawablePadding="8dp"
+                app:cornerRadius="1dp"
+                android:textColor="#FFFFFF"/>
         </LinearLayout>
 
 
@@ -51,7 +55,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/rounded_edittext"
+            android:background="@drawable/rounded_card"
             android:padding="16dp"
             android:layout_marginBottom="20dp"
             android:elevation="4dp">
@@ -59,11 +63,11 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Pond Info"
+                android:layout_marginBottom="12dp"
+                android:text="Pond Information"
+                android:textColor="#01082D"
                 android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="#4A4947"
-                android:layout_marginBottom="12dp" />
+                android:textStyle="bold" />
 
 
             <LinearLayout
@@ -82,7 +86,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Fingerling Type"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
 
                     <TextView
                         android:id="@+id/fishbreedpcostdisplay"
@@ -91,7 +95,7 @@
                         android:background="@drawable/rounded_edittext"
                         android:padding="10dp"
                         android:hint="--"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
                 </LinearLayout>
 
                 <Space
@@ -108,7 +112,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="No. of Fingerlings"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
 
                     <TextView
                         android:id="@+id/numoffingerlings"
@@ -117,7 +121,7 @@
                         android:background="@drawable/rounded_edittext"
                         android:padding="10dp"
                         android:hint="--"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -136,7 +140,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Amount per Piece"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
 
                     <TextView
                         android:id="@+id/amtperpiece"
@@ -145,7 +149,7 @@
                         android:background="@drawable/rounded_edittext"
                         android:padding="10dp"
                         android:hint="₱--"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
                 </LinearLayout>
 
                 <Space
@@ -162,7 +166,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Total Fingerlings Cost"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
 
                     <TextView
                         android:id="@+id/amtoffingerlings"
@@ -171,7 +175,7 @@
                         android:background="@drawable/rounded_edittext"
                         android:padding="10dp"
                         android:hint="₱--"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -191,7 +195,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Feed Type"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
 
                     <TextView
                         android:id="@+id/typeoffeeders"
@@ -200,7 +204,7 @@
                         android:background="@drawable/rounded_edittext"
                         android:padding="10dp"
                         android:hint="e.g. Starter, Grower"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
                 </LinearLayout>
 
                 <Space
@@ -217,7 +221,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Total Feed Cost"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
 
                     <TextView
                         android:id="@+id/amtoffeeders"
@@ -226,7 +230,7 @@
                         android:background="@drawable/rounded_edittext"
                         android:padding="10dp"
                         android:hint="₱--"
-                        android:textColor="#4A4947" />
+                        android:textColor="#01082D" />
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>
@@ -235,7 +239,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/rounded_edittext"
+            android:background="@drawable/rounded_card"
             android:padding="16dp"
             android:layout_marginBottom="20dp"
             android:elevation="4dp">
@@ -246,7 +250,7 @@
                 android:text="Total Production Cost Summary"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:layout_marginBottom="12dp" />
 
             <!-- Header Row -->
@@ -262,7 +266,7 @@
                     android:layout_weight="1"
                     android:text="Category"
                     android:textStyle="bold"
-                    android:textColor="#4A4947"/>
+                    android:textColor="#01082D"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -270,7 +274,7 @@
                     android:layout_weight="1"
                     android:text="Amount"
                     android:textStyle="bold"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textAlignment="textEnd"/>
             </LinearLayout>
 
@@ -285,7 +289,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Fingerlings"
-                    android:textColor="#4A4947"/>
+                    android:textColor="#01082D"/>
 
                 <TextView
                     android:id="@+id/tvSummaryFingerlings"
@@ -293,7 +297,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="₱--"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textAlignment="textEnd"/>
             </LinearLayout>
 
@@ -308,7 +312,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Feeds"
-                    android:textColor="#4A4947"/>
+                    android:textColor="#01082D"/>
 
                 <TextView
                     android:id="@+id/tvSummaryFeeds"
@@ -316,7 +320,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="₱--"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textAlignment="textEnd"/>
             </LinearLayout>
 
@@ -331,7 +335,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Maintenance"
-                    android:textColor="#4A4947"/>
+                    android:textColor="#01082D"/>
 
                 <TextView
                     android:id="@+id/tvSummaryMaintenance"
@@ -339,7 +343,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="₱--"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textAlignment="textEnd"/>
             </LinearLayout>
 
@@ -354,7 +358,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Total"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textStyle="bold"/>
 
                 <TextView
@@ -364,7 +368,7 @@
                     android:layout_weight="1"
                     android:text="₱--"
                     android:textStyle="bold"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textAlignment="textEnd"/>
             </LinearLayout>
         </LinearLayout>
@@ -373,7 +377,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@drawable/rounded_edittext"
+            android:background="@drawable/rounded_card"
             android:padding="16dp"
             android:elevation="4dp">
 
@@ -383,7 +387,7 @@
                 android:text="ROI Estimation"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:layout_marginBottom="12dp" />
 
             <LinearLayout
@@ -396,7 +400,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Estimated Revenue (Harvest)"
-                    android:textColor="#4A4947" />
+                    android:textColor="#01082D" />
 
                 <EditText
                     android:id="@+id/etEstimatedSales"
@@ -406,7 +410,7 @@
                     android:padding="10dp"
                     android:hint="₱"
                     android:inputType="numberDecimal"
-                    android:textColor="#4A4947" />
+                    android:textColor="#01082D" />
             </LinearLayout>
 
             <LinearLayout
@@ -419,7 +423,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Capital"
-                    android:textColor="#4A4947" />
+                    android:textColor="#01082D" />
 
                 <TextView
                     android:id="@+id/tvROICapital"
@@ -428,7 +432,7 @@
                     android:background="@drawable/rounded_edittext"
                     android:padding="10dp"
                     android:text="₱--"
-                    android:textColor="#4A4947" />
+                    android:textColor="#01082D" />
             </LinearLayout>
 
             <LinearLayout
@@ -441,7 +445,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Estimated ROI (Amount)"
-                    android:textColor="#4A4947" />
+                    android:textColor="#01082D" />
 
                 <TextView
                     android:id="@+id/tvROIAmount"
@@ -450,7 +454,7 @@
                     android:background="@drawable/rounded_edittext"
                     android:padding="10dp"
                     android:text="₱--"
-                    android:textColor="#4A4947" />
+                    android:textColor="#01082D" />
             </LinearLayout>
 
             <LinearLayout
@@ -462,7 +466,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Estimated ROI (%)"
-                    android:textColor="#4A4947" />
+                    android:textColor="#01082D" />
 
                 <TextView
                     android:id="@+id/tvROI"
@@ -471,7 +475,7 @@
                     android:background="@drawable/rounded_edittext"
                     android:padding="10dp"
                     android:text="--%"
-                    android:textColor="#4A4947" />
+                    android:textColor="#01082D" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

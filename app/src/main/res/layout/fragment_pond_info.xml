@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
-    android:background="@drawable/bgapp"
+    android:background="#A6C4F1FF"
     android:padding="16dp">
 
     <LinearLayout
@@ -19,8 +19,7 @@
             android:layout_height="wrap_content"
             android:text="POND INFORMATION"
             android:layout_marginBottom="8dp"
-            android:textColor="#4A4947"
-
+            android:textColor="#01082D"
             android:textSize="22sp"
             android:layout_gravity="center" />
 
@@ -59,13 +58,13 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_ponds"
-                            app:tint="#4A4947" />
+                            app:tint="#01082D" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Pond Name"
-                            android:textColor="#4A4947"
+                            android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
@@ -77,7 +76,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
                         android:text="POND A"
-                        android:textColor="#4A4947"
+                        android:textColor="#01082D"
                         android:inputType="text"
                         android:textSize="18sp"
                         android:textStyle="bold"
@@ -111,13 +110,13 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_breed"
-                            app:tint="#4A4947" />
+                            app:tint="#01082D" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Breed"
-                            android:textColor="#4A4947"
+                            android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
@@ -129,7 +128,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
                         android:text="TILAPIA"
-                        android:textColor="#4A4947"
+                        android:textColor="#01082D"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -173,13 +172,13 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_fishcount"
-                            app:tint="#4A4947" />
+                            app:tint="#01082D"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Fish Count"
-                            android:textColor="#4A4947"
+                            android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
@@ -191,7 +190,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
                         android:text="1000"
-                        android:textColor="#4A4947"
+                        android:textColor="#01082D"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -224,13 +223,13 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_cost"
-                            app:tint="#4A4947" />
+                            app:tint="#01082D"/>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Cost per Fish"
-                            android:textColor="#4A4947"
+                            android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
@@ -242,7 +241,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
                         android:text="₱4.50"
-                        android:textColor="#4A4947"
+                        android:textColor="#01082D"
                         android:textSize="18sp"
                         android:inputType="numberDecimal"
                         android:textStyle="bold"
@@ -286,13 +285,13 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_startdate"
-                            app:tint="#4A4947" />
+                            app:tint="#01082D" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Date Started (yyyy/mm/dd)"
-                            android:textColor="#4A4947"
+                            android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
 
@@ -305,7 +304,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
                         android:text="2025-03-12"
-                        android:textColor="#4A4947"
+                        android:textColor="#01082D"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -348,13 +347,13 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_harvest"
-                            app:tint="#4A4947" />
+                            app:tint="#01082D" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Harvest Date (yyyy/mm/dd)"
-                            android:textColor="#4A4947"
+                            android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
@@ -366,7 +365,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
                         android:text="2025-07-10"
-                        android:textColor="#4A4947"
+                        android:textColor="#01082D"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -409,13 +408,13 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_mortr"
-                            app:tint="#4A4947" />
+                            app:tint="#01082D" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Estimated Dead Fish"
-                            android:textColor="#4A4947"
+                            android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
@@ -427,7 +426,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
                         android:text="100"
-                        android:textColor="#4A4947"
+                        android:textColor="#01082D"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -459,13 +458,13 @@
                             android:layout_height="24dp"
                             android:layout_marginEnd="8dp"
                             android:src="@drawable/ic_percent"
-                            app:tint="#4A4947" />
+                            app:tint="#01082D" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Mortality Rate"
-                            android:textColor="#4A4947"
+                            android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
@@ -477,7 +476,7 @@
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
                         android:text="%"
-                        android:textColor="#4A4947"
+                        android:textColor="#01082D"
                         android:textSize="18sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -491,7 +490,7 @@
             android:layout_width="200dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:backgroundTint="#4A4947"
+            android:backgroundTint="#00448D"
             android:text="EDIT"
             android:layout_gravity="center"
             app:cornerRadius="1dp"

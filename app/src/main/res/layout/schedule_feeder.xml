@@ -16,8 +16,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="SET SCHEDULE"
-            android:fontFamily="sans-serif"
-            android:textColor="#4A4947"
+            android:textColor="#01082D"
             android:textSize="22sp"
             android:textStyle="bold"
             android:layout_marginBottom="5dp"
@@ -28,18 +27,17 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="12dp"
-            android:background="@drawable/feeders_bg"
+            android:background="@drawable/rounded_card"
             android:elevation="4dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Current weight of fingerling:"
+                android:text="Current weight of fingerling"
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="5dp"
-                android:textColor="#4A4947"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif"/>
+                android:textColor="#01082D"
+                android:textSize="18sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -55,13 +53,12 @@
                     android:cursorVisible="true"
                     android:focusable="true"
                     android:focusableInTouchMode="true"
-                    android:fontFamily="sans-serif-light"
                     android:hint="grams per piece"
                     android:inputType="numberDecimal"
                     android:textAlignment="textEnd"
                     android:padding="12dp"
                     android:layout_marginStart="10dp"
-                    android:textColorHint="#908D8D"
+                    android:textColorHint="#01082D"
                     android:textSize="14sp" />
 
             </LinearLayout>
@@ -69,11 +66,10 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Date:"
+                android:text="Date"
                 android:layout_marginTop="1dp"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:textSize="18sp"
-                android:fontFamily="sans-serif"
                 android:layout_marginBottom="5dp" />
 
             <LinearLayout
@@ -88,23 +84,21 @@
                     android:layout_marginStart="10dp"
                     android:background="@drawable/rounded_edittext"
                     android:enabled="true"
-                    android:fontFamily="sans-serif-light"
                     android:hint="mm/dd/yyyy"
                     android:padding="12dp"
                     android:textAlignment="textEnd"
-                    android:textColor="#000000"
+                    android:textColor="#01082D"
                     android:textSize="14sp" />
 
                 <Button
                     android:id="@+id/btnselectdate"
                     android:layout_width="130dp"
                     android:layout_height="wrap_content"
-                    android:backgroundTint="#4A4947"
+                    android:backgroundTint="#00448D"
                     android:text="Select"
                     android:layout_gravity="center"
                     app:cornerRadius="5dp"
                     android:layout_marginStart="5dp"
-                    android:fontFamily="sans-serif"
                     android:textColor="#FFFFFF" />
             </LinearLayout>
 
@@ -114,7 +108,7 @@
                 android:layout_height="wrap_content"
                 android:text="Time:"
                 android:layout_marginTop="1dp"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:textSize="18sp"
                 android:fontFamily="sans-serif"
                 android:layout_marginBottom="5dp" />
@@ -129,7 +123,8 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="5dp">
 
                     <TextView
                         android:id="@+id/timeoffeeding"
@@ -138,23 +133,21 @@
                         android:layout_marginStart="10dp"
                         android:background="@drawable/rounded_edittext"
                         android:enabled="true"
-                        android:fontFamily="sans-serif-light"
                         android:hint="00:00"
                         android:padding="12dp"
                         android:textAlignment="textEnd"
-                        android:textColor="#000000"
+                        android:textColor="#01082D"
                         android:textSize="14sp" />
 
                     <Button
                         android:id="@+id/btnselecttime"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:backgroundTint="#4A4947"
+                        android:backgroundTint="#00448D"
                         android:text="Select"
                         android:layout_gravity="center"
                         app:cornerRadius="5dp"
                         android:layout_marginStart="5dp"
-                        android:fontFamily="sans-serif"
                         android:textColor="#FFFFFF" />
 
                     <ImageButton
@@ -176,7 +169,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="right"
                 android:layout_marginTop="10dp">
 
                 <TextView
@@ -184,23 +176,21 @@
                     android:layout_height="wrap_content"
                     android:text="Feed Quantity per Cycle:"
                     android:layout_marginTop="1dp"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textSize="18sp"
-                    android:fontFamily="sans-serif"
                     android:layout_marginBottom="5dp" />
 
                 <EditText
                     android:id="@+id/feedquantity"
-                    android:layout_width="150dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="10dp"
                     android:background="@drawable/rounded_edittext"
                     android:enabled="true"
-                    android:fontFamily="sans-serif"
                     android:hint="--"
                     android:padding="12dp"
                     android:textAlignment="textEnd"
-                    android:textColor="#908D8D"
+                    android:textColor="#01082D"
                     android:textSize="14sp" />
 
             </LinearLayout>
@@ -218,10 +208,9 @@
                     android:layout_width="122dp"
                     android:layout_height="wrap_content"
                     android:text="CREATE"
-                    android:backgroundTint="#4A4947"
+                    android:backgroundTint="#00448D"
                     android:gravity="center"
                     app:cornerRadius="5dp"
-                    android:fontFamily="sans-serif"
                     android:textColor="#FFFFFF"/>
 
             </LinearLayout>
@@ -230,9 +219,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif"
             android:text="PENDING SCHEDULE"
-            android:textColor="#4A4947"
+            android:textColor="#01082D"
             android:textSize="22sp"
             android:textStyle="bold"
             android:layout_marginBottom="5dp"
@@ -267,7 +255,6 @@
                         android:paddingHorizontal="8dp"
                         android:textColor="#FFFFFF"
                         android:gravity="center"
-                        android:fontFamily="sans-serif-medium"
                         android:textSize="15sp" />
 
                     <TextView
@@ -275,7 +262,6 @@
                         android:paddingHorizontal="8dp"
                         android:textColor="#FFFFFF"
                         android:gravity="center"
-                        android:fontFamily="sans-serif-medium"
                         android:textSize="15sp" />
 
                     <TextView
@@ -283,15 +269,13 @@
                         android:paddingHorizontal="8dp"
                         android:textColor="#FFFFFF"
                         android:gravity="center"
-                        android:fontFamily="sans-serif-medium"
                         android:textSize="15sp" />
 
                     <TextView
                         android:text="Status"
                         android:paddingHorizontal="8dp"
-                        android:textColor="#FFFFFF"
                         android:gravity="center"
-                        android:fontFamily="sans-serif-medium"
+                        android:textColor="#FFFFFF"
                         android:textSize="15sp" />
                 </TableRow>
             </TableLayout>

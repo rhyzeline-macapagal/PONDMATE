@@ -64,17 +64,17 @@ public class PondInfoFragment extends Fragment {
         String pondJson = prefs.getString("selected_pond", null);
 
         if (pondJson != null) {
-            PondModel selectedPond = new Gson().fromJson(pondJson, PondModel.class);
+            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
 
-            int fishCount = selectedPond.getFishCount();
-            double costPerFish = selectedPond.getCostPerFish();
+            int fishCount = pond.getFishCount();
+            double costPerFish = pond.getCostPerFish();
 
-            tvPondName.setText(selectedPond.getName());
-            tvBreed.setText(selectedPond.getBreed());
-            tvFishCount.setText(String.valueOf(fishCount));
+            tvPondName.setText(pond.getName());
+            tvBreed.setText(pond.getBreed());
+            tvFishCount.setText(String.valueOf(pond.getFishCount()));
             tvCostPerFish.setText(String.valueOf(costPerFish));
-            tvDateStarted.setText(selectedPond.getDateStarted());
-            tvHarvestDate.setText(selectedPond.getDateHarvest());
+            tvDateStarted.setText(pond.getDateStarted());
+            tvHarvestDate.setText(pond.getDateHarvest());
 
             updateMortalityData(fishCount);
 
@@ -90,8 +90,18 @@ public class PondInfoFragment extends Fragment {
 
             PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
             viewModel.setSelectedPond(pond);
+            viewModel.setFishCount(pond.getFishCount());
         }
 
+        PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
+        String fishCountStr = tvFishCount.getText().toString();
+
+        try {
+            int fishCount = Integer.parseInt(fishCountStr);
+            viewModel.setFishCount(fishCount);
+        } catch (NumberFormatException e) {
+            viewModel.setFishCount(0);
+        }
 
         String userType = new SessionManager(requireContext()).getUsertype();
         btnEdit.setVisibility("owner".equalsIgnoreCase(userType) ? View.VISIBLE : View.GONE);

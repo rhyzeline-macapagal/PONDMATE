@@ -113,8 +113,16 @@ public class MainActivity extends AppCompatActivity {
                             .commit();
                     break;
                 case 2:
+                    ProductionCostFragment fragment = new ProductionCostFragment();
+
+                    // Get the pond name from the label
+                    String pondName = pondNameLabel.getText().toString();
+                    Bundle args = new Bundle();
+                    args.putString("pond_name", pondName); // Add more if needed
+                    fragment.setArguments(args);
+
                     getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.con, new ProductionCostFragment())
+                            .replace(R.id.con, fragment)
                             .commit();
                     break;
                 case 3:

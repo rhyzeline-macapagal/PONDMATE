@@ -114,6 +114,11 @@ public class ProductionCostFragment extends Fragment {
 
                 tvROIAmount.setText("₱" + formatPrice(roiAmount));
                 tvROI.setText(formatPrice(roiPercent) + "%");
+
+                saveROIToSharedPref(roiPercent);
+                if (getActivity() instanceof ROIChartUpdater) {
+                    ((ROIChartUpdater) getActivity()).loadChartData();
+                }
             }
         });
 
@@ -196,5 +201,22 @@ public class ProductionCostFragment extends Fragment {
 
         dialog.show();
     }
+
+    private void saveROIToSharedPref(double roiPercent) {
+        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+
+        // to get pond name from arguments (passed from MainActivity)
+        String pondName = "";
+        if (getArguments() != null) {
+            pondName = getArguments().getString("pond_name", "");
+        }
+
+        if (!pondName.isEmpty()) {
+            editor.putFloat(pondName + "_roi", (float) roiPercent);
+            editor.commit();
+        }
+    }
+
 
 }

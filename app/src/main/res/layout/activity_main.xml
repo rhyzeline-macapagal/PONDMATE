@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#C3A470"
+    android:background="#A6C4F1FF"
     tools:context=".MainActivity">
 
     <!-- 🔵 Top Bar -->
@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_alignParentTop="true"
-        android:background="#B17457"
+        android:background="#001C4F"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
@@ -24,7 +24,7 @@
             android:layout_height="40dp"
             android:layout_centerVertical="true"
             android:contentDescription="App Logo"
-            android:src="@drawable/logo" />
+            android:src="@drawable/fpmslogo" />
 
         <TextView
             android:id="@+id/appName"
@@ -34,9 +34,9 @@
             android:layout_marginStart="8dp"
             android:layout_toEndOf="@id/appLogo"
             android:text="PONDMATE"
-            android:textColor="#4A4947"
+            android:textColor="#BAADE1FB"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:fontFamily="sans-serif" />
 
         <ImageView
             android:id="@+id/adminIcon"
@@ -73,7 +73,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/topBar"
-        android:background="#F2E5CE"
+        android:background="#A6C4F1FF"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:paddingTop="4dp">
@@ -104,7 +104,7 @@
                 android:textAllCaps="true"
                 android:text="POND NAME"
                 android:textSize="24sp"
-                android:textColor="#4A4947" />
+                android:textColor="#01082D" />
         </FrameLayout>
 
     </RelativeLayout>
@@ -118,7 +118,7 @@
         android:layout_height="match_parent"
         android:layout_below="@id/pondHeader"
         android:layout_above="@id/bottomNavigation"
-        android:background="@drawable/bgapp">
+        android:background="#A6C4F1FF">
 
 
     <!-- 🔙 Floating Back Button -->
@@ -133,13 +133,13 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="1dp"
-        app:mbn_backgroundBottomColor="#B17457"
-        app:mbn_circleColor="#4A4947"
+        app:mbn_backgroundBottomColor="#001C4F"
+        app:mbn_circleColor="#0F2573"
         app:mbn_countBackgroundColor="#D8D2C2"
-        app:mbn_countTextColor="#D8D2C2"
+        app:mbn_countTextColor="#01082D"
         app:mbn_countTypeface="fonts/SourceSansPro-Regular.ttf"
-        app:mbn_defaultIconColor="#4A4947"
+        app:mbn_defaultIconColor="#266CA9"
         app:mbn_hasAnimation="true"
         app:mbn_rippleColor="#FAF7F0"
-        app:mbn_selectedIconColor="#FAF7F0" />
+        app:mbn_selectedIconColor="#ADE1FB" />
 </RelativeLayout>

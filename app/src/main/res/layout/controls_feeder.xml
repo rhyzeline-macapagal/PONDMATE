@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
@@ -17,7 +17,7 @@
         <LinearLayout
             android:layout_width="350dp"
             android:layout_height="wrap_content"
-            android:background="@drawable/feeders_bg"
+            android:background="@drawable/rounded_card"
             android:elevation="4dp"
             android:padding="10dp"
             android:orientation="vertical"
@@ -26,9 +26,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="sans-serif"
                 android:text="FEEDING STATUS"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:textSize="22sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="5dp"
@@ -40,9 +39,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="Date here"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:textSize="18sp"
-                android:fontFamily="sans-serif-light"
                 android:layout_gravity="center_horizontal"/>
 
             <TextView
@@ -51,9 +49,8 @@
                 android:text="Last Feeding Time:"
                 android:layout_marginTop="10dp"
                 android:layout_gravity="center_horizontal"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:textSize="18sp"
-                android:fontFamily="sans-serif"
                 android:layout_marginBottom="5dp" />
 
             <TextView
@@ -62,11 +59,10 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:background="@drawable/rounded_edittext"
-                android:fontFamily="sans-serif-light"
                 android:hint="00:00"
                 android:padding="12dp"
                 android:textAlignment="center"
-                android:textColorHint="#4A4947"
+                android:textColorHint="#01082D"
                 android:textSize="14sp"
                 android:layout_marginBottom="8dp"/>
 
@@ -76,9 +72,8 @@
                 android:text="Next Feeding Time:"
                 android:layout_marginTop="5dp"
                 android:layout_gravity="center_horizontal"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:textSize="18sp"
-                android:fontFamily="sans-serif"
                 android:layout_marginBottom="5dp" />
 
             <TextView
@@ -87,11 +82,10 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
                 android:background="@drawable/rounded_edittext"
-                android:fontFamily="sans-serif-light"
                 android:hint="00:00"
                 android:padding="12dp"
                 android:textAlignment="center"
-                android:textColorHint="#4A4947"
+                android:textColorHint="#01082D"
                 android:textSize="14sp"
                 android:layout_marginBottom="4dp"/>
         </LinearLayout>
@@ -99,9 +93,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif"
             android:text="FEED DISPENSER"
-            android:textColor="#4A4947"
+            android:textColor="#01082D"
             android:textSize="18sp"
             android:layout_gravity="left"
             android:textStyle="bold"
@@ -117,11 +110,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:backgroundTint="#4A4947"
+                android:backgroundTint="#00448D"
                 android:text="CONNECT"
                 android:layout_gravity="center"
                 app:cornerRadius="5dp"
-                android:fontFamily="sans-serif"
                 android:textColor="#FFFFFF"/>
 
             <TextView
@@ -129,8 +121,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Status: Disconnected"
-                android:fontFamily="sans-serif"
-                android:textColor="#4A4947"
+                android:textColor="#01082D"
                 android:textSize="16sp"
                 android:layout_marginTop="3dp" />
         </LinearLayout>
@@ -138,9 +129,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif"
             android:text="FEED LEVEL"
-            android:textColor="#4A4947"
+            android:textColor="#01082D"
             android:textSize="18sp"
             android:layout_gravity="left"
             android:textStyle="bold"
@@ -167,9 +157,8 @@
                     android:layout_height="wrap_content"
                     android:text="Amount per Cycle:"
                     android:layout_marginTop="10dp"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textSize="18sp"
-                    android:fontFamily="sans-serif"
                     android:layout_marginBottom="3dp" />
 
                 <TextView
@@ -179,20 +168,18 @@
                     android:layout_marginStart="80dp"
                     android:layout_marginBottom="3dp"
                     android:background="@drawable/rounded_edittext"
-                    android:fontFamily="sans-serif-medium"
                     android:hint="--"
                     android:padding="12dp"
                     android:textAlignment="textEnd"
-                    android:textColorHint="#4A4947"
+                    android:textColorHint="#01082D"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Status:"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
                     android:textSize="18sp"
-                    android:fontFamily="sans-serif"
                     android:layout_marginBottom="5dp"/>
 
                 <LinearLayout
@@ -213,11 +200,10 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="5dp"
                         android:background="@drawable/rounded_edittext"
-                        android:fontFamily="sans-serif-light"
                         android:padding="12dp"
                         android:text="UNKNOWN"
                         android:textAlignment="center"
-                        android:textColorHint="#4A4947"
+                        android:textColorHint="#01082D"
                         android:textSize="14sp"
                         android:textStyle="bold" />
 
@@ -228,14 +214,13 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:backgroundTint="#4A4947"
+                    android:backgroundTint="#00448D"
                     android:text="MONITOR"
                     android:layout_gravity="center"
                     app:cornerRadius="5dp"
-                    android:fontFamily="sans-serif"
                     android:textColor="#FFFFFF"/>
 
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-</LinearLayout>
+</ScrollView>

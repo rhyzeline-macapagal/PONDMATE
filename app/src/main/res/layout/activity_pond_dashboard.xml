@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_alignParentTop="true"
-        android:background="#B17457"
+        android:background="#001C4F"
         android:paddingStart="16dp"
         android:paddingEnd="16dp">
 
@@ -23,7 +23,7 @@
             android:layout_height="40dp"
             android:layout_centerVertical="true"
             android:contentDescription="App Logo"
-            android:src="@drawable/logo" />
+            android:src="@drawable/fpmslogo" />
 
         <TextView
             android:id="@+id/appName"
@@ -33,7 +33,7 @@
             android:layout_marginStart="8dp"
             android:layout_toEndOf="@id/appLogo"
             android:text="PONDMATE"
-            android:textColor="#4A4947"
+            android:textColor="#BAADE1FB"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -74,16 +74,30 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/topBar"
-        android:background="@drawable/bgapp">
+        android:background="#A6C4F1FF">
 
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/pondRecyclerView"
+        <LinearLayout
+            android:id="@+id/containerLayout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:clipToPadding="false"
-            android:background="@android:color/transparent" />
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/pondRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:clipToPadding="false"
+                android:background="@android:color/transparent" />
+
+            <com.github.mikephil.charting.charts.BarChart
+                android:id="@+id/roiBarChart"
+                android:layout_width="match_parent"
+                android:layout_height="400dp"
+                android:layout_margin="8dp"
+                android:visibility="visible" />
+
+        </LinearLayout>
     </FrameLayout>
 
 </RelativeLayout>

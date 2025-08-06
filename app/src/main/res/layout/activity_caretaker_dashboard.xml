@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:fitsSystemWindows="true"
-    android:background="#F5F5F5">
+    android:background="#A6C4F1FF">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -21,7 +21,7 @@
             android:layout_height="wrap_content"
             android:text="✖"
             android:textSize="18sp"
-            android:textColor="#4A4947"
+            android:textColor=" #01082D"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
             android:layout_gravity="end"/>
@@ -31,7 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Caretaker List"
-            android:textColor="#4A4947"
+            android:textColor=" #01082D"
             android:textSize="22sp"
             android:textStyle="bold"
             android:layout_gravity="center"
@@ -45,7 +45,7 @@
             android:text="+ Caretaker"
             android:layout_gravity="end"
             android:layout_marginBottom="16dp"
-            android:backgroundTint="#4A4947"
+            android:backgroundTint="#00448D"
             android:gravity="center"
             app:cornerRadius="5dp"
             android:textColor="#FFFFFF"/>
@@ -60,7 +60,7 @@
             android:layout_marginBottom="4dp">
 
             <TextView
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Username"
@@ -69,7 +69,7 @@
                 />
 
             <TextView
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Password"
@@ -78,15 +78,15 @@
                 />
 
             <TextView
-                android:layout_weight="1"
+                android:layout_weight="1.5"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Full Name"
+                android:text="Name"
                 android:textColor="#FFFFFF"
                 android:gravity="center" />
 
             <TextView
-                android:layout_weight="1"
+                android:layout_weight="1.3"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:text="Address"
@@ -115,7 +115,8 @@
             android:id="@+id/caretakerRecyclerView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
+            android:background="#C0E6F8"
+            android:clipToPadding="false" />
 
     </LinearLayout>
 </ScrollView>

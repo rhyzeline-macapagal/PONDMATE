@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="300dp"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="20dp"
     android:background="@drawable/rounded_dialog_bg"
@@ -32,7 +33,7 @@
         android:text="Create New Caretaker Account"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="#000000"
+        android:textColor="#01082D"
         android:gravity="center"
         android:layout_marginTop="10dp"
         android:layout_marginBottom="20dp"/>
@@ -43,6 +44,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Username"
+        android:textColor="#01082D"
         android:inputType="textPersonName" />
 
     <EditText
@@ -50,6 +52,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Password"
+        android:textColor="#01082D"
         android:inputType="textPassword" />
 
     <EditText
@@ -57,6 +60,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Full Name"
+        android:textColor="#01082D"
         android:inputType="textPersonName" />
 
     <EditText
@@ -64,6 +68,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Address"
+        android:textColor="#01082D"
         android:inputType="textPostalAddress" />
 
     <!-- Save Button -->
@@ -72,6 +77,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Save"
+        app:cornerRadius="1dp"
+        android:backgroundTint="#00448D"
+        android:textColor="@android:color/white"
         android:layout_marginTop="20dp"/>
 
     <TextView

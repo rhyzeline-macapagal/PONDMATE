@@ -7,7 +7,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/loginbg"
+    android:background="@drawable/loginbgf"
     tools:context=".login">
 
     <!--topbar-->
@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:id="@+id/topBar"
-        android:background="#B17457">
+        android:background="#001C4F">
 
         <ImageView
             android:id="@+id/appLogo"
@@ -25,7 +25,7 @@
             android:layout_marginTop="8dp"
             android:layout_marginStart="5dp"
             android:contentDescription="App Logo"
-            android:src="@drawable/logo" />
+            android:src="@drawable/fpmslogo" />
 
         <TextView
             android:id="@+id/appName"
@@ -33,12 +33,12 @@
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_marginStart="8dp"
+            android:fontFamily="sans-serif"
             android:layout_toEndOf="@id/appLogo"
             android:text="PONDMATE"
             android:layout_marginTop="15dp"
-            android:textColor="#4A4947"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textColor="#BAADE1FB"
+            android:textSize="18sp" />
     </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"
@@ -52,7 +52,7 @@
             android:layout_width="350dp"
             android:layout_height="wrap_content"
             android:layout_margin="24dp"
-            android:backgroundTint="#FAF7F0"
+            android:backgroundTint="#D7F1FD"
             app:cardCornerRadius="10dp">
 
             <LinearLayout
@@ -67,7 +67,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="LOGIN"
-                    android:textColor="#4A4947"
+                    android:textColor="#01082D"
+                    android:fontFamily="sans-serif"
                     android:layout_marginTop="10dp"
                     android:textSize="20sp"
                     android:textStyle="bold"
@@ -84,8 +85,9 @@
                     android:hint="Username"
                     android:inputType="text"
                     android:padding="16dp"
-                    android:textColor="#000000"
-                    android:textColorHint="#000000"
+                    android:fontFamily="sans-serif"
+                    android:textColor="#01082D"
+                    android:textColorHint="#01082D"
                     android:textSize="18sp" />
 
                 <EditText
@@ -98,11 +100,12 @@
                     android:drawableEnd="@drawable/hidden"
                     android:drawablePadding="8dp"
                     android:hint="Password"
+                    android:fontFamily="sans-serif"
                     android:inputType="textPassword"
                     android:padding="16dp"
-                    android:textColor="#000000"
+                    android:textColor="#01082D"
                     android:layout_gravity=""
-                    android:textColorHint="#000000"
+                    android:textColorHint="#01082D"
                     android:textSize="18sp" />
 
                 <LinearLayout
@@ -116,7 +119,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:alpha="0.7"
-                        android:buttonTint="#4A4947"
+                        android:buttonTint="#01082D"
+                        android:textColor="#01082D"
                         android:text="Remember me" />
 
                     <TextView
@@ -124,7 +128,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:layout_marginStart="100dp"
+                        android:layout_marginStart="60dp"
+                        android:textColor="#01082D"
                         android:text="Forgot Password?"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -134,7 +139,8 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginTop="8dp"
-                    android:backgroundTint="#4A4947"
+                    android:backgroundTint="#00448D"
+                    android:fontFamily="sans-serif"
                     android:text="LOG IN"
                     android:textColor="#FFFFFF"
                     app:cornerRadius="1dp" />

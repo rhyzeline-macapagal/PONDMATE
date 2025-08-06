@@ -27,11 +27,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Pond Name"
-            android:textColor="#4A4947"
+            android:textColor="#01082D"
             android:textSize="18sp"
             android:gravity="center"
-            android:fontFamily="sans-serif"
-            android:textStyle="bold"
             android:visibility="gone"
             android:layout_marginTop="2dp"
             android:layout_marginBottom="2dp"/>

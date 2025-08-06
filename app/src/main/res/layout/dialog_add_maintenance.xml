@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="300dp"
     android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@drawable/rounded_dialog_bg"
     android:orientation="vertical"
     android:padding="20dp"
@@ -18,7 +19,7 @@
             android:layout_height="wrap_content"
             android:text="✖"
             android:textSize="20sp"
-            android:textColor="#4A4947"
+            android:textColor="#01082D"
             android:layout_alignParentEnd="true"
             android:padding="8dp"
             android:layout_marginBottom="4dp"/>
@@ -30,7 +31,7 @@
         android:text="Add Maintenance Cost"
         android:textStyle="bold"
         android:textSize="18sp"
-        android:textColor="#4A4947"
+        android:textColor="#01082D"
         android:layout_marginBottom="16dp" />
 
     <!-- Spinner for maintenance type -->
@@ -38,14 +39,15 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Maintenance Type"
-        android:textColor="#4A4947" />
+        android:textColor="#01082D" />
     <Spinner
         android:id="@+id/spinnerMaintenanceType"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/rounded_edittext"
         android:padding="10dp"
-        android:layout_marginBottom="12dp" />
+        android:layout_marginBottom="12dp"
+        android:textColorHint="#01082D"/>
 
     <!-- Optional "Other" field -->
     <EditText
@@ -63,7 +65,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Cost (₱)"
-        android:textColor="#4A4947" />
+        android:textColor="#01082D" />
     <EditText
         android:id="@+id/etMaintenanceCost"
         android:layout_width="match_parent"
@@ -72,7 +74,8 @@
         android:inputType="numberDecimal"
         android:background="@drawable/rounded_edittext"
         android:padding="10dp"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp"
+        android:textColorHint="#01082D"/>
 
     <!-- Buttons -->
     <LinearLayout
@@ -87,7 +90,8 @@
             android:layout_height="wrap_content"
             android:text="Cancel"
             android:textColor="@color/black"
-            android:backgroundTint="#D3D3D3" />
+            app:cornerRadius="1dp"
+            android:backgroundTint="#BAD0E6F0" />
 
         <Space
             android:layout_width="16dp"
@@ -98,7 +102,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Add"
-            android:backgroundTint="#4A4947"
+            app:cornerRadius="1dp"
+            android:backgroundTint="#00448D"
             android:textColor="@android:color/white" />
     </LinearLayout>
 
