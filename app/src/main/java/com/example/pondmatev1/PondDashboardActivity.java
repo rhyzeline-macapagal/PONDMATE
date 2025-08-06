@@ -124,6 +124,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        loadChartData();
+    }
+
+    @Override
     public void loadChartData() {
         runOnUiThread(() -> {
             roiBarChart = findViewById(R.id.roiBarChart);
