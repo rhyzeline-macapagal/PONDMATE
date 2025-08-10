@@ -179,7 +179,7 @@
                             android:layout_height="wrap_content"
                             android:text="Fish Count"
                             android:textColor="#01082D"
-                            android:textSize="18sp"
+                            android:textSize="17sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
 
@@ -230,7 +230,7 @@
                             android:layout_height="wrap_content"
                             android:text="Cost per Fish"
                             android:textColor="#01082D"
-                            android:textSize="18sp"
+                            android:textSize="17sp"
                             tools:ignore="HardcodedText" />
                     </LinearLayout>
 
@@ -290,7 +290,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Date Started (yyyy/mm/dd)"
+                            android:text="Date Started"
                             android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
@@ -303,7 +303,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
-                        android:text="2025-03-12"
+                        android:text="Jan. 01, 2025"
                         android:textColor="#01082D"
                         android:textSize="18sp"
                         android:textStyle="bold" />
@@ -352,7 +352,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Harvest Date (yyyy/mm/dd)"
+                            android:text="Harvest Date"
                             android:textColor="#01082D"
                             android:textSize="18sp"
                             tools:ignore="HardcodedText" />
@@ -364,7 +364,7 @@
                         android:layout_height="wrap_content"
                         android:layout_gravity="center"
                         android:layout_marginTop="8dp"
-                        android:text="2025-07-10"
+                        android:text="Jul. 10, 2025"
                         android:textColor="#01082D"
                         android:textSize="18sp"
                         android:textStyle="bold" />

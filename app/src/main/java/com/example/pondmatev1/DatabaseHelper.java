@@ -88,7 +88,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
 
     }
-
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
@@ -178,7 +177,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_PONDS, null);
     }
 
-
     public ArrayList<CaretakerModel> getCaretakersList() {
         ArrayList<CaretakerModel> list = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
@@ -224,8 +222,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return list;
     }
 
-
-
     public boolean isPondExists(String name, String dateStarted) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_PONDS +
@@ -234,9 +230,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cursor.close();
         return exists;
     }
-
-
-
 
     public void insertPond(String name, String breed, int fishCount, double costPerFish, String dateStarted, String dateHarvest) {
         SQLiteDatabase db = this.getWritableDatabase();
@@ -281,8 +274,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
     }
 
+    public String getPondStartDate(String pondName) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT date_started FROM ponds WHERE name = ?", new String[]{pondName});
+        if (cursor.moveToFirst()) {
+            String date = cursor.getString(0);
+            cursor.close();
+            return date;
+        }
+        cursor.close();
+        return null;
+    }
 
-
+    public String getPondHarvestDate(String pondName) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT date_harvest FROM ponds WHERE name = ?", new String[]{pondName});
+        if (cursor.moveToFirst()) {
+            String date = cursor.getString(0);
+            cursor.close();
+            return date;
+        }
+        cursor.close();
+        return null;
+    }
 
 }
 

@@ -108,6 +108,15 @@ public class ProductionCostFragment extends Fragment {
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
             public void afterTextChanged(Editable s) {
+                String str = s.toString();
+                if (!str.isEmpty() && !str.startsWith("₱")) {
+                    etEstimatedSales.removeTextChangedListener(this);
+                    etEstimatedSales.setText("₱" + str);
+                    etEstimatedSales.setSelection(etEstimatedSales.getText().length());
+                    etEstimatedSales.addTextChangedListener(this);
+                    return;
+                }
+
                 double estimatedRevenue = parseDouble(s.toString());
                 double roiAmount = estimatedRevenue - totalCost;
                 double roiPercent = (totalCost > 0) ? (roiAmount / totalCost) * 100 : 0;

@@ -159,11 +159,11 @@
                     android:id="@+id/tvDateHarvest"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Tap to calculate"
+                    android:text="Jan. 01, 2025"
                     android:textColor="#01082D"
-                    android:background="#D8D2C2"
-                    android:textSize="18sp"
-                    android:layout_marginBottom="10dp" />
+                    android:textSize="16sp"
+                    android:layout_marginBottom="10dp"
+                    android:textStyle="bold"/>
 
                 <!-- Save Button -->
                 <Button

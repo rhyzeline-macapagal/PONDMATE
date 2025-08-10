@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -19,6 +20,8 @@ import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -32,6 +35,8 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     ArrayList<PondModel> pondList;
     String userType;
     private BarChart roiBarChart;
+    private List<String> pondNames = new ArrayList<>();
+    private List<String> dateRanges = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +80,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         PondSyncManager.syncProductionCostsFromServer(this);
 
         roiBarChart = findViewById(R.id.roiBarChart);
+
         loadChartData();
     }
 
@@ -116,8 +122,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
             if (entry.getKey().endsWith("_roi")) {
                 String pondName = entry.getKey().replace("_roi", "");
-                float roiValue = (float) entry.getValue();
-                roiMap.put(pondName, roiValue);
+                try {
+                    float roiValue = Float.parseFloat(entry.getValue().toString());
+                    roiMap.put(pondName, roiValue);
+                } catch (NumberFormatException e) {
+
+                }
             }
         }
         return roiMap;
@@ -132,34 +142,82 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     @Override
     public void loadChartData() {
         runOnUiThread(() -> {
-            roiBarChart = findViewById(R.id.roiBarChart);
+            pondNames.clear();
+            dateRanges.clear();
 
             Map<String, Float> roiData = getAllROIData();
             List<BarEntry> entries = new ArrayList<>();
-            List<String> labels = new ArrayList<>();
+
+            DatabaseHelper db = new DatabaseHelper(this);
 
             int index = 0;
             for (Map.Entry<String, Float> entry : roiData.entrySet()) {
-                entries.add(new BarEntry(index, entry.getValue()));
-                labels.add(entry.getKey());
+                String pondName = entry.getKey();
+                float roiValue = entry.getValue();
+
+                String startDate = db.getPondStartDate(pondName);
+                String endDate = db.getPondHarvestDate(pondName);
+
+                String range = "";
+                if (startDate != null && endDate != null) {
+                    range = formatMonthShort(startDate) + " - " + formatMonthShort(endDate);
+                }
+
+                entries.add(new BarEntry(index, roiValue));
+                pondNames.add(pondName);
+                dateRanges.add(range);
                 index++;
+            }
+
+            if (entries.isEmpty()) {
+                roiBarChart.clear();
+                roiBarChart.invalidate();
+                return;
             }
 
             BarDataSet dataSet = new BarDataSet(entries, "ROI (%)");
             dataSet.setValueTextSize(12f);
+            dataSet.setValueTextColor(Color.BLACK);
+
+            dataSet.setValueFormatter(new ValueFormatter() {
+                @Override
+                public String getBarLabel(BarEntry barEntry) {
+                    return "";
+                }
+            });
 
             BarData data = new BarData(dataSet);
+            data.setBarWidth(0.9f);
+
             roiBarChart.setData(data);
+            roiBarChart.setRenderer(new MultiLineBarChartRenderer(roiBarChart, dateRanges));
+            roiBarChart.invalidate();
+            roiBarChart.notifyDataSetChanged();
+
 
             XAxis xAxis = roiBarChart.getXAxis();
-            xAxis.setValueFormatter(new IndexAxisValueFormatter(labels));
+            xAxis.setValueFormatter(new IndexAxisValueFormatter(pondNames));
             xAxis.setGranularity(1f);
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
             xAxis.setDrawGridLines(false);
-            xAxis.setLabelRotationAngle(-45f);
+            xAxis.setLabelRotationAngle(-0f);
 
             roiBarChart.getDescription().setEnabled(false);
+            roiBarChart.setExtraBottomOffset(15f);
+            roiBarChart.setFitBars(true);
             roiBarChart.animateY(1000);
-            roiBarChart.invalidate(); // Redraw chart
-    });
-}}
+            roiBarChart.invalidate();
+
+        });
+    }
+
+    private String formatMonthShort(String dateStr) {
+        try {
+            java.text.SimpleDateFormat inputFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+            java.text.SimpleDateFormat outputFormat = new java.text.SimpleDateFormat("MMM yy");
+            return outputFormat.format(inputFormat.parse(dateStr));
+        } catch (Exception e) {
+            return "";
+        }
+    }
+}

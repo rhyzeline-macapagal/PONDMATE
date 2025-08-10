@@ -71,8 +71,13 @@ public class AddPondDialogFragment extends DialogFragment {
                     Calendar harvestCalendar = (Calendar) startCalendar.clone();
                     harvestCalendar.add(Calendar.DAY_OF_YEAR, 120);
 
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                    tvDateHarvest.setText("Harvest Date: " + sdf.format(harvestCalendar.getTime()));
+                    SimpleDateFormat dbFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    String rawHarvestDate = dbFormat.format(harvestCalendar.getTime());
+
+                    SimpleDateFormat displayFormat = new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
+                    String formattedDisplayDate = displayFormat.format(harvestCalendar.getTime());
+
+                    tvDateHarvest.setText(formattedDisplayDate);
                 });
 
         btnSave.setOnClickListener(v ->  {

@@ -16,7 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.DatePicker;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -34,8 +34,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class ScheduleFeeder extends Fragment {
 
@@ -44,13 +46,28 @@ public class ScheduleFeeder extends Fragment {
     private ImageButton addTbtn;
 
     private EditText Fweight, feedqttycont;
-    private Button selectDate, selectTime, Createbtn;
-    private TextView dateFS, timeFS;
+    private Button selectDate, selectTime, Createbtn, selectTime1, selectTime2;
+    private TextView dateFS, timeFS, fishqty, timeFS1, timeFS2;
     private TableLayout SummaryT;
     private boolean isCreating = true;
     private PondSharedViewModel pondSharedViewModel;
     private PondModel currentPond;
-
+    private CheckBox checkbox;
+    private boolean suppressCheckboxListener = false;
+    private final List<String> savedFeedingTimes = new ArrayList<>();
+    private static final String PREFS_NAME = "MyPrefs";
+    private static final String KEY_REMEMBER = "remember_defaults";
+    private static final String KEY_TIME_MAIN = "time_main";
+    private static final String KEY_TIME_1 = "time_1";
+    private static final String KEY_TIME_2 = "time_2";
+    private static final String KEY_DYNAMIC_TIMES = "dynamic_times";
+    private static class ScheduleRow {
+        String date;
+        String time;
+        String feedQty;
+        String status;
+        long millisUntil;
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -67,20 +84,64 @@ public class ScheduleFeeder extends Fragment {
         SummaryT= view.findViewById(R.id.summaryTable);
         feedqttycont = view.findViewById(R.id.feedquantity);
         Fweight = view.findViewById(R.id.weight);
+        fishqty = view.findViewById(R.id.tvsfishcount);
+        checkbox = view.findViewById(R.id.checkBoxDefault);
+        timeFS1 = view.findViewById(R.id.timeoffeeding1);
+        timeFS2 = view.findViewById(R.id.timeoffeeding2);
+        selectTime1 = view.findViewById(R.id.btnselecttime1);
+        selectTime2 = view.findViewById(R.id.btnselecttime2);
 
         pondSharedViewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
         pondSharedViewModel.getFishCount().observe(getViewLifecycleOwner(), count -> {
             computeFeedQuantityIfReady();
+            fishqty.setText(String.valueOf(count));
         });
 
         if (pondSharedViewModel.getFishCount().getValue() != null) {
             computeFeedQuantityIfReady();
+            fishqty.setText(String.valueOf(pondSharedViewModel.getFishCount().getValue()));
         }
 
         feedqttycont.setFocusable(false);
         feedqttycont.setClickable(false);
         feedqttycont.setCursorVisible(false);
         feedqttycont.setKeyListener(null);
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        suppressCheckboxListener = true;
+        checkbox.setEnabled(false);
+
+        boolean hasDefaults = prefs.getBoolean(KEY_REMEMBER, false);
+        checkbox.setChecked(hasDefaults);
+        suppressCheckboxListener = false;
+
+        if (hasDefaults) {
+            timeFS.setText(prefs.getString(KEY_TIME_MAIN, ""));
+            timeFS1.setText(prefs.getString(KEY_TIME_1, ""));
+            timeFS2.setText(prefs.getString(KEY_TIME_2, ""));
+            Set<String> savedDynamicTimes = prefs.getStringSet(KEY_DYNAMIC_TIMES, null);
+            if (savedDynamicTimes != null) {
+                for (String t : savedDynamicTimes) {
+                    addDynamicTimeRow(t);
+                }
+            }
+            selectDate.setEnabled(false);
+            selectTime1.setEnabled(false);
+            selectTime2.setEnabled(false);
+            selectTime.setEnabled(false);
+            addTbtn.setEnabled(false);
+            feedqttycont.setEnabled(false);
+            Fweight.setEnabled(false);
+
+            // Disable dynamic row buttons
+            for (int i = 0; i < containert.getChildCount(); i++) {
+                View timeRow = containert.getChildAt(i);
+                Button selectTimeBtn = timeRow.findViewById(R.id.btnselecttime);
+                ImageButton removeTimeBtn = timeRow.findViewById(R.id.removetime);
+                if (selectTimeBtn != null) selectTimeBtn.setEnabled(false);
+                if (removeTimeBtn != null) removeTimeBtn.setEnabled(false);
+            }
+        }
 
         Fweight.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -91,7 +152,39 @@ public class ScheduleFeeder extends Fragment {
             }
         });
 
-        //select date and time
+        checkbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isCreating) return;
+            if (suppressCheckboxListener) return;
+
+            SharedPreferences inprefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+
+            if (isChecked) {
+                String defMain = inprefs.getString(KEY_TIME_MAIN, "");
+                String def1 = inprefs.getString(KEY_TIME_1, "");
+                String def2 = inprefs.getString(KEY_TIME_2, "");
+
+                if (timeFS.getText().toString().isEmpty() && !defMain.isEmpty()) timeFS.setText(defMain);
+                if (timeFS1.getText().toString().isEmpty() && !def1.isEmpty()) timeFS1.setText(def1);
+                if (timeFS2.getText().toString().isEmpty() && !def2.isEmpty()) timeFS2.setText(def2);
+
+                boolean hasDynamic = false;
+                for (int i = 0; i < containert.getChildCount(); i++) {
+                    View child = containert.getChildAt(i);
+                    if (child.getTag() != null && "dynamic_time_row".equals(child.getTag())) {
+                        hasDynamic = true;
+                        break;
+                    }
+                }
+                if (!hasDynamic) {
+                    Set<String> savedDynamicTimes = inprefs.getStringSet(KEY_DYNAMIC_TIMES, null);
+                    if (savedDynamicTimes != null) {
+                        LayoutInflater li = LayoutInflater.from(getContext());
+                        for (String t : savedDynamicTimes) addTimeRow(li, t);
+                    }
+                }
+            }
+        });
+
         selectDate.setOnClickListener(v -> {
             Calendar now = Calendar.getInstance();
 
@@ -104,8 +197,10 @@ public class ScheduleFeeder extends Fragment {
                             Toast.makeText(getContext(), "Cannot select a past date.", Toast.LENGTH_SHORT).show();
                         } else {
                             @SuppressLint("DefaultLocale")
-                            String selectedDate = String.format("%02d/%02d/%04d", month + 1, dayOfMonth, year);
-                            dateFS.setText(selectedDate);
+                            SimpleDateFormat displayFormat = new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
+                            String formattedDate = displayFormat.format(selected.getTime());
+
+                            dateFS.setText(formattedDate);
                         }
                     },
                     now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)
@@ -113,6 +208,84 @@ public class ScheduleFeeder extends Fragment {
 
             datePickerDialog.getDatePicker().setMinDate(now.getTimeInMillis()); // prevent past dates
             datePickerDialog.show();
+        });
+
+        selectTime1.setOnClickListener(v ->{
+            String selectedDateStr = dateFS.getText().toString();
+            if (selectedDateStr.isEmpty()){
+                Toast.makeText(getContext(), "Please select a date first.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Calendar now = Calendar.getInstance();
+            int hour = now.get(Calendar.HOUR_OF_DAY);
+            int minute = now.get(Calendar.MINUTE);
+
+            TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(),
+                    (view12, selectedHour, selectedMinute) -> {
+                        try {
+                            SimpleDateFormat parser = new SimpleDateFormat("MMM. dd, yyyy HH:mm", Locale.getDefault());
+                            Calendar selectedTime = Calendar.getInstance();
+                            selectedTime.setTime(parser.parse(selectedDateStr + " " + selectedHour + ":" + selectedMinute));
+
+                            if (selectedTime.before(now)) {
+                                Toast.makeText(getContext(), "Cannot select a past time.", Toast.LENGTH_SHORT).show();
+                            } else {
+                                // Format to 12-hour with AM/PM
+                                Calendar displayCal = Calendar.getInstance();
+                                displayCal.set(Calendar.HOUR_OF_DAY, selectedHour);
+                                displayCal.set(Calendar.MINUTE, selectedMinute);
+                                SimpleDateFormat displayFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                                String formattedTime = displayFormat.format(displayCal.getTime());
+
+                                timeFS1.setText(formattedTime);
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(getContext(), "Invalid date or time.", Toast.LENGTH_SHORT).show();
+                        }
+                    },
+                    hour, minute, false
+            );
+            timePickerDialog.show();
+        });
+
+        selectTime2.setOnClickListener(v ->{
+            String selectedDateStr = dateFS.getText().toString();
+            if (selectedDateStr.isEmpty()){
+                Toast.makeText(getContext(), "Please select a date first.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Calendar now = Calendar.getInstance();
+            int hour = now.get(Calendar.HOUR_OF_DAY);
+            int minute = now.get(Calendar.MINUTE);
+
+            TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(),
+                    (view12, selectedHour, selectedMinute) -> {
+                        try {
+                            SimpleDateFormat parser = new SimpleDateFormat("MMM. dd, yyyy HH:mm", Locale.getDefault());
+                            Calendar selectedTime = Calendar.getInstance();
+                            selectedTime.setTime(parser.parse(selectedDateStr + " " + selectedHour + ":" + selectedMinute));
+
+                            if (selectedTime.before(now)) {
+                                Toast.makeText(getContext(), "Cannot select a past time.", Toast.LENGTH_SHORT).show();
+                            } else {
+                                // Format to 12-hour with AM/PM
+                                Calendar displayCal = Calendar.getInstance();
+                                displayCal.set(Calendar.HOUR_OF_DAY, selectedHour);
+                                displayCal.set(Calendar.MINUTE, selectedMinute);
+                                SimpleDateFormat displayFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                                String formattedTime = displayFormat.format(displayCal.getTime());
+
+                                timeFS2.setText(formattedTime);
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(getContext(), "Invalid date or time.", Toast.LENGTH_SHORT).show();
+                        }
+                    },
+                    hour, minute, false
+            );
+            timePickerDialog.show();
         });
 
         selectTime.setOnClickListener(v -> {
@@ -129,7 +302,7 @@ public class ScheduleFeeder extends Fragment {
             TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(),
                     (view12, selectedHour, selectedMinute) -> {
                         try {
-                            SimpleDateFormat parser = new SimpleDateFormat("MM/dd/yyyy HH:mm", Locale.getDefault());
+                            SimpleDateFormat parser = new SimpleDateFormat("MMM. dd, yyyy HH:mm", Locale.getDefault());
                             Calendar selectedTime = Calendar.getInstance();
                             selectedTime.setTime(parser.parse(selectedDateStr + " " + selectedHour + ":" + selectedMinute));
 
@@ -160,12 +333,15 @@ public class ScheduleFeeder extends Fragment {
 
         Createbtn.setOnClickListener(v -> {
             if (isCreating) {
-                // 🔓 Entering create mode
+                // --- Enter Create Mode ---
                 selectDate.setEnabled(true);
-                selectTime.setEnabled (true);
+                selectTime.setEnabled(true);
+                selectTime1.setEnabled(true);
+                selectTime2.setEnabled(true);
                 addTbtn.setEnabled(true);
                 Fweight.setEnabled(true);
                 feedqttycont.setEnabled(false);
+                checkbox.setEnabled(true);
 
                 computeFeedQuantityIfReady();
 
@@ -181,52 +357,116 @@ public class ScheduleFeeder extends Fragment {
                 isCreating = false;
 
             } else {
+                // --- Save Mode ---
                 String staticDate = dateFS.getText().toString();
                 String staticTime = timeFS.getText().toString();
+                String time1 = timeFS1.getText().toString().trim();
+                String time2 = timeFS2.getText().toString().trim();
+                String weight = Fweight.getText().toString().trim();
 
-                // Extract and clean feed quantity
+
+                // Clean and format feed quantity
                 String feedQuantityStr = feedqttycont.getText().toString().trim();
                 String cleanedFeedQtyStr = feedQuantityStr.replaceAll("[^\\d.]", "");
-
                 float feedAmount;
                 try {
                     feedAmount = Float.parseFloat(cleanedFeedQtyStr);
                 } catch (NumberFormatException e) {
                     feedAmount = 0.0f;
                 }
-
                 String feedQuantity = String.format(Locale.getDefault(), "%.2f kg", feedAmount);
 
                 int dynamicTimeCount = containert.getChildCount();
+
+                if (weight.isEmpty()) {
+                    Toast.makeText(getContext(), "Please enter the fish weight.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
                 if (staticDate.isEmpty()) {
                     Toast.makeText(getContext(), "Please select a date.", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                if (!staticTime.isEmpty()) {
-                    String status = getStatus(staticDate, staticTime);
-                    addTableRow(staticDate, staticTime, feedQuantity, status);
-                    Toast.makeText(getContext(), "Automatic", Toast.LENGTH_SHORT).show();
+                // Add secondary times
+                if (time1.isEmpty()) {
+                    Toast.makeText(getContext(), "Please select the first feeding time.", Toast.LENGTH_SHORT).show();
+                    return;
                 }
+                String status1 = getStatus(staticDate, time1);
+                addTableRow(staticDate, time1, feedQuantity, status1);
 
+                if (time2.isEmpty()) {
+                    Toast.makeText(getContext(), "Please select the secondary feeding time.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String status2 = getStatus(staticDate, time2);
+                addTableRow(staticDate, time2, feedQuantity, status2);
+
+                // Add main time
+                if (staticTime.isEmpty()) {
+                    Toast.makeText(getContext(), "Please select the third feeding time.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String status = getStatus(staticDate, staticTime);
+                addTableRow(staticDate, staticTime, feedQuantity, status);
+
+                // Add dynamic times
+                savedFeedingTimes.clear();
                 for (int i = 0; i < dynamicTimeCount; i++) {
                     View timeRow = containert.getChildAt(i);
                     TextView timeText = timeRow.findViewById(R.id.timeoffeeding);
-                    String time = timeText.getText().toString();
-
-                    if (!time.isEmpty() && !time.equals(staticTime)) {
-                        String dynamicStatus = getStatus(staticDate, time);
-                        addTableRow(staticDate, time, feedQuantity, dynamicStatus);
+                    if (timeText != null) {
+                        String time = timeText.getText().toString();
+                        if (!time.isEmpty() && !time.equals(staticTime)) {
+                            String dynamicStatus = getStatus(staticDate, time);
+                            addTableRow(staticDate, time, feedQuantity, dynamicStatus);
+                        }
+                    } else {
+                        Toast.makeText(getContext(), "Time field is missing in one row.", Toast.LENGTH_SHORT).show();
                     }
                 }
+                // 1. SAVE DEFAULTS before clearing inputs
+                SharedPreferences prefsSave = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                SharedPreferences.Editor editor = prefsSave.edit();
 
-                // Disable fields after save
+                if (checkbox.isChecked()) {
+                    editor.putBoolean(KEY_REMEMBER, true);
+                    editor.putString(KEY_TIME_MAIN, timeFS.getText().toString());
+                    editor.putString(KEY_TIME_1, timeFS1.getText().toString());
+                    editor.putString(KEY_TIME_2, timeFS2.getText().toString());
+
+                    Set<String> dynamicTimes = new HashSet<>();
+                    for (int i = 0; i < containert.getChildCount(); i++) {
+                        View row = containert.getChildAt(i);
+                        TextView timeText = row.findViewById(R.id.timeoffeeding);
+                        if (timeText != null && !timeText.getText().toString().isEmpty()) {
+                            dynamicTimes.add(timeText.getText().toString());
+                        }
+                    }
+                    editor.putStringSet(KEY_DYNAMIC_TIMES, dynamicTimes);
+                } else {
+                    editor.putBoolean(KEY_REMEMBER, false);
+                    editor.remove(KEY_TIME_MAIN);
+                    editor.remove(KEY_TIME_1);
+                    editor.remove(KEY_TIME_2);
+                    editor.remove(KEY_DYNAMIC_TIMES);
+                }
+                editor.apply();
+
+                SharedPreferences prefsAfterSave = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                boolean remember = prefsAfterSave.getBoolean(KEY_REMEMBER, false);
+                checkbox.setChecked(remember);
+
+                // Disable fields after saving
                 selectDate.setEnabled(false);
+                selectTime1.setEnabled(false);
+                selectTime2.setEnabled(false);
                 selectTime.setEnabled(false);
                 addTbtn.setEnabled(false);
                 feedqttycont.setEnabled(false);
                 Fweight.setEnabled(false);
+                checkbox.setEnabled(false);
 
                 for (int i = 0; i < containert.getChildCount(); i++) {
                     View timeRow = containert.getChildAt(i);
@@ -236,24 +476,23 @@ public class ScheduleFeeder extends Fragment {
                     if (removeTimeBtn != null) removeTimeBtn.setEnabled(false);
                 }
 
-                // Clear inputs
-                dateFS.setText("");
-                timeFS.setText("");
-                feedqttycont.setText("");
-                Fweight.setText("");
+                if (!checkbox.isChecked()) {
+                    dateFS.setText("");
+                    timeFS.setText("");
+                    timeFS1.setText("");
+                    timeFS2.setText("");
+                    feedqttycont.setText("");
+                    Fweight.setText("");
 
-                if (containert.getChildCount() > 1) {
-                    containert.removeViews(1, containert.getChildCount() - 1);
-                }
-
-                View firstTimeRow = containert.getChildAt(0);
-                if (firstTimeRow != null) {
-                    TextView timeText = firstTimeRow.findViewById(R.id.timeoffeeding);
-                    if (timeText != null) timeText.setText("");
+                    for (int i = containert.getChildCount() - 1; i >= 0; i--) {
+                        containert.removeViewAt(i);
+                    }
                 }
 
                 Createbtn.setText("Create");
                 isCreating = true;
+
+                Toast.makeText(getContext(), "Schedule saved", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -262,51 +501,109 @@ public class ScheduleFeeder extends Fragment {
         feedqttycont.setEnabled(false);
         addTbtn.setEnabled(false);
         Fweight.setEnabled(false);
+        checkbox.setEnabled(false);
 
         return view;
     }
 
-    private void addTimeRow (LayoutInflater inflater){
+    private void addTimeRow(LayoutInflater inflater) {
+        addTimeRow(inflater, "");
+    }
+
+    private void addTimeRow(LayoutInflater inflater, String initialTime) {
         View row = inflater.inflate(R.layout.row_time, containert, false);
-        //IDs in row_time
+        row.setTag("dynamic_time_row");
+
         TextView timedar = row.findViewById(R.id.timeoffeeding);
         Button selecttimedar = row.findViewById(R.id.btnselecttime);
         ImageButton removetimedar = row.findViewById(R.id.removetime);
 
+        timedar.setText(initialTime == null ? "" : initialTime);
+
         selecttimedar.setOnClickListener(v -> {
-            final Calendar calendar = Calendar.getInstance();
-            int hour = calendar.get(Calendar.HOUR_OF_DAY);
-            int minute = calendar.get(Calendar.MINUTE);
+            String selectedDateStr = dateFS.getText().toString(); // using the same date field as your static picker
+            if (selectedDateStr.isEmpty()) {
+                Toast.makeText(getContext(), "Please select a date first.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Calendar now = Calendar.getInstance();
+            int hour = now.get(Calendar.HOUR_OF_DAY);
+            int minute = now.get(Calendar.MINUTE);
 
             TimePickerDialog timePickerDialog = new TimePickerDialog(
-                    requireContext(),
-                    (TimePicker view, int selectedHour, int selectedMinute) -> {
-                        Calendar cal = Calendar.getInstance();
-                        cal.set(Calendar.HOUR_OF_DAY, selectedHour);
-                        cal.set(Calendar.MINUTE, selectedMinute);
-                        SimpleDateFormat displayFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
-                        String formattedTime = displayFormat.format(cal.getTime());
-                        timedar.setText(formattedTime);
+                    getContext(),
+                    (view12, selectedHour, selectedMinute) -> {
+                        try {
+                            // Parse the date and selected time into one Calendar object
+                            SimpleDateFormat parser = new SimpleDateFormat("MMM. dd, yyyy HH:mm", Locale.getDefault());
+                            Calendar selectedTime = Calendar.getInstance();
+                            selectedTime.setTime(parser.parse(selectedDateStr + " " + selectedHour + ":" + selectedMinute));
 
+                            if (selectedTime.before(now)) {
+                                Toast.makeText(getContext(), "Cannot select a past time.", Toast.LENGTH_SHORT).show();
+                            } else {
+                                // Format into 12-hour AM/PM
+                                Calendar displayCal = Calendar.getInstance();
+                                displayCal.set(Calendar.HOUR_OF_DAY, selectedHour);
+                                displayCal.set(Calendar.MINUTE, selectedMinute);
+                                SimpleDateFormat displayFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+                                String formattedTime = displayFormat.format(displayCal.getTime());
+
+                                timedar.setText(formattedTime);
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(getContext(), "Invalid date or time.", Toast.LENGTH_SHORT).show();
+                        }
                     },
-                    hour, minute, true // true = 24 hour format
+                    hour, minute, false
             );
             timePickerDialog.show();
         });
-
-        removetimedar.setOnClickListener(v -> containert.removeView(row));
+        removetimedar.setOnClickListener(v -> {
+            containert.removeView(row);
+            checkIfAllEmptyAndUncheck();
+        });
         containert.addView(row);
     }
 
+    private final List<ScheduleRow> tableRows = new ArrayList<>();
     private void addTableRow(String date, String time, String feedQty, String status) {
-        TableRow row = new TableRow(getContext());
+        ScheduleRow row = new ScheduleRow();
+        row.date = date;
+        row.time = time;
+        row.feedQty = feedQty;
+        row.status = status;
 
-        row.addView(createCell(date));
-        row.addView(createCell(time));
-        row.addView(createCell(feedQty));
-        row.addView(createCell(status));
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM. dd, yyyy hh:mm a", Locale.getDefault());
+            Date scheduledDate = sdf.parse(date + " " + time);
+            if (scheduledDate != null) {
+                row.millisUntil = scheduledDate.getTime() - System.currentTimeMillis();
+            } else {
+                row.millisUntil = Long.MAX_VALUE;
+            }
+        } catch (ParseException e) {
+            row.millisUntil = Long.MAX_VALUE;
+        }
 
-        SummaryT.addView(row);
+        tableRows.add(row);
+        sortAndRenderTable();
+    }
+
+    private void sortAndRenderTable() {
+        tableRows.sort((a, b) -> Long.compare(a.millisUntil, b.millisUntil));
+
+        SummaryT.removeViews(1, SummaryT.getChildCount() - 1);
+
+        for (ScheduleRow r : tableRows) {
+            TableRow rowView = new TableRow(getContext());
+            rowView.addView(createCell(r.date));
+            rowView.addView(createCell(r.time));
+            rowView.addView(createCell(r.feedQty));
+            rowView.addView(createCell(r.status));
+            SummaryT.addView(rowView);
+        }
     }
 
     private TextView createCell(String text) {
@@ -327,9 +624,8 @@ public class ScheduleFeeder extends Fragment {
         }
 
         try {
-            // Expecting format like "06/09/2025" and "01:45 PM"
-            SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy hh:mm a", Locale.getDefault());
-            sdf.setLenient(false); // for stricter parsing
+            SimpleDateFormat sdf = new SimpleDateFormat("MMM. dd, yyyy hh:mm a", Locale.getDefault());
+            sdf.setLenient(false);
 
             Date scheduledDate = sdf.parse(dateStr + " " + timeStr);
             if (scheduledDate == null) return "Invalid";
@@ -344,39 +640,13 @@ public class ScheduleFeeder extends Fragment {
             long minutes = totalMinutes % 60;
 
             if (hours > 0) {
-                return hours + " hr" + (hours > 1 ? "s" : "") + ", " + minutes + " mn" + (minutes != 1 ? "s" : "") + " left";
+                return hours + "hr" + (hours > 1 ? "s" : "") + ", " + minutes + "mn" + (minutes != 1 ? "s" : "") + " left";
             } else {
-                return minutes + " mn" + (minutes != 1 ? "s" : "") + " left";
+                return minutes + "mn" + (minutes != 1 ? "s" : "") + " left";
             }
 
         } catch (ParseException e) {
             return "Invalid";
-        }
-    }
-
-    private void computeFeedQuantity(int fishCount) {
-        String weightStr = Fweight.getText().toString().trim();
-
-        if (weightStr.isEmpty()) {
-            feedqttycont.setText("--");
-            return;
-        }
-
-        try {
-            float fishWeight = Float.parseFloat(weightStr);
-
-            if (fishCount == 0) {
-                feedqttycont.setText("--");
-                return;
-            }
-
-            float feedPercentage = 0.04f;
-            float computedFeedQty = feedPercentage * fishWeight * fishCount;
-            float computedKg = computedFeedQty / 1000f;
-
-            feedqttycont.setText(String.format(Locale.getDefault(), "%.2f kg", computedKg));
-        } catch (NumberFormatException e) {
-            feedqttycont.setText("--");
         }
     }
 
@@ -401,6 +671,47 @@ public class ScheduleFeeder extends Fragment {
         }
     }
 
+    private void addDynamicTimeRow(String time) {
+        View row = LayoutInflater.from(getContext()).inflate(R.layout.row_time, containert, false);
+        TextView timeText = row.findViewById(R.id.timeoffeeding);
+        timeText.setText(time);
 
+        ImageButton removeBtn = row.findViewById(R.id.removetime);
+        removeBtn.setOnClickListener(v -> containert.removeView(row));
+
+        containert.addView(row);
+    }
+
+    private void removeAllDynamicRows() {
+        for (int i = containert.getChildCount() - 1; i >= 0; i--) {
+            View child = containert.getChildAt(i);
+            Object tag = child.getTag();
+            if (tag != null && "dynamic_time_row".equals(tag)) {
+                containert.removeViewAt(i);
+            }
+        }
+    }
+
+    private void checkIfAllEmptyAndUncheck() {
+        boolean staticEmpty = timeFS.getText().toString().isEmpty()
+                && timeFS1.getText().toString().isEmpty()
+                && timeFS2.getText().toString().isEmpty();
+
+        boolean hasDynamic = false;
+        for (int i = 0; i < containert.getChildCount(); i++) {
+            View child = containert.getChildAt(i);
+            if (child.getTag() != null && "dynamic_time_row".equals(child.getTag())) {
+                hasDynamic = true;
+                break;
+            }
+        }
+
+        if (!hasDynamic && staticEmpty && checkbox.isChecked()) {
+            // Temporarily suppress listener so it doesn't clear fields
+            suppressCheckboxListener = true;
+            checkbox.setChecked(false);
+            suppressCheckboxListener = false;
+        }
+    }
 
 }

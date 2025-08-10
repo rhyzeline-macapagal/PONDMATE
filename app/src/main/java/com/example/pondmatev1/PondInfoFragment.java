@@ -73,8 +73,12 @@ public class PondInfoFragment extends Fragment {
             tvBreed.setText(pond.getBreed());
             tvFishCount.setText(String.valueOf(pond.getFishCount()));
             tvCostPerFish.setText(String.valueOf(costPerFish));
-            tvDateStarted.setText(pond.getDateStarted());
-            tvHarvestDate.setText(pond.getDateHarvest());
+
+            String formattedDateStarted = formatDateDisplay(pond.getDateStarted());
+            String formatDateHarvest = formatDateDisplay(pond.getDateHarvest());
+
+            tvDateStarted.setText(formattedDateStarted);
+            tvHarvestDate.setText(formatDateHarvest);
 
             updateMortalityData(fishCount);
 
@@ -135,5 +139,18 @@ public class PondInfoFragment extends Fragment {
             tvMortalityRate.setText("0.00%");
         }
     }
+
+    private String formatDateDisplay(String inputDate) {
+        try {
+            // Assuming the original date format is yyyy-MM-dd
+            java.text.SimpleDateFormat inputFormat = new java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            java.text.SimpleDateFormat outputFormat = new java.text.SimpleDateFormat("MMM. dd, yyyy", Locale.US);
+            return outputFormat.format(inputFormat.parse(inputDate));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return inputDate;
+        }
+    }
+
 
 }
