@@ -8,18 +8,16 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.LinearLayout;
+import android.widget.CheckedTextView;
+import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
-import com.prolificinteractive.materialcalendarview.OnDateSelectedListener;
 import com.prolificinteractive.materialcalendarview.DayViewDecorator;
 import com.prolificinteractive.materialcalendarview.DayViewFacade;
 import com.prolificinteractive.materialcalendarview.spans.DotSpan;
@@ -31,193 +29,199 @@ import java.util.*;
 public class ActivityFragment extends Fragment {
 
     private MaterialCalendarView calendarView;
-    private Spinner spinnerToggle;
-    private LinearLayout llActivityList;
-    private Map<CalendarDay, List<String>> activityMap = new HashMap<>();
-    private String breed;
+    private Spinner calendarToggleSpinner;
+    private ListView activitiesListView;
+    private TextView activitiesHeader;
+    private SharedPreferences prefs;
+
+    private String selectedBreed;
     private Date startDate;
 
-    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_activity, container, false);
-    }
+    private final Map<CalendarDay, List<String>> activityMap = new HashMap<>();
+    private final Map<String, Boolean> completedActivities = new HashMap<>();
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.fragment_activity, container, false);
 
         calendarView = view.findViewById(R.id.calendarView);
-        spinnerToggle = view.findViewById(R.id.spinnerCalendarToggle);
-        llActivityList = view.findViewById(R.id.llActivityList);
+        calendarToggleSpinner = view.findViewById(R.id.calendarToggleSpinner);
+        activitiesListView = view.findViewById(R.id.activitiesListView);
+        activitiesHeader = view.findViewById(R.id.activitiesHeader);
 
-        calendarView.setBackgroundColor(Color.parseColor("#FFF9E5")); // Light brown tint
+        prefs = requireActivity().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
 
-        SharedPreferences prefs = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-        breed = prefs.getString("fish_breed", "tilapia");
-        String startDateStr = prefs.getString("date_started", "2024-01-01");
+        selectedBreed = prefs.getString("fish_breed", "Tilapia");
+        String startDateStr = prefs.getString("date_started", null);
 
-        try {
-            startDate = sdf.parse(startDateStr);
-        } catch (ParseException e) {
-            e.printStackTrace();
-            return;
+        // Parse date with format "MMM. dd, yyyy" (example: "Jul. 28, 2025")
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
+        if (startDateStr != null) {
+            try {
+                startDate = sdf.parse(startDateStr);
+            } catch (ParseException e) {
+                e.printStackTrace();
+                startDate = new Date(); // fallback to today
+            }
+        } else {
+            startDate = new Date();
         }
 
-        generateSchedule(breed, startDate);
+        generateSchedule();
 
-        spinnerToggle.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item,
-                new String[]{"Show Calendar", "Hide Calendar"}));
-        spinnerToggle.setSelection(0);
+        setupCalendarDots();
 
-        calendarView.setVisibility(View.VISIBLE);
+        // Spinner to toggle calendar visibility
+        calendarToggleSpinner.setAdapter(new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                getResources().getStringArray(R.array.calendar_toggle_options)));
 
-        CalendarDay initialDay = CalendarDay.from(startDate);
-        calendarView.setSelectedDate(initialDay);
-        displayActivitiesForDate(initialDay);
-
-        Set<CalendarDay> dots = activityMap.keySet();
-        calendarView.addDecorator(new DotDecorator(Color.BLUE, dots));
-
-        spinnerToggle.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+        calendarToggleSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                CalendarDay selectedDate = calendarView.getSelectedDate();
-                if (position == 0) {
-                    calendarView.setVisibility(View.VISIBLE);
-                    if (selectedDate != null) displayActivitiesForDate(selectedDate);
-                } else {
+                if (position == 1) { // Hide calendar
                     calendarView.setVisibility(View.GONE);
-                    if (selectedDate != null) displayWeekActivities(selectedDate);
+                } else { // Show calendar
+                    calendarView.setVisibility(View.VISIBLE);
                 }
             }
 
             @Override
-            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+            public void onNothingSelected(android.widget.AdapterView<?> parent) { }
         });
 
-        calendarView.setOnDateChangedListener(new OnDateSelectedListener() {
-            @Override
-            public void onDateSelected(@NonNull MaterialCalendarView widget, @NonNull CalendarDay date, boolean selected) {
-                if (calendarView.getVisibility() == View.VISIBLE) {
-                    displayActivitiesForDate(date);
-                }
-            }
+        calendarView.setOnDateChangedListener((widget, date, selected) -> {
+            showActivitiesForDate(date);
         });
+
+        // Select start date by default
+        CalendarDay initialDay = CalendarDay.from(startDate);
+        calendarView.setSelectedDate(initialDay);
+        showActivitiesForDate(initialDay);
+
+        loadCompletedActivities();
+
+        return view;
     }
 
-    private void displayActivitiesForDate(CalendarDay date) {
-        llActivityList.removeAllViews();
-        addTitle("My Activities");
-
-        List<String> activities = activityMap.getOrDefault(date, new ArrayList<>());
-        addDayRow(date.getDate(), activities);
-    }
-
-    private void displayWeekActivities(CalendarDay startDay) {
-        llActivityList.removeAllViews();
-        addTitle("My Activities");
-
+    private void generateSchedule() {
+        activityMap.clear();
         Calendar calendar = Calendar.getInstance();
-        calendar.setTime(startDay.getDate());
+        calendar.setTime(startDate);
 
-        for (int i = 0; i < 7; i++) {
-            CalendarDay day = CalendarDay.from(calendar);
-            List<String> activities = activityMap.getOrDefault(day, new ArrayList<>());
-            addDayRow(calendar.getTime(), activities);
-            calendar.add(Calendar.DATE, 1);
-        }
-    }
-
-    private void addTitle(String title) {
-        TextView tvTitle = new TextView(getContext());
-        tvTitle.setText(title);
-        tvTitle.setTextColor(Color.BLACK);
-        tvTitle.setTextSize(18);
-        tvTitle.setGravity(View.TEXT_ALIGNMENT_CENTER);
-        tvTitle.setPadding(0, 16, 0, 8);
-        tvTitle.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-        llActivityList.addView(tvTitle);
-    }
-
-    private void addDayRow(Date date, List<String> activities) {
-        LinearLayout container = new LinearLayout(getContext());
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(24, 24, 24, 24);
-        container.setBackgroundColor(Color.parseColor("#FFF9E5")); // Match calendar tint
-
-        TextView dateView = new TextView(getContext());
-        dateView.setText(new SimpleDateFormat("EEE, MMM dd", Locale.US).format(date));
-        dateView.setTextColor(Color.parseColor("#2196F3"));
-        dateView.setTextSize(16);
-        dateView.setPadding(0, 0, 0, 8);
-        container.addView(dateView);
-
-        if (activities.isEmpty()) {
-            TextView noAct = new TextView(getContext());
-            noAct.setText("• No activities scheduled.");
-            noAct.setTextSize(14);
-            noAct.setPadding(32, 2, 0, 2);
-            container.addView(noAct);
-        } else {
-            for (String act : activities) {
-                TextView actView = new TextView(getContext());
-                actView.setText("• " + act);
-                actView.setTextSize(14);
-                actView.setPadding(32, 2, 0, 2);
-                container.addView(actView);
-            }
+        int durationDays;
+        switch (selectedBreed.toLowerCase()) {
+            case "alimango":
+                durationDays = 270; // approx 9 months
+                break;
+            case "bangus":
+                durationDays = 120; // approx 4 months
+                break;
+            case "tilapia":
+            default:
+                durationDays = 120;
+                break;
         }
 
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.setMargins(0, 12, 0, 12);
-        llActivityList.addView(container, params);
-    }
-
-    private void generateSchedule(String breed, Date start) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(start);
-
-        int duration = breed.equalsIgnoreCase("alimango") ? 270 : 120;
-
-        for (int day = 0; day <= duration; day++) {
+        for (int day = 0; day <= durationDays; day++) {
             CalendarDay calDay = CalendarDay.from(calendar);
-            List<String> acts = new ArrayList<>();
+            List<String> activities = new ArrayList<>();
 
-            if (day == 0) acts.add("Pond preparation");
-            if (day == 1) acts.add("Water Quality Testing");
-            if (day == 3) acts.add("Stocking");
+            // Daily activities every day (starting day 0)
+            activities.add("Daily feeding and monitoring");
 
-            if (day % 7 == 0 && day > 3 && day < duration) {
-                acts.add("Weekly Cleaning");
-                acts.add("Feeding");
-                acts.add("Check water level");
-                acts.add("Remove uneaten feeds");
-                acts.add("Monitor temperature and DO levels");
+            // Weekly activities every 7 days starting on day 7 (no weekly task before day 7)
+            if (day >= 7 && day % 7 == 0 && day != durationDays) {
+                activities.add("Weekly maintenance tasks");
             }
 
-            if (day >= 7 && day <= 30) acts.add("Pre-starter feeding");
-            if (day > 30 && day <= 60) acts.add("Starter feeding");
-            if (day > 60 && day <= 90) acts.add("Grower feeding");
-            if (day > 90 && day < duration) acts.add("Finisher feeding");
-
-            if (day == duration) acts.clear(); acts.add("Harvesting");
-
-            if (!acts.isEmpty()) {
-                activityMap.put(calDay, acts);
+            // Special activity on day 0
+            if (day == 0) {
+                activities.add("Pond preparation");
+                if (selectedBreed.equalsIgnoreCase("alimango")) {
+                    activities.add("Stock crablets");
+                } else {
+                    activities.add("Stock fingerlings");
+                }
             }
 
+            // Harvest day
+            if (day == durationDays) {
+                activities.clear();
+                activities.add("Harvesting");
+            }
+
+            activityMap.put(calDay, activities);
             calendar.add(Calendar.DATE, 1);
         }
     }
 
-    static class DotDecorator implements DayViewDecorator {
+    private void setupCalendarDots() {
+        calendarView.removeDecorators();
+
+        List<CalendarDay> daysWithActivities = new ArrayList<>(activityMap.keySet());
+        calendarView.addDecorator(new EventDecorator(Color.BLUE, daysWithActivities));
+        calendarView.invalidateDecorators();
+    }
+
+    private void showActivitiesForDate(CalendarDay date) {
+        List<String> activities = activityMap.getOrDefault(date, Collections.emptyList());
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_list_item_multiple_choice,
+                activities);
+        activitiesListView.setAdapter(adapter);
+        activitiesListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+
+        // Restore checked states
+        String dateKey = formatDateKey(date);
+        for (int i = 0; i < activities.size(); i++) {
+            String key = dateKey + "_" + activities.get(i);
+            boolean done = completedActivities.getOrDefault(key, false);
+            activitiesListView.setItemChecked(i, done);
+        }
+
+        // Save on click
+        activitiesListView.setOnItemClickListener((parent, view, position, id) -> {
+            boolean checked = ((CheckedTextView) view).isChecked();
+            String key = dateKey + "_" + activities.get(position);
+            completedActivities.put(key, checked);
+            saveCompletedActivities();
+        });
+
+        activitiesHeader.setText("My Activities - " + formatDateKey(date));
+    }
+
+    private String formatDateKey(CalendarDay date) {
+        return String.format(Locale.getDefault(), "%04d-%02d-%02d",
+                date.getYear(), date.getMonth() + 1, date.getDay());
+    }
+
+    private void saveCompletedActivities() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("CompletedActivities", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        for (Map.Entry<String, Boolean> entry : completedActivities.entrySet()) {
+            editor.putBoolean(entry.getKey(), entry.getValue());
+        }
+        editor.apply();
+    }
+
+    private void loadCompletedActivities() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("CompletedActivities", Context.MODE_PRIVATE);
+        Map<String, ?> allPrefs = prefs.getAll();
+        for (Map.Entry<String, ?> entry : allPrefs.entrySet()) {
+            if (entry.getValue() instanceof Boolean) {
+                completedActivities.put(entry.getKey(), (Boolean) entry.getValue());
+            }
+        }
+    }
+
+    private static class EventDecorator implements DayViewDecorator {
         private final int color;
         private final HashSet<CalendarDay> dates;
 
-        DotDecorator(int color, Collection<CalendarDay> dates) {
+        public EventDecorator(int color, Collection<CalendarDay> dates) {
             this.color = color;
             this.dates = new HashSet<>(dates);
         }
@@ -229,7 +233,7 @@ public class ActivityFragment extends Fragment {
 
         @Override
         public void decorate(DayViewFacade view) {
-            view.addSpan(new DotSpan(6, color));
+            view.addSpan(new DotSpan(8, color));
         }
     }
 }

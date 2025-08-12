@@ -8,4 +8,9 @@
     <color name="grayblue">#DEFAF4</color>
     <color name="lightblue">#BFF2F4</color>
     <color name="blue">#AAE5EF</color>
+    <color name="activity_background_blue">#E3F2FD</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+
+
 </resources>
