@@ -8,6 +8,7 @@ public class PondModel {
     private String dateStarted;
     private String dateHarvest;
     private String mode; // Could be used to mark "ONLINE" or "OFFLINE"
+    private String id;
 
     // Default constructor (needed for some JSON libraries like Gson/Retrofit)
     public PondModel() {}
@@ -86,4 +87,11 @@ public class PondModel {
     }
 
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 }

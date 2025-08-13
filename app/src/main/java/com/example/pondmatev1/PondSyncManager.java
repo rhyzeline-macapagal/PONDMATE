@@ -54,7 +54,7 @@ public class PondSyncManager {
                 if (callback != null) {
                     new Handler(Looper.getMainLooper()).post(() -> {
                         if ("success".equalsIgnoreCase(status)) {
-                            callback.onSuccess(message);
+                            callback.onSuccess(response); // <-- send full JSON string
                         } else {
                             callback.onError(message);
                         }
@@ -94,52 +94,42 @@ public class PondSyncManager {
     }
 
     // Upload production cost directly
-    public static void uploadProductionCostToServer(
-            int pondId,
-            String costType,
-            String description,
-            int quantity,
-            String unit,
-            double costPerUnit,
-            double amount,
-            String dateRecorded,
-            String createdAt,
-            Callback callback) {
-
+    public static void uploadProductionCostToServer(PondModel pond, Callback callback) {
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/add_production_cost.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-                String postData =
-                        "pond_id=" + pondId +
-                                "&cost_type=" + URLEncoder.encode(costType, "UTF-8") +
-                                "&description=" + URLEncoder.encode(description, "UTF-8") +
-                                "&quantity=" + quantity +
-                                "&unit=" + URLEncoder.encode(unit, "UTF-8") +
-                                "&cost_per_unit=" + costPerUnit +
-                                "&amount=" + amount +
-                                "&date_recorded=" + URLEncoder.encode(dateRecorded, "UTF-8") +
-                                "&created_at=" + URLEncoder.encode(createdAt, "UTF-8");
+                // Only send minimal info; PHP handles all three cost types
+                String postData = "pond_id=" + pond.getId() +
+                        "&fish_count=" + pond.getFishCount() +
+                        "&cost_per_fish=" + pond.getCostPerFish();
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush();
                 os.close();
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                String response = reader.readLine();
-                reader.close();
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                    reader.close();
+                    callback.onSuccess(response.toString());
+                } else {
+                    callback.onError("Server returned code: " + responseCode);
+                }
 
-                if (callback != null) callback.onSuccess(response);
             } catch (Exception e) {
-                if (callback != null) callback.onError(e.getMessage());
+                callback.onError(e.getMessage());
             }
         }).start();
     }
+
 
     // Fetch production costs from server
     public static void fetchProductionCostsFromServer(Callback callback) {

@@ -16,6 +16,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
+import org.json.JSONObject;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -95,7 +97,6 @@ public class AddPondDialogFragment extends DialogFragment {
             String fishCountStr = etFishCount.getText().toString().trim();
             String costStr = etCostPerFish.getText().toString().trim();
 
-            // Field validation
             if (name.isEmpty() || breed.isEmpty() || fishCountStr.isEmpty() || costStr.isEmpty()) {
                 Toast.makeText(getContext(), "Please fill out all fields.", Toast.LENGTH_SHORT).show();
                 return;
@@ -112,76 +113,74 @@ public class AddPondDialogFragment extends DialogFragment {
                 return;
             }
 
-            // Confirmation dialog
-            new android.app.AlertDialog.Builder(requireContext())
+            new AlertDialog.Builder(requireContext())
                     .setTitle("Confirm Save")
                     .setMessage("Do you want to save this pond?")
                     .setPositiveButton("Yes", (dialogInterface, which) -> {
-                        try {
-                            // Show loading dialog
-                            // Show loading dialog
-                            AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-                            View loadingView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null);
-                            builder.setView(loadingView);
-                            builder.setCancelable(false);
-                            AlertDialog loadingDialog = builder.create();
-                            loadingDialog.show();
 
+                        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+                        View loadingView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null);
+                        builder.setView(loadingView);
+                        builder.setCancelable(false);
+                        AlertDialog loadingDialog = builder.create();
+                        loadingDialog.show();
 
-                            // Format start date
-                            String dateStartedStr = dateStarted.getYear() + "-" +
-                                    String.format(Locale.getDefault(), "%02d", (dateStarted.getMonth() + 1)) + "-" +
-                                    String.format(Locale.getDefault(), "%02d", dateStarted.getDayOfMonth());
+                        String dateStartedStr = dateStarted.getYear() + "-" +
+                                String.format(Locale.getDefault(), "%02d", (dateStarted.getMonth() + 1)) + "-" +
+                                String.format(Locale.getDefault(), "%02d", dateStarted.getDayOfMonth());
+                        String dateHarvestStr = rawHarvestDateForDB;
 
-                            // Format harvest date
-                            String dateHarvestStr = rawHarvestDateForDB;
+                        // Save minimal info to SharedPreferences
+                        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        editor.putString("fish_breed", breed);
+                        editor.putString("fish_amount", costStr);
+                        editor.putString("number_fish", fishCountStr);
+                        editor.putString("date_started", dateStartedStr);
+                        editor.apply();
 
-                            // Save minimal info to SharedPreferences
-                            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-                            SharedPreferences.Editor editor = sharedPreferences.edit();
-                            editor.putString("fish_breed", breed);
-                            editor.putString("fish_amount", costStr);
-                            editor.putString("number_fish", fishCountStr);
-                            editor.putString("date_started", dateStartedStr);
-                            editor.apply();
+                        PondModel pond = new PondModel(name, breed, fishCount, cost, dateStartedStr, dateHarvestStr, "DATA");
 
-                            // Create pond object
-                            PondModel pond = new PondModel(name, breed, fishCount, cost, dateStartedStr, dateHarvestStr, "DATA");
+                        // Upload pond and automatically insert fingerlings
+                        PondSyncManager.uploadPondToServer(pond, new PondSyncManager.Callback() {
+                            @Override
+                            public void onSuccess(Object result) {
+                                try {
+                                    JSONObject json = new JSONObject(result.toString());
+                                    if (!json.getString("status").equals("success")) {
+                                        Toast.makeText(getContext(), "Error: " + json.optString("message"), Toast.LENGTH_LONG).show();
+                                        loadingDialog.dismiss();
+                                        return;
+                                    }
 
-                            // Upload to server
-                            PondSyncManager.uploadPondToServer(pond, new PondSyncManager.Callback() {
-                                @Override
-                                public void onSuccess(Object result) {
+                                    int pondId = json.getInt("pond_id");
+                                    pond.setId(String.valueOf(pondId)); // assign pond ID
 
-                                    Log.d("Upload", "Server response: " + result);
-                                    Toast.makeText(getContext(), "Pond added successfully!", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(getContext(), "Pond and fingerlings cost added successfully!", Toast.LENGTH_SHORT).show();
+
                                     loadingDialog.dismiss();
                                     if (listener != null) listener.onPondAdded(pond);
                                     dismiss();
+
+                                } catch (Exception e) {
+                                    Toast.makeText(getContext(), "Error parsing server response: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                    Log.d("ServerResponse", "Raw result: [" + result.toString() + "]");
+
+                                    loadingDialog.dismiss();
                                 }
+                            }
 
-                                @Override
-                                public void onError(String error) {
-                                    Log.e("Upload", "Error uploading pond: " + error);
+                            @Override
+                            public void onError(String error) {
+                                Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show();
+                                loadingDialog.dismiss();
+                            }
+                        });
 
-                                    requireActivity().runOnUiThread(() -> {
-                                        Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show();
-                                        loadingDialog.dismiss();
-                                    });
-                                }
-                            });
-
-                        } catch (Exception e) {
-                            Toast.makeText(getContext(), "An unexpected error occurred: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                            Log.e("AddPond", "Unexpected error", e);
-                        }
                     })
                     .setNegativeButton("No", (dialogInterface, which) -> dialogInterface.dismiss())
                     .show();
         });
-
-
-
 
 
         return view;
