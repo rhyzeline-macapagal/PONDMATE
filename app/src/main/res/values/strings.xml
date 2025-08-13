@@ -10,4 +10,11 @@
     <string name="label_date_started">Date Started</string>
     <string name="label_harvest_date">Harvest Date</string>
     <string name="btn_edit_pond">Edit Pond</string>
+    <string-array name="calendar_toggle_options">
+        <item>Show Calendar</item>
+        <item>Hide Calendar</item>
+    </string-array>
+
+
+
 </resources>
