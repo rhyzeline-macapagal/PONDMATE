@@ -77,16 +77,16 @@ public class MainActivity extends AppCompatActivity {
 
         ImageView profileIcon = findViewById(R.id.profileIcon);
 
-        profileIcon.setOnClickListener(v -> {
-            UserProfileDialogFragment dialog = new UserProfileDialogFragment();
-            dialog.show(getSupportFragmentManager(), "UserProfileDialog");
-        });
+//        profileIcon.setOnClickListener(v -> {
+//            UserProfileDialogFragment dialog = new UserProfileDialogFragment();
+//            dialog.show(getSupportFragmentManager(), "UserProfileDialog");
+//        });
 
 
-        adminIcon.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, CaretakerDashboardActivity.class);
-            startActivity(intent);
-        });
+//        adminIcon.setOnClickListener(v -> {
+//            Intent intent = new Intent(MainActivity.this, CaretakerDashboardActivity.class);
+//            startActivity(intent);
+//        });
 
 
 

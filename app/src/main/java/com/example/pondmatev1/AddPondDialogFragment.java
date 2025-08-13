@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.*;
 import android.widget.*;
 
@@ -102,14 +103,15 @@ public class AddPondDialogFragment extends DialogFragment {
                 return;
             }
 
-            // ✅ Format dates first
+            // Format start date
             String dateStartedStr = dateStarted.getYear() + "-" +
                     String.format(Locale.getDefault(), "%02d", (dateStarted.getMonth() + 1)) + "-" +
                     String.format(Locale.getDefault(), "%02d", dateStarted.getDayOfMonth());
 
-            String dateHarvestStr = tvDateHarvest.getText().toString().replace("Harvest Date: ", "");
+            // Format harvest date (calculated automatically earlier)
+            String dateHarvestStr = tvDateHarvest.getText().toString();
 
-            // ✅ Now save to SharedPreferences
+            // Save minimal info to SharedPreferences (optional for quick access)
             SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString("fish_breed", breed);
@@ -118,18 +120,26 @@ public class AddPondDialogFragment extends DialogFragment {
             editor.putString("date_started", dateStartedStr);
             editor.apply();
 
-            // Continue with saving pond
+            // Create pond object
             PondModel pond = new PondModel(name, breed, fishCount, cost, dateStartedStr, dateHarvestStr, "DATA");
 
-            DatabaseHelper dbHelper = new DatabaseHelper(getContext());
-            dbHelper.insertPond(pond);
-            PondSyncManager.uploadPondToServer(getContext(), pond);
+            PondSyncManager.uploadPondToServer(pond, new PondSyncManager.Callback() {
+                @Override
+                public void onSuccess(Object result) {
+                    Log.d("Upload", "Server response: " + result);
+                }
 
+                @Override
+                public void onError(String error) {
+                    Log.e("Upload", "Error uploading pond: " + error);
+                }
+            });
+
+            // Notify listener
             if (listener != null) listener.onPondAdded(pond);
 
             dismiss();
         });
-
 
         return view;
     }
@@ -146,5 +156,4 @@ public class AddPondDialogFragment extends DialogFragment {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
     }
-
 }
