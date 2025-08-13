@@ -1,5 +1,8 @@
 package com.example.pondmatev1;
 
+import android.os.Handler;
+import android.os.Looper;
+
 import org.json.JSONArray;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -36,9 +39,13 @@ public class PondSyncManager {
                 String response = reader.readLine();
                 reader.close();
 
-                if (callback != null) callback.onSuccess(response);
+                if (callback != null) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(response));
+                }
             } catch (Exception e) {
-                if (callback != null) callback.onError(e.getMessage());
+                if (callback != null) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError(e.getMessage()));
+                }
             }
         }).start();
     }

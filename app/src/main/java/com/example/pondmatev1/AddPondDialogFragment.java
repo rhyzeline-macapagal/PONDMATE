@@ -1,6 +1,8 @@
 package com.example.pondmatev1;
 
+import android.app.AlertDialog;
 import android.app.Dialog;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -25,6 +27,8 @@ public class AddPondDialogFragment extends DialogFragment {
     private DatePicker dateStarted;
     private TextView tvDateHarvest;
     private Button btnSave;
+    private String rawHarvestDateForDB = "";
+
 
     public interface OnPondAddedListener {
         void onPondAdded(PondModel pondModel);
@@ -72,21 +76,26 @@ public class AddPondDialogFragment extends DialogFragment {
                     Calendar harvestCalendar = (Calendar) startCalendar.clone();
                     harvestCalendar.add(Calendar.DAY_OF_YEAR, 120);
 
+                    // Format for DB
                     SimpleDateFormat dbFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                    String rawHarvestDate = dbFormat.format(harvestCalendar.getTime());
+                    rawHarvestDateForDB = dbFormat.format(harvestCalendar.getTime());
 
+                    // Format for display
                     SimpleDateFormat displayFormat = new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
                     String formattedDisplayDate = displayFormat.format(harvestCalendar.getTime());
 
                     tvDateHarvest.setText(formattedDisplayDate);
-                });
+                }
+        );
 
-        btnSave.setOnClickListener(v ->  {
+
+        btnSave.setOnClickListener(v -> {
             String name = etPondName.getText().toString().trim();
             String breed = spinnerBreed.getSelectedItem().toString();
             String fishCountStr = etFishCount.getText().toString().trim();
             String costStr = etCostPerFish.getText().toString().trim();
 
+            // Field validation
             if (name.isEmpty() || breed.isEmpty() || fishCountStr.isEmpty() || costStr.isEmpty()) {
                 Toast.makeText(getContext(), "Please fill out all fields.", Toast.LENGTH_SHORT).show();
                 return;
@@ -103,43 +112,77 @@ public class AddPondDialogFragment extends DialogFragment {
                 return;
             }
 
-            // Format start date
-            String dateStartedStr = dateStarted.getYear() + "-" +
-                    String.format(Locale.getDefault(), "%02d", (dateStarted.getMonth() + 1)) + "-" +
-                    String.format(Locale.getDefault(), "%02d", dateStarted.getDayOfMonth());
+            // Confirmation dialog
+            new android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Confirm Save")
+                    .setMessage("Do you want to save this pond?")
+                    .setPositiveButton("Yes", (dialogInterface, which) -> {
+                        try {
+                            // Show loading dialog
+                            // Show loading dialog
+                            AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+                            View loadingView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null);
+                            builder.setView(loadingView);
+                            builder.setCancelable(false);
+                            AlertDialog loadingDialog = builder.create();
+                            loadingDialog.show();
 
-            // Format harvest date (calculated automatically earlier)
-            String dateHarvestStr = tvDateHarvest.getText().toString();
 
-            // Save minimal info to SharedPreferences (optional for quick access)
-            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("fish_breed", breed);
-            editor.putString("fish_amount", costStr);
-            editor.putString("number_fish", fishCountStr);
-            editor.putString("date_started", dateStartedStr);
-            editor.apply();
+                            // Format start date
+                            String dateStartedStr = dateStarted.getYear() + "-" +
+                                    String.format(Locale.getDefault(), "%02d", (dateStarted.getMonth() + 1)) + "-" +
+                                    String.format(Locale.getDefault(), "%02d", dateStarted.getDayOfMonth());
 
-            // Create pond object
-            PondModel pond = new PondModel(name, breed, fishCount, cost, dateStartedStr, dateHarvestStr, "DATA");
+                            // Format harvest date
+                            String dateHarvestStr = rawHarvestDateForDB;
 
-            PondSyncManager.uploadPondToServer(pond, new PondSyncManager.Callback() {
-                @Override
-                public void onSuccess(Object result) {
-                    Log.d("Upload", "Server response: " + result);
-                }
+                            // Save minimal info to SharedPreferences
+                            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putString("fish_breed", breed);
+                            editor.putString("fish_amount", costStr);
+                            editor.putString("number_fish", fishCountStr);
+                            editor.putString("date_started", dateStartedStr);
+                            editor.apply();
 
-                @Override
-                public void onError(String error) {
-                    Log.e("Upload", "Error uploading pond: " + error);
-                }
-            });
+                            // Create pond object
+                            PondModel pond = new PondModel(name, breed, fishCount, cost, dateStartedStr, dateHarvestStr, "DATA");
 
-            // Notify listener
-            if (listener != null) listener.onPondAdded(pond);
+                            // Upload to server
+                            PondSyncManager.uploadPondToServer(pond, new PondSyncManager.Callback() {
+                                @Override
+                                public void onSuccess(Object result) {
 
-            dismiss();
+                                    Log.d("Upload", "Server response: " + result);
+                                    Toast.makeText(getContext(), "Pond added successfully!", Toast.LENGTH_SHORT).show();
+                                    loadingDialog.dismiss();
+                                    if (listener != null) listener.onPondAdded(pond);
+                                    dismiss();
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    Log.e("Upload", "Error uploading pond: " + error);
+
+                                    requireActivity().runOnUiThread(() -> {
+                                        Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show();
+                                        loadingDialog.dismiss();
+                                    });
+                                }
+                            });
+
+                        } catch (Exception e) {
+                            Toast.makeText(getContext(), "An unexpected error occurred: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            Log.e("AddPond", "Unexpected error", e);
+                        }
+                    })
+                    .setNegativeButton("No", (dialogInterface, which) -> dialogInterface.dismiss())
+                    .show();
         });
+
+
+
+
 
         return view;
     }
