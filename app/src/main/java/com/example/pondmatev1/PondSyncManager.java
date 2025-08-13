@@ -4,6 +4,8 @@ import android.os.Handler;
 import android.os.Looper;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -36,12 +38,29 @@ public class PondSyncManager {
                 os.close();
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                String response = reader.readLine();
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
                 reader.close();
 
+                // Parse JSON
+                String response = sb.toString();
+                JSONObject json = new JSONObject(response);
+                String status = json.getString("status");
+                String message = json.getString("message");
+
                 if (callback != null) {
-                    new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(response));
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        if ("success".equalsIgnoreCase(status)) {
+                            callback.onSuccess(message);
+                        } else {
+                            callback.onError(message);
+                        }
+                    });
                 }
+
             } catch (Exception e) {
                 if (callback != null) {
                     new Handler(Looper.getMainLooper()).post(() -> callback.onError(e.getMessage()));
