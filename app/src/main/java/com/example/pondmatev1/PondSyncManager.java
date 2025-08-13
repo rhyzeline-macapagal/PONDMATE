@@ -56,7 +56,7 @@ public class PondSyncManager {
                         if ("success".equalsIgnoreCase(status)) {
                             callback.onSuccess(response); // <-- send full JSON string
                         } else {
-                            callback.onError(message);
+                            callback.onError(message);;
                         }
                     });
                 }
