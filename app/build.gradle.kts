@@ -52,6 +52,9 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
+    implementation ("com.github.bumptech.glide:glide:4.15.1")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.15.1")
+
     implementation ("com.github.Foysalofficial:NafisBottomNav:5.0")
     implementation ("com.google.code.gson:gson:2.8.9")
     implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
@@ -61,6 +64,7 @@ dependencies {
     implementation ("com.google.android.material:material:1.12.0")
     implementation ("com.github.sundeepk:compact-calendar-view:3.0.0")
     implementation("com.prolificinteractive:material-calendarview:1.4.3")
+
 
 
 

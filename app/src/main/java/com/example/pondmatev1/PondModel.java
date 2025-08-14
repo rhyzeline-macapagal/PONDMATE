@@ -9,6 +9,8 @@ public class PondModel {
     private String dateHarvest;
     private String mode; // Could be used to mark "ONLINE" or "OFFLINE"
     private String id;
+    private String imagePath; // URL or server path
+
 
     // Default constructor (needed for some JSON libraries like Gson/Retrofit)
     public PondModel() {}
@@ -86,7 +88,6 @@ public class PondModel {
         this.mode = mode;
     }
 
-
     public String getId() {
         return id;
     }
@@ -94,4 +95,14 @@ public class PondModel {
     public void setId(String id) {
         this.id = id;
     }
+
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
+    }
+
+
 }

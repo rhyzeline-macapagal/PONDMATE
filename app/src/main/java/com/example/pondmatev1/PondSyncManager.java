@@ -16,7 +16,7 @@ import java.net.URLEncoder;
 public class PondSyncManager {
 
     // Upload pond directly to server
-    public static void uploadPondToServer(PondModel pond, Callback callback) {
+    public static void uploadPondToServer(PondModel pond, String imageBase64, Callback callback) {
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/add_pond.php");
@@ -28,9 +28,10 @@ public class PondSyncManager {
                 String postData = "name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
                         "&breed=" + URLEncoder.encode(pond.getBreed(), "UTF-8") +
                         "&fish_count=" + pond.getFishCount() +
-                        "&cost_per_fish=" + pond.getCostPerFish() +
+                        "&cost=" + pond.getCostPerFish() +
                         "&date_started=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
-                        "&date_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8");
+                        "&date_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8") +
+                        "&image=" + URLEncoder.encode(imageBase64, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());

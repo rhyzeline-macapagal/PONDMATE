@@ -11,6 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+
 import java.util.ArrayList;
 
 public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
@@ -62,7 +64,15 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
             }
         } else {
-            holder.pondImage.setImageResource(R.drawable.pond);
+            if (pond.getImagePath() != null && !pond.getImagePath().isEmpty()) {
+                Glide.with(context)
+                        .load(pond.getImagePath())
+                        .placeholder(R.drawable.pond) // fallback while loading
+                        .into(holder.pondImage);
+            } else {
+                holder.pondImage.setImageResource(R.drawable.pond);
+            }
+
             holder.pondName.setText(pond.getName());
             holder.pondName.setVisibility(View.VISIBLE);
             holder.itemView.setVisibility(View.VISIBLE);

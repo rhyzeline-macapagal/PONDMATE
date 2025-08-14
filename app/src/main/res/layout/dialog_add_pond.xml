@@ -165,6 +165,26 @@
                     android:layout_marginBottom="10dp"
                     android:textStyle="bold"/>
 
+                <ImageView
+                    android:id="@+id/ivPondImage"
+                    android:layout_width="150dp"
+                    android:layout_height="150dp"
+                    android:layout_gravity="center"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/pond" />
+
+                <Button
+                    android:id="@+id/btnCaptureImage"
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:text="Capture Pond Image"
+                    android:backgroundTint="#00448D"
+                    android:textColor="#FFFFFF"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="8dp"
+                    app:cornerRadius="1dp"/>
+
+
                 <!-- Save Button -->
                 <Button
                     android:id="@+id/btnSavePond"

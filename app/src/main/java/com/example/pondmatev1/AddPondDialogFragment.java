@@ -4,10 +4,15 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
 import android.view.*;
 import android.widget.*;
@@ -18,6 +23,7 @@ import androidx.fragment.app.DialogFragment;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
@@ -30,7 +36,10 @@ public class AddPondDialogFragment extends DialogFragment {
     private TextView tvDateHarvest;
     private Button btnSave;
     private String rawHarvestDateForDB = "";
-
+    private ImageView ivPondImage;
+    private Button btnCaptureImage;
+    private Bitmap capturedImageBitmap;
+    private static final int REQUEST_IMAGE_CAPTURE = 1001;
 
     public interface OnPondAddedListener {
         void onPondAdded(PondModel pondModel);
@@ -56,6 +65,20 @@ public class AddPondDialogFragment extends DialogFragment {
         tvDateHarvest = view.findViewById(R.id.tvDateHarvest);
         btnSave = view.findViewById(R.id.btnSavePond);
         TextView closeDialog = view.findViewById(R.id.btnClose);
+        ivPondImage = view.findViewById(R.id.ivPondImage);
+        btnCaptureImage = view.findViewById(R.id.btnCaptureImage);
+
+        //camera start
+        btnCaptureImage.setOnClickListener(v -> {
+            if (requireActivity().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
+                Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                if (takePictureIntent.resolveActivity(requireActivity().getPackageManager()) != null) {
+                    startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+                }
+            } else {
+                Toast.makeText(getContext(), "Camera not available", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         // Populate spinner with fish breeds
         String[] fishBreeds = {"Tilapia", "Bangus", "Alimango"};
@@ -113,6 +136,13 @@ public class AddPondDialogFragment extends DialogFragment {
                 return;
             }
 
+            if (capturedImageBitmap == null) {
+                Toast.makeText(getContext(), "Please capture a pond image.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String imageBase64 = bitmapToBase64(capturedImageBitmap);
+
             new AlertDialog.Builder(requireContext())
                     .setTitle("Confirm Save")
                     .setMessage("Do you want to save this pond?")
@@ -142,11 +172,13 @@ public class AddPondDialogFragment extends DialogFragment {
                         PondModel pond = new PondModel(name, breed, fishCount, cost, dateStartedStr, dateHarvestStr, "DATA");
 
                         // Upload pond and automatically insert fingerlings
-                        PondSyncManager.uploadPondToServer(pond, new PondSyncManager.Callback() {
+                        PondSyncManager.uploadPondToServer(pond, imageBase64, new PondSyncManager.Callback() {
                             @Override
                             public void onSuccess(Object result) {
                                 try {
                                     JSONObject json = new JSONObject(result.toString());
+                                    String message = json.optString("message", "Unknown error");
+
                                     if (!json.getString("status").equals("success")) {
                                         Toast.makeText(getContext(), "Error: " + json.optString("message"), Toast.LENGTH_LONG).show();
                                         loadingDialog.dismiss();
@@ -156,10 +188,15 @@ public class AddPondDialogFragment extends DialogFragment {
                                     int pondId = json.getInt("pond_id");
                                     pond.setId(String.valueOf(pondId)); // assign pond ID
 
+                                    // Set the image path returned from the server
+                                    String imagePath = "https://pondmate.alwaysdata.net/" + json.getString("image_path");
+                                    pond.setImagePath(imagePath);
+
+                                    if (listener != null) listener.onPondAdded(pond);
+
                                     Toast.makeText(getContext(), "Pond and fingerlings cost added successfully!", Toast.LENGTH_SHORT).show();
 
                                     loadingDialog.dismiss();
-                                    if (listener != null) listener.onPondAdded(pond);
                                     dismiss();
 
                                 } catch (Exception e) {
@@ -198,4 +235,23 @@ public class AddPondDialogFragment extends DialogFragment {
             dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
     }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == getActivity().RESULT_OK && data != null) {
+            Bundle extras = data.getExtras();
+            capturedImageBitmap = (Bitmap) extras.get("data"); // This is a small thumbnail
+            ivPondImage.setImageBitmap(capturedImageBitmap);
+        }
+    }
+
+    private String bitmapToBase64(Bitmap bitmap) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 75, byteArrayOutputStream); // compressed
+        byte[] byteArray = byteArrayOutputStream.toByteArray();
+        return Base64.encodeToString(byteArray, Base64.DEFAULT);
+    }
+
 }
