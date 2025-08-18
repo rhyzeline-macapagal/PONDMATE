@@ -11,7 +11,12 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.animation.RotateAnimation;
 import android.widget.*;
 
 import androidx.appcompat.app.AlertDialog;
@@ -30,6 +35,8 @@ public class login extends AppCompatActivity {
     EditText userName, passWord;
     Button loginButton;
     CheckBox rememberMeCheckBox;
+
+    AlertDialog loadingDialog;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -99,7 +106,40 @@ public class login extends AppCompatActivity {
         });
     }
 
+    private void showLoadingDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_loading, null); // your custom layout
+
+        ImageView fishLoader = dialogView.findViewById(R.id.fishLoader); // <-- make sure this id exists in dialog_loading.xml
+        TextView loadingText = dialogView.findViewById(R.id.loadingText);
+
+        // Change the text dynamically
+        loadingText.setText("Logging in...");
+
+        // Apply animation
+        Animation rotate = AnimationUtils.loadAnimation(this, R.anim.rotate);
+        if (fishLoader != null) {   // <-- prevent null crash
+            fishLoader.startAnimation(rotate);
+        }
+
+        builder.setView(dialogView);
+        builder.setCancelable(false);
+
+        loadingDialog = builder.create();
+        loadingDialog.show();
+    }
+
+
+    private void hideLoadingDialog() {
+        if (loadingDialog != null && loadingDialog.isShowing()) {
+            loadingDialog.dismiss();
+        }
+    }
+
+
     private void loginOnline(String username, String password) {
+        showLoadingDialog();
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/login_user.php");
@@ -127,6 +167,7 @@ public class login extends AppCompatActivity {
                 String response = responseBuilder.toString();
 
                 runOnUiThread(() -> {
+                    hideLoadingDialog();
                     try {
                         JSONObject responseJson = new JSONObject(response);
                         String status = responseJson.getString("status");
@@ -164,6 +205,7 @@ public class login extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
+                    hideLoadingDialog();
                     Toast.makeText(this, "⚠️ Network error", Toast.LENGTH_SHORT).show();
                     loginButton.setEnabled(true);
                 });

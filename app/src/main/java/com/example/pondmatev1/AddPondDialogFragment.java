@@ -148,6 +148,8 @@ public class AddPondDialogFragment extends DialogFragment {
                     .setMessage("Do you want to save this pond?")
                     .setPositiveButton("Yes", (dialogInterface, which) -> {
 
+                        // Show loading dialog
+
                         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
                         View loadingView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null);
                         builder.setView(loadingView);
@@ -169,9 +171,20 @@ public class AddPondDialogFragment extends DialogFragment {
                         editor.putString("date_started", dateStartedStr);
                         editor.apply();
 
-                        PondModel pond = new PondModel(name, breed, fishCount, cost, dateStartedStr, dateHarvestStr, "DATA");
 
-                        // Upload pond and automatically insert fingerlings
+                        PondModel pond = new PondModel(
+                                null, // ID will be set after server responds
+                                name,
+                                breed,
+                                fishCount,
+                                cost,
+                                dateStartedStr,
+                                dateHarvestStr,
+                                null, // imagePath will be set later
+                                "DATA"
+                        );
+
+                        // Upload pond to server
                         PondSyncManager.uploadPondToServer(pond, imageBase64, new PondSyncManager.Callback() {
                             @Override
                             public void onSuccess(Object result) {
@@ -180,29 +193,30 @@ public class AddPondDialogFragment extends DialogFragment {
                                     String message = json.optString("message", "Unknown error");
 
                                     if (!json.getString("status").equals("success")) {
-                                        Toast.makeText(getContext(), "Error: " + json.optString("message"), Toast.LENGTH_LONG).show();
+                                        Toast.makeText(getContext(), "Error: " + message, Toast.LENGTH_LONG).show();
                                         loadingDialog.dismiss();
                                         return;
                                     }
 
                                     int pondId = json.getInt("pond_id");
-                                    pond.setId(String.valueOf(pondId)); // assign pond ID
+                                    pond.setId(String.valueOf(pondId));
 
-                                    // Set the image path returned from the server
-                                    String imagePath = "https://pondmate.alwaysdata.net/" + json.getString("image_path");
-                                    pond.setImagePath(imagePath);
+                                    // If API already returns full public URL, use it directly
+                                    String serverImagePath = json.optString("image_path", "");
+                                    if (!serverImagePath.isEmpty() && !serverImagePath.startsWith("http")) {
+                                        serverImagePath = "https://pondmate.alwaysdata.net/" + serverImagePath;
+                                    }
+                                    pond.setImagePath(serverImagePath);
 
                                     if (listener != null) listener.onPondAdded(pond);
 
                                     Toast.makeText(getContext(), "Pond and fingerlings cost added successfully!", Toast.LENGTH_SHORT).show();
-
                                     loadingDialog.dismiss();
                                     dismiss();
 
                                 } catch (Exception e) {
                                     Toast.makeText(getContext(), "Error parsing server response: " + e.getMessage(), Toast.LENGTH_LONG).show();
                                     Log.d("ServerResponse", "Raw result: [" + result.toString() + "]");
-
                                     loadingDialog.dismiss();
                                 }
                             }

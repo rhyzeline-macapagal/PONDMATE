@@ -86,12 +86,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
         userType = new SessionManager(this).getUsertype();
 
-//        ImageView adminIcon = findViewById(R.id.adminIcon);
-//        adminIcon.setOnClickListener(v -> {
-//            Intent intent = new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class);
-//            startActivity(intent);
-//            overridePendingTransition(R.anim.drop_in, R.anim.fade_out);
-//        });
+        ImageView adminIcon = findViewById(R.id.adminIcon);
+        adminIcon.setOnClickListener(v -> {
+            Intent intent = new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class);
+            startActivity(intent);
+            overridePendingTransition(R.anim.drop_in, R.anim.fade_out);
+        });
 //
 //        ImageView profileIcon = findViewById(R.id.profileIcon);
 //        profileIcon.setOnClickListener(v -> {
@@ -99,9 +99,9 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 //            dialog.show(getSupportFragmentManager(), "UserProfileDialog");
 //        });
 //
-//        if (!"owner".equalsIgnoreCase(userType)) {
-//            adminIcon.setVisibility(View.GONE);
-//        }
+        if (!"owner".equalsIgnoreCase(userType)) {
+            adminIcon.setVisibility(View.GONE);
+        }
 
         pondRecyclerView = findViewById(R.id.pondRecyclerView);
         int spacing = getResources().getDimensionPixelSize(R.dimen.pond_card_spacing);

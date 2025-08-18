@@ -1,30 +1,31 @@
 package com.example.pondmatev1;
 
 public class CaretakerModel {
-    private int id;
+    private int id;           // unique id from DB
     private String username;
-    private String password;
+    private String password;  // password included
     private String fullname;
     private String address;
+    private String usertype;  // e.g. "Caretaker"
 
     // Empty constructor
     public CaretakerModel() {
     }
 
-    // Full constructor
-    public CaretakerModel(int id, String username, String password, String fullname, String address) {
-        this.id = id;
+    public CaretakerModel(String username, String password, String fullname, String address, String usertype) {
         this.username = username;
         this.password = password;
         this.fullname = fullname;
         this.address = address;
+        this.usertype = usertype;
     }
 
     // Getters
+
+
     public int getId() {
         return id;
     }
-
     public String getUsername() {
         return username;
     }
@@ -39,6 +40,10 @@ public class CaretakerModel {
 
     public String getAddress() {
         return address;
+    }
+
+    public String getUsertype() {
+        return usertype;
     }
 
     // Setters
@@ -60,5 +65,9 @@ public class CaretakerModel {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public void setUsertype(String usertype) {
+        this.usertype = usertype;
     }
 }

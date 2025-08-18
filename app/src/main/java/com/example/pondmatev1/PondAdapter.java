@@ -12,14 +12,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-
 import java.util.ArrayList;
 
 public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
 
-    Context context;
-    ArrayList<PondModel> pondList;
-    String userType;
+    private final Context context;
+    private final ArrayList<PondModel> pondList;
+    private final String userType;
 
     public PondAdapter(Context context, ArrayList<PondModel> pondList, String userType) {
         this.context = context;
@@ -38,6 +37,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         PondModel pond = pondList.get(position);
 
+        // Handle Add Button card
         if ("ADD_BUTTON".equals(pond.getMode())) {
             if ("owner".equalsIgnoreCase(userType)) {
                 holder.pondImage.setImageResource(R.drawable.ic_addpond);
@@ -46,14 +46,13 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
-
                 ));
 
                 holder.itemView.setOnClickListener(v -> {
                     if (context instanceof AppCompatActivity) {
                         AddPondDialogFragment dialog = new AddPondDialogFragment();
                         dialog.setOnPondAddedListener(newPond -> {
-                            pondList.add(1, newPond); // add below the button
+                            pondList.add(1, newPond); // Insert below button
                             notifyItemInserted(1);
                         });
                         dialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "AddPondDialog");
@@ -63,41 +62,44 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 holder.itemView.setVisibility(View.GONE);
                 holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
             }
-        } else {
-            if (pond.getImagePath() != null && !pond.getImagePath().isEmpty()) {
-                Glide.with(context)
-                        .load(pond.getImagePath())
-                        .placeholder(R.drawable.pond) // fallback while loading
-                        .into(holder.pondImage);
-            } else {
-                holder.pondImage.setImageResource(R.drawable.pond);
-            }
-
-            holder.pondName.setText(pond.getName());
-            holder.pondName.setVisibility(View.VISIBLE);
-            holder.itemView.setVisibility(View.VISIBLE);
-            holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-            ));
-
-
-            holder.itemView.setOnClickListener(v -> {
-                Intent intent = new Intent(context, MainActivity.class);
-                intent.putExtra("pond_name", pond.getName());
-                intent.putExtra("breed", pond.getBreed());
-                intent.putExtra("fish_count", pond.getFishCount());
-                intent.putExtra("cost_per_fish", pond.getCostPerFish());
-                intent.putExtra("date_started", pond.getDateStarted());
-                intent.putExtra("date_harvest", pond.getDateHarvest());
-                context.startActivity(intent);
-                if (context instanceof Activity) {
-                    ((Activity) context).overridePendingTransition(R.anim.fade_in,0);
-                }
-            });
+            return;
         }
-    }
 
+        // Load pond image directly from full URL
+        if (pond.getImagePath() != null && !pond.getImagePath().isEmpty()) {
+            Glide.with(context)
+                    .load(pond.getImagePath()) // Already full public URL from PHP
+                    .placeholder(R.drawable.pond) // While loading
+                    .error(R.drawable.pond)       // On error
+                    .into(holder.pondImage);
+        } else {
+            holder.pondImage.setImageResource(R.drawable.pond);
+        }
+
+        // Set pond name
+        holder.pondName.setText(pond.getName());
+        holder.pondName.setVisibility(View.VISIBLE);
+        holder.itemView.setVisibility(View.VISIBLE);
+        holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
+        // Item click to open MainActivity
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(context, MainActivity.class);
+            intent.putExtra("pond_name", pond.getName());
+            intent.putExtra("breed", pond.getBreed());
+            intent.putExtra("fish_count", pond.getFishCount());
+            intent.putExtra("cost_per_fish", pond.getCostPerFish());
+            intent.putExtra("date_started", pond.getDateStarted());
+            intent.putExtra("date_harvest", pond.getDateHarvest());
+            context.startActivity(intent);
+            if (context instanceof Activity) {
+                ((Activity) context).overridePendingTransition(R.anim.fade_in, 0);
+            }
+        });
+    }
 
     @Override
     public int getItemCount() {

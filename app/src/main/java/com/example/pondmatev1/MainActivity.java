@@ -83,10 +83,10 @@ public class MainActivity extends AppCompatActivity {
 //        });
 
 
-//        adminIcon.setOnClickListener(v -> {
-//            Intent intent = new Intent(MainActivity.this, CaretakerDashboardActivity.class);
-//            startActivity(intent);
-//        });
+        adminIcon.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, CaretakerDashboardActivity.class);
+            startActivity(intent);
+        });
 
 
 
@@ -147,9 +147,9 @@ public class MainActivity extends AppCompatActivity {
                     getIntent().getIntExtra("fish_count", 0),
                     getIntent().getDoubleExtra("cost_per_fish", 0.0),
                     getIntent().getStringExtra("date_started"),
-                    getIntent().getStringExtra("date_harvest"),
-                    "DATA"
+                    getIntent().getStringExtra("date_harvest")
             );
+
             openPondInfoFragment(pond);
 
         }
