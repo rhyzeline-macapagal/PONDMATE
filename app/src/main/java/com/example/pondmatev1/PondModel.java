@@ -11,7 +11,7 @@ public class PondModel {
     private String imagePath; // Full public URL
     private String mode;      // For "ADD_BUTTON" etc.
     private String extraData;
-    // Default constructor for JSON libraries (Gson, Retrofit, etc.)
+
     public PondModel(String name, String breed, int fishCount, double costPerFish,
                      String dateStarted, String dateHarvest) {
         this(null, name, breed, fishCount, costPerFish, dateStarted, dateHarvest, null, null);
@@ -78,4 +78,6 @@ public class PondModel {
     public String getMode() { return mode; }
     public void setMode(String mode) { this.mode = mode; }
     public String getExtraData() { return extraData; }
+
+
 }

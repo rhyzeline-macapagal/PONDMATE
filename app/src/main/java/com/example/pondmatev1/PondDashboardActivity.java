@@ -155,8 +155,9 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                             pond.getDouble("cost_per_fish"),
                             pond.getString("date_started"),
                             pond.getString("date_harvest"),
-                            "DATA"
+                            pond.getString("image_path") 
                     ));
+
                 }
 
                 runOnUiThread(() -> {

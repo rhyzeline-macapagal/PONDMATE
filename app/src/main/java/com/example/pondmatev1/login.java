@@ -44,6 +44,11 @@ public class login extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
+        if (!isInternetAvailable()) {
+            showNoInternetDialog();
+            return;
+        }
+
         userName = findViewById(R.id.username_input);
         passWord = findViewById(R.id.password_input);
         loginButton = findViewById(R.id.login_button);
@@ -93,11 +98,6 @@ public class login extends AppCompatActivity {
 
             if (username.isEmpty() || password.isEmpty()) {
                 Toast.makeText(this, "Both fields are required", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            if (!isInternetAvailable()) {
-                showNoInternetDialog();
                 return;
             }
 

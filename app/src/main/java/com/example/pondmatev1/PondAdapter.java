@@ -68,10 +68,13 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         // Load pond image directly from full URL
         if (pond.getImagePath() != null && !pond.getImagePath().isEmpty()) {
             Glide.with(context)
-                    .load(pond.getImagePath()) // Already full public URL from PHP
-                    .placeholder(R.drawable.pond) // While loading
-                    .error(R.drawable.pond)       // On error
+                    .load(pond.getImagePath())
+                    .placeholder(R.drawable.pond)
+                    .error(R.drawable.pond)
+                    .centerCrop()
+                    .dontAnimate()
                     .into(holder.pondImage);
+
         } else {
             holder.pondImage.setImageResource(R.drawable.pond);
         }
