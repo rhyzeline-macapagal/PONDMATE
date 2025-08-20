@@ -3,24 +3,32 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:cardBackgroundColor="@android:color/transparent"
-    android:layout_marginEnd="5dp"
-    >
+    app:cardCornerRadius="8dp"
+    app:cardElevation="6dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginBottom="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:gravity="center_horizontal">
+        android:gravity="center_horizontal"
+        android:padding="4dp">
 
-        <ImageView
-            android:id="@+id/pondImage"
+        <FrameLayout
             android:layout_width="178dp"
-            android:layout_height="110dp"
-            android:scaleType="centerCrop"
-            android:background="@drawable/bgvector"
-            android:src="@drawable/ic_addpond"
-            app:cardCornerRadius="5dp" />
+            android:layout_height="110dp">
+
+            <ImageView
+                android:id="@+id/pondImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="@drawable/bgvector"
+                android:src="@drawable/ic_addpond"
+                android:clipToOutline="true" />
+
+        </FrameLayout>
 
         <TextView
             android:id="@+id/pondName"
@@ -28,12 +36,17 @@
             android:layout_height="wrap_content"
             android:text="Pond Name"
             android:textColor="#01082D"
-            android:textSize="18sp"
+            android:textSize="16sp"
+            android:textStyle="bold"
             android:gravity="center"
             android:visibility="gone"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="2dp"/>
-    </LinearLayout>
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="4dp"
+            android:paddingHorizontal="4dp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:lineSpacingExtra="2dp"/>
 
+    </LinearLayout>
 
 </androidx.cardview.widget.CardView>

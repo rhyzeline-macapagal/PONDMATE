@@ -1,0 +1,87 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Main grain container/hopper -->
+    <path
+        android:fillColor="#f8f9fa"
+        android:strokeColor="#333333"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round"
+        android:pathData="M8,3L16,3L18,6L18,15L6,15L6,6Z" />
+
+    <!-- Container lid -->
+    <path
+        android:fillColor="#00448D"
+        android:strokeColor="#333333"
+        android:strokeWidth="1"
+        android:pathData="M7,2h10a1,1 0,0 1,1 1v0a1,1 0,0 1,-1 1H7a1,1 0,0 1,-1 -1v0A1,1 0,0 1,7 2z" />
+
+    <!-- Grain level fill -->
+    <path
+        android:fillColor="#FFC107"
+        android:fillAlpha="0.7"
+        android:pathData="M8,6h8v6H8z" />
+
+    <!-- Individual grain particles -->
+    <group>
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M10,8m-0.5,0a0.5,0.5 0,1 1,1 0a0.5,0.5 0,1 1,-1 0" />
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M12,7.5m-0.5,0a0.5,0.5 0,1 1,1 0a0.5,0.5 0,1 1,-1 0" />
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M14,8.5m-0.5,0a0.5,0.5 0,1 1,1 0a0.5,0.5 0,1 1,-1 0" />
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M9,9.5m-0.5,0a0.5,0.5 0,1 1,1 0a0.5,0.5 0,1 1,-1 0" />
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M13,9m-0.5,0a0.5,0.5 0,1 1,1 0a0.5,0.5 0,1 1,-1 0" />
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M15,10m-0.5,0a0.5,0.5 0,1 1,1 0a0.5,0.5 0,1 1,-1 0" />
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M11,10.5m-0.5,0a0.5,0.5 0,1 1,1 0a0.5,0.5 0,1 1,-1 0" />
+    </group>
+
+    <!-- Dispenser funnel -->
+    <path
+        android:fillColor="#BDBDBD"
+        android:strokeColor="#333333"
+        android:strokeWidth="1.5"
+        android:pathData="M10,15L12,18L14,15Z" />
+
+    <!-- Dispensing mechanism -->
+    <path
+        android:fillColor="#00448D"
+        android:strokeColor="#333333"
+        android:strokeWidth="1"
+        android:pathData="M11,13h2a0.5,0.5 0,0 1,0.5 0.5v1a0.5,0.5 0,0 1,-0.5 0.5H11a0.5,0.5 0,0 1,-0.5 -0.5v-1A0.5,0.5 0,0 1,11 13z" />
+
+    <!-- Falling grains animation -->
+    <group android:name="falling_grains">
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M11.5,19m-0.4,0a0.4,0.4 0,1 1,0.8 0a0.4,0.4 0,1 1,-0.8 0" />
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M12.5,20m-0.4,0a0.4,0.4 0,1 1,0.8 0a0.4,0.4 0,1 1,-0.8 0" />
+        <path
+            android:fillColor="#FF8F00"
+            android:pathData="M12,21m-0.4,0a0.4,0.4 0,1 1,0.8 0a0.4,0.4 0,1 1,-0.8 0" />
+    </group>
+
+    <!-- Level measurement marks -->
+    <path
+        android:strokeColor="#666666"
+        android:strokeWidth="1"
+        android:pathData="M6.5,9L7.5,9M6.5,12L7.5,12" />
+
+
+</vector>

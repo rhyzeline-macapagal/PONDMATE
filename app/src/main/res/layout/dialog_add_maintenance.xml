@@ -1,83 +1,120 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="300dp"
+    android:layout_width="320dp"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="@drawable/rounded_dialog_bg"
     android:orientation="vertical"
-    android:padding="20dp"
+    android:padding="24dp"
     android:layout_gravity="center"
-    android:elevation="8dp">
+    android:elevation="12dp">
 
+    <!-- Header Section with Close Button -->
     <RelativeLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
 
         <TextView
             android:id="@+id/btnClose"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:text="✖"
-            android:textSize="20sp"
-            android:textColor="#01082D"
+            android:textSize="16sp"
+            android:textColor="#666666"
             android:layout_alignParentEnd="true"
-            android:padding="8dp"
-            android:layout_marginBottom="4dp"/>
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"/>
     </RelativeLayout>
 
+    <!-- Title -->
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Add Maintenance Cost"
         android:textStyle="bold"
-        android:textSize="18sp"
+        android:textSize="22sp"
         android:textColor="#01082D"
-        android:layout_marginBottom="16dp" />
+        android:gravity="center"
+        android:layout_marginBottom="24dp"
+        android:letterSpacing="0.02" />
 
-    <!-- Spinner for maintenance type -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Maintenance Type"
-        android:textColor="#01082D" />
-    <Spinner
-        android:id="@+id/spinnerMaintenanceType"
+    <!-- Form Fields Container -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/rounded_edittext"
-        android:padding="10dp"
-        android:layout_marginBottom="12dp"
-        android:textColorHint="#01082D"/>
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp">
 
-    <!-- Optional "Other" field -->
-    <EditText
-        android:id="@+id/etOtherMaintenanceType"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Specify if Other"
-        android:visibility="gone"
-        android:background="@drawable/rounded_edittext"
-        android:padding="10dp"
-        android:layout_marginBottom="12dp" />
+        <!-- Maintenance Type Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Maintenance Type"
+            android:textColor="#01082D"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp" />
 
-    <!-- Cost -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Cost (₱)"
-        android:textColor="#01082D" />
-    <EditText
-        android:id="@+id/etMaintenanceCost"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="₱0.00"
-        android:inputType="numberDecimal"
-        android:background="@drawable/rounded_edittext"
-        android:padding="10dp"
-        android:layout_marginBottom="16dp"
-        android:textColorHint="#01082D"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_edittext"
+            android:padding="2dp"
+            android:layout_marginBottom="16dp">
 
-    <!-- Buttons -->
+            <Spinner
+                android:id="@+id/spinnerMaintenanceType"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:padding="12dp"
+                android:textColorHint="#01082D"
+                android:background="@android:color/transparent"/>
+        </LinearLayout>
+
+        <!-- Optional "Other" field -->
+        <EditText
+            android:id="@+id/etOtherMaintenanceType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Specify if Other"
+            android:visibility="gone"
+            android:background="@drawable/rounded_edittext"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp"
+            android:textColor="#01082D"
+            android:textColorHint="#888888"
+            android:minHeight="48dp" />
+
+        <!-- Cost Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cost (₱)"
+            android:textColor="#01082D"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp" />
+
+        <EditText
+            android:id="@+id/etMaintenanceCost"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="₱0.00"
+            android:inputType="numberDecimal"
+            android:background="@drawable/rounded_edittext"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp"
+            android:textColor="#01082D"
+            android:textColorHint="#888888"
+            android:minHeight="48dp"/>
+    </LinearLayout>
+
+    <!-- Action Buttons -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -87,24 +124,38 @@
         <Button
             android:id="@+id/btnCancelMaintenance"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="Cancel"
             android:textColor="@color/black"
-            app:cornerRadius="1dp"
-            android:backgroundTint="#BAD0E6F0" />
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:cornerRadius="6dp"
+            android:backgroundTint="#BADED8D8"
+            android:paddingHorizontal="20dp"
+            android:letterSpacing="0.02"
+            android:elevation="1dp"
+            android:stateListAnimator="@null" />
 
         <Space
-            android:layout_width="16dp"
+            android:layout_width="12dp"
             android:layout_height="wrap_content" />
 
         <Button
             android:id="@+id/btnAddMaintenance"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="48dp"
             android:text="Add"
-            app:cornerRadius="1dp"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textAllCaps="false"
+            app:cornerRadius="6dp"
             android:backgroundTint="#00448D"
-            android:textColor="@android:color/white" />
+            android:textColor="@android:color/white"
+            android:paddingHorizontal="24dp"
+            android:letterSpacing="0.02"
+            android:elevation="2dp"
+            android:stateListAnimator="@null" />
     </LinearLayout>
 
 </LinearLayout>

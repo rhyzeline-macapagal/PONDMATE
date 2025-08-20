@@ -1,93 +1,157 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="300dp"
+    android:layout_width="320dp"
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:padding="20dp"
+    android:padding="24dp"
     android:background="@drawable/rounded_dialog_bg"
-    android:elevation="8dp">
+    android:elevation="12dp">
 
-    <!-- Close button -->
+    <!-- Header Section with Close Button -->
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
 
         <TextView
             android:id="@+id/closeDialog"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:text="✖"
-            android:textSize="18sp"
-            android:textColor="#000000"
+            android:textSize="16sp"
+            android:textColor="#666666"
             android:layout_alignParentEnd="true"
             android:layout_alignParentRight="true"
-            android:layout_gravity="end"/>
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"/>
     </RelativeLayout>
 
-    <!-- Title -->
+    <!-- Title with Enhanced Styling -->
     <TextView
         android:id="@+id/dialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Create New Caretaker Account"
-        android:textSize="20sp"
+        android:textSize="22sp"
         android:textStyle="bold"
         android:textColor="#01082D"
         android:gravity="center"
-        android:layout_marginTop="10dp"
-        android:layout_marginBottom="20dp"/>
+        android:layout_marginBottom="24dp"
+        android:letterSpacing="0.02"/>
 
-    <!-- Input fields -->
-    <EditText
-        android:id="@+id/editUsername"
+    <!-- Input Fields Container -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Username"
-        android:textColor="#01082D"
-        android:inputType="textPersonName" />
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp">
 
-    <EditText
-        android:id="@+id/editPassword"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Password"
-        android:textColor="#01082D"
-        android:inputType="textPassword" />
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:boxStrokeColor="#00448D"
+            app:hintTextColor="#01082D">
 
-    <EditText
-        android:id="@+id/editFullName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Full Name"
-        android:textColor="#01082D"
-        android:inputType="textPersonName" />
+            <EditText
+                android:id="@+id/editUsername"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Username"
+                android:textColor="#01082D"
+                android:textColorHint="#888888"
+                android:inputType="textPersonName"
+                android:padding="12dp"
+                android:background="@android:color/transparent" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-    <EditText
-        android:id="@+id/editAddress"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Address"
-        android:textColor="#01082D"
-        android:inputType="textPostalAddress" />
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:boxStrokeColor="#00448D"
+            app:hintTextColor="#01082D"
+            app:passwordToggleEnabled="true">
 
-    <!-- Save Button -->
+            <EditText
+                android:id="@+id/editPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Password"
+                android:textColor="#01082D"
+                android:textColorHint="#888888"
+                android:inputType="textPassword"
+                android:padding="12dp"
+                android:background="@android:color/transparent" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:boxStrokeColor="#00448D"
+            app:hintTextColor="#01082D">
+
+            <EditText
+                android:id="@+id/editFullName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Full Name"
+                android:textColor="#01082D"
+                android:textColorHint="#888888"
+                android:inputType="textPersonName"
+                android:padding="12dp"
+                android:background="@android:color/transparent" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            app:boxStrokeColor="#00448D"
+            app:hintTextColor="#01082D">
+
+            <EditText
+                android:id="@+id/editAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Address"
+                android:textColor="#01082D"
+                android:textColorHint="#888888"
+                android:inputType="textPostalAddress"
+                android:padding="12dp"
+                android:background="@android:color/transparent"
+                android:minLines="2" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
     <Button
         android:id="@+id/saveCaretakerBtn"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Save"
-        app:cornerRadius="1dp"
+        android:layout_height="56dp"
+        android:text="Save Caretaker"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textAllCaps="false"
+        app:cornerRadius="8dp"
         android:backgroundTint="#00448D"
         android:textColor="@android:color/white"
-        android:layout_marginTop="20dp"/>
+        android:elevation="2dp"
+        android:stateListAnimator="@null"
+        android:letterSpacing="0.02"/>
 
     <TextView
         android:id="@+id/tvCaretaker"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Caretaker"
-        android:visibility="gone"
-      />
+        android:visibility="gone" />
 
 </LinearLayout>

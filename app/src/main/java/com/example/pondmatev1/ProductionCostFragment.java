@@ -71,7 +71,7 @@ public class ProductionCostFragment extends Fragment {
         tvCapital = view.findViewById(R.id.tvROICapital);
         tvROIAmount = view.findViewById(R.id.tvROIAmount);
         tvROI = view.findViewById(R.id.tvROI);
-        etEstimatedSales = view.findViewById(R.id.etEstimatedSales);
+        etEstimatedSales = view.findViewById(R.id.etActualSales);
 
         // Load values from SharedPreferences
         SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);

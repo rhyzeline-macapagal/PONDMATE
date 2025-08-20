@@ -50,65 +50,163 @@
             app:cornerRadius="5dp"
             android:textColor="#FFFFFF"/>
 
-        <!-- Table Headers -->
-        <LinearLayout
+        <!-- Table Headers - IMPROVED VISUAL DESIGN -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@drawable/tableheader"
-            android:padding="2dp"
-            android:layout_marginBottom="4dp">
+            app:cardElevation="4dp">
 
-            <TextView
-                android:layout_weight="1.5"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Username"
-                android:gravity="center"
-                android:textColor="#FFFFFF"
-                />
+                android:orientation="horizontal"
+                android:background="@drawable/tableheader"
+                android:padding="16dp"
+                android:gravity="center_vertical"
+                android:minHeight="56dp">
 
-            <TextView
-                android:layout_weight="1.5"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="Password"
-                android:gravity="center"
-                android:textColor="#FFFFFF"
-                />
+                <!-- Header Info Container -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:layout_marginEnd="12dp">
 
-            <TextView
-                android:layout_weight="1.5"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="Name"
-                android:textColor="#FFFFFF"
-                android:gravity="center" />
+                    <!-- Username Header -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.2"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="12dp">
 
-            <TextView
-                android:layout_weight="1.3"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="Address"
-                android:textColor="#FFFFFF"
-                android:gravity="center"
-                />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="User"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"
+                            android:textSize="13sp"
+                            android:gravity="center"
+                            android:singleLine="true"
+                            android:ellipsize="none" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="✏️"
-                android:layout_marginStart="8dp"
-                android:textColor="#FFFFFF" />
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Name"
+                            android:textColor="#E3F2FD"
+                            android:textSize="11sp"
+                            android:gravity="center"
+                            android:layout_marginTop="1dp" />
+                    </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🗑️"
-                android:layout_marginStart="8dp"
-                android:textColor="#FFFFFF"
-                />
-        </LinearLayout>
+                    <!-- Password Header -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.2"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="12dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="User"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"
+                            android:textSize="13sp"
+                            android:gravity="center"
+                            android:singleLine="true" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Pass"
+                            android:textColor="#E3F2FD"
+                            android:textSize="11sp"
+                            android:gravity="center"
+                            android:layout_marginTop="1dp" />
+                    </LinearLayout>
+
+                    <!-- Full Name Header -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.5"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="12dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Full"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"
+                            android:textSize="13sp"
+                            android:gravity="center"
+                            android:singleLine="true" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Name"
+                            android:textColor="#E3F2FD"
+                            android:textSize="11sp"
+                            android:gravity="center"
+                            android:layout_marginTop="1dp" />
+                    </LinearLayout>
+
+                    <!-- Address Header -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1.8"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Address"
+                            android:textColor="#FFFFFF"
+                            android:textStyle="bold"
+                            android:textSize="13sp"
+                            android:gravity="start"
+                            android:singleLine="true" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Action Buttons Header Container -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="44dp"
+                        android:layout_height="wrap_content"
+                        android:text="Edit"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:singleLine="true" />
+
+                    <TextView
+                        android:layout_width="44dp"
+                        android:layout_height="wrap_content"
+                        android:text="Delete"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:singleLine="true" />
+                </LinearLayout>
+
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
         <!-- RecyclerView list -->
         <androidx.recyclerview.widget.RecyclerView

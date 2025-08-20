@@ -38,15 +38,13 @@
             android:textStyle="bold" />
 
         <ImageView
-            android:id="@+id/adminIcon"
+            android:id="@+id/notificationIcon"
             android:layout_width="32dp"
             android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:layout_marginEnd="16dp"
-            android:layout_toStartOf="@id/profileIcon"
-            android:contentDescription="Admin Controls"
-            android:src="@drawable/ic_admin" />
-
+            android:contentDescription="Notifications"
+            android:src="@drawable/ic_notif" />
 
         <ImageView
             android:id="@+id/profileIcon"
@@ -59,58 +57,79 @@
             android:src="@drawable/ic_profile" />
 
         <ImageView
-            android:id="@+id/notificationIcon"
+            android:id="@+id/adminIcon"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:contentDescription="Notifications"
-            android:src="@drawable/ic_notif" />
+            android:layout_marginEnd="16dp"
+            android:layout_toStartOf="@id/profileIcon"
+            android:contentDescription="Admin Controls"
+            android:src="@drawable/ic_admin" />
+
     </RelativeLayout>
 
-
-    <FrameLayout
-        android:id="@+id/con"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/topBar"
-        android:background="#A6C4F1FF">
+        android:background="#A6C4F1FF"
+        android:fillViewport="true">
 
         <LinearLayout
             android:id="@+id/containerLayout"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="2dp"
+                android:text="My Ponds"
+                android:textColor="#01082D"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/pondRecyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:layout_marginBottom="8dp"
-                android:clipToPadding="false"
-                android:background="@android:color/transparent" />
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="10dp"
+                android:background="@android:color/transparent"
+                android:clipToPadding="false" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginStart="8dp"
                 android:text="Return on Investments"
                 android:textColor="#01082D"
                 android:textSize="18sp"
-                android:layout_margin="8dp"
                 android:textStyle="bold" />
 
-
-            <com.github.mikephil.charting.charts.BarChart
-                android:id="@+id/roiBarChart"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="400dp"
+                android:layout_height="wrap_content"
                 android:layout_margin="8dp"
-                android:visibility="visible" />
+                android:background="#FFFFFF"
+                android:elevation="4dp"
+                android:padding="16dp">
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/roiBarChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="400dp"
+                    android:visibility="visible" />
+
+            </FrameLayout>
 
         </LinearLayout>
-    </FrameLayout>
+
+    </ScrollView>
 
 </RelativeLayout>

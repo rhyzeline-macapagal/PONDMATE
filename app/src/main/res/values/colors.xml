@@ -11,6 +11,12 @@
     <color name="activity_background_blue">#E3F2FD</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
+    <color name="tab_ripple">#1A00448D</color>
+    <color name="primary_blue">#00448D</color>
+    <color name="accent_green">#4CAF50</color>
+    <color name="background_light">#F8F9FA</color>
+    <color name="text_primary">#01082D</color>
+    <color name="text_secondary">#666666</color>
 
 
 </resources>

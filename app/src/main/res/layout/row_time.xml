@@ -4,32 +4,34 @@
     android:layout_height="wrap_content"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="horizontal"
-    android:layout_marginBottom="5dp"
+    android:layout_marginBottom="6dp"
     android:foregroundGravity="center_vertical">
 
     <TextView
         android:id="@+id/timeoffeeding"
-        android:layout_width="192dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:background="@drawable/rounded_edittext"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_weight="1"
+        android:background="@drawable/textbox_background"
         android:enabled="true"
         android:hint="00:00"
         android:padding="12dp"
-        android:textAlignment="textEnd"
+        android:gravity="center_vertical|start"
         android:textColor="#01082D"
-        android:textSize="14sp" />
+        android:textColorHint="#888888"
+        android:textSize="14sp"
+        android:layout_marginEnd="8dp" />
 
     <Button
         android:id="@+id/btnselecttime"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="80dp"
+        android:layout_height="48dp"
         android:backgroundTint="#00448D"
-        android:text="Select"
-        android:layout_gravity="center"
-        app:cornerRadius="1dp"
-        android:layout_marginStart="5dp"
-        android:textColor="#FFFFFF" />
+        android:text="Set"
+        app:cornerRadius="8dp"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:layout_marginEnd="8dp" />
 
     <ImageButton
         android:id="@+id/removetime"

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Selected tab indicator -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#00448D" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+    <!-- Unselected tab indicator (transparent) -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+
+</selector>

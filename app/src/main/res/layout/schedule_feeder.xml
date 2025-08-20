@@ -12,319 +12,388 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- Header Section -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="SET SCHEDULE"
             android:textColor="#01082D"
-            android:textSize="22sp"
+            android:textSize="24sp"
             android:textStyle="bold"
-            android:layout_marginBottom="5dp"
-            android:layout_gravity="center" />
+            android:layout_marginBottom="16dp"
+            android:layout_gravity="center"
+            android:letterSpacing="0.05" />
 
+        <!-- Main Form Card -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="12dp"
-            android:background="@drawable/rounded_card"
-            android:elevation="4dp">
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            android:background="@drawable/rounded_card">
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Fish Count:"
-                    android:layout_marginBottom="5dp"
-                    android:textColor="#01082D"
-                    android:textSize="18sp"
-                    android:layout_weight="1"/>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Current Fish Weight:"
-                    android:layout_marginBottom="5dp"
-                    android:textColor="#01082D"
-                    android:textSize="18sp"
-                    />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/tvsfishcount"
-                    android:layout_width="165dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/rounded_edittext"
-                    android:enabled="true"
-                    android:hint="00"
-                    android:padding="12dp"
-                    android:textAlignment="textEnd"
-                    android:textColor="#01082D"
-                    android:textSize="14sp" />
-
-                <EditText
-                    android:id="@+id/weight"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/rounded_edittext"
-                    android:clickable="true"
-                    android:cursorVisible="true"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true"
-                    android:hint="grams per piece"
-                    android:inputType="numberDecimal"
-                    android:textAlignment="textEnd"
-                    android:padding="12dp"
-                    android:layout_marginStart="10dp"
-                    android:textColorHint="#01082D"
-                    android:textSize="14sp" />
-
-            </LinearLayout>
-            <!-- Date -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Date:"
-                android:layout_marginTop="10dp"
-                android:textColor="#01082D"
-                android:textSize="18sp" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/dateoffeedingschedule"
-                    android:layout_width="192dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/rounded_edittext"
-                    android:enabled="true"
-                    android:hint="Jan. 01, 2025"
-                    android:padding="12dp"
-                    android:textAlignment="textEnd"
-                    android:textColor="#01082D"
-                    android:textSize="14sp" />
-
-                <Button
-                    android:id="@+id/btnselectdate"
-                    android:layout_width="130dp"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="#00448D"
-                    android:text="Select"
-                    android:layout_gravity="center"
-                    app:cornerRadius="5dp"
-                    android:layout_marginStart="5dp"
-                    android:textColor="#FFFFFF" />
-            </LinearLayout>
-
-            <!-- Time -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Time:"
-                android:layout_marginTop="10dp"
-                android:textColor="#01082D"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif"
-                />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="5dp">
-
-                <TextView
-                    android:id="@+id/timeoffeeding1"
-                    android:layout_width="192dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/rounded_edittext"
-                    android:enabled="true"
-                    android:hint="00:00"
-                    android:padding="12dp"
-                    android:textAlignment="textEnd"
-                    android:textColor="#01082D"
-                    android:textSize="14sp" />
-
-                <Button
-                    android:id="@+id/btnselecttime1"
-                    android:layout_width="130dp"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="#00448D"
-                    android:text="Select"
-                    android:layout_gravity="center"
-                    app:cornerRadius="5dp"
-                    android:layout_marginStart="5dp"
-                    android:textColor="#FFFFFF" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="5dp">
-
-                <TextView
-                    android:id="@+id/timeoffeeding2"
-                    android:layout_width="192dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/rounded_edittext"
-                    android:enabled="true"
-                    android:hint="00:00"
-                    android:padding="12dp"
-                    android:textAlignment="textEnd"
-                    android:textColor="#01082D"
-                    android:textSize="14sp" />
-
-                <Button
-                    android:id="@+id/btnselecttime2"
-                    android:layout_width="130dp"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="#00448D"
-                    android:text="Select"
-                    android:layout_gravity="center"
-                    app:cornerRadius="5dp"
-                    android:layout_marginStart="5dp"
-                    android:textColor="#FFFFFF" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="5dp">
-
-                <TextView
-                    android:id="@+id/timeoffeeding"
-                    android:layout_width="192dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/rounded_edittext"
-                    android:enabled="true"
-                    android:hint="00:00"
-                    android:padding="12dp"
-                    android:textAlignment="textEnd"
-                    android:textColor="#01082D"
-                    android:textSize="14sp" />
-
-                <Button
-                    android:id="@+id/btnselecttime"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:backgroundTint="#00448D"
-                    android:text="Select"
-                    android:layout_gravity="center"
-                    app:cornerRadius="5dp"
-                    android:layout_marginStart="5dp"
-                    android:textColor="#FFFFFF" />
-
-                <ImageButton
-                    android:id="@+id/addtimebtn"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:padding="8dp"
-                    android:layout_marginTop="7dp"
-                    android:backgroundTint="#00FFFFFF"
-                    android:contentDescription="Add Image"
-                    android:src="@android:drawable/ic_menu_add" />
-
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/timecontainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:foregroundGravity="center_vertical">
+                android:padding="20dp">
 
-            </LinearLayout>
-
-            <!-- Feed Quantity -->
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="10dp">
-
+                <!-- Fish Information Section -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Feed Quantity per Cycle:"
-                    android:layout_marginTop="1dp"
+                    android:text="Fish Information"
                     android:textColor="#01082D"
-                    android:textSize="18sp"
-                    android:layout_marginBottom="5dp" />
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginEnd="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Fish Count"
+                            android:layout_marginBottom="6dp"
+                            android:textColor="#01082D"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvsfishcount"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:enabled="true"
+                            android:hint="00"
+                            android:background="@drawable/textbox_background"
+                            android:padding="12dp"
+                            android:gravity="center"
+                            android:textColor="#01082D"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Fish Weight"
+                            android:layout_marginBottom="6dp"
+                            android:textColor="#01082D"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <EditText
+                            android:id="@+id/weight"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/textbox_background"
+                            android:clickable="true"
+                            android:cursorVisible="true"
+                            android:focusable="true"
+                            android:focusableInTouchMode="true"
+                            android:hint="grams per piece"
+                            android:inputType="numberDecimal"
+                            android:gravity="center"
+                            android:padding="12dp"
+                            android:textColorHint="#888888"
+                            android:textColor="#01082D"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#E0E0E0"
+                    android:layout_marginVertical="16dp" />
+
+                <!-- Schedule Information Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Schedule Information"
+                    android:textColor="#01082D"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
+
+                <!-- Date Selection -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Date"
+                    android:layout_marginBottom="6dp"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:id="@+id/dateoffeedingschedule"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/textbox_background"
+                        android:enabled="true"
+                        android:hint="Jan. 01, 2025"
+                        android:padding="12dp"
+                        android:gravity="center_vertical|start"
+                        android:textColor="#01082D"
+                        android:textColorHint="#888888"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btnselectdate"
+                        android:layout_width="100dp"
+                        android:layout_height="48dp"
+                        android:backgroundTint="#00448D"
+                        android:text="Set"
+                        app:cornerRadius="8dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Feeding Times Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Feeding Times"
+                    android:layout_marginBottom="6dp"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <!-- First Feeding Time -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="First Feeding"
+                    android:layout_marginBottom="4dp"
+                    android:textColor="#666666"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/timeoffeeding1"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/textbox_background"
+                        android:enabled="true"
+                        android:hint="00:00"
+                        android:padding="12dp"
+                        android:gravity="center_vertical|start"
+                        android:textColor="#01082D"
+                        android:textColorHint="#888888"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btnselecttime1"
+                        android:layout_width="100dp"
+                        android:layout_height="48dp"
+                        android:backgroundTint="#00448D"
+                        android:text="Set"
+                        app:cornerRadius="8dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Second Feeding Time -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Second Feeding"
+                    android:layout_marginBottom="4dp"
+                    android:textColor="#666666"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/timeoffeeding2"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/textbox_background"
+                        android:enabled="true"
+                        android:hint="00:00"
+                        android:padding="12dp"
+                        android:gravity="center_vertical|start"
+                        android:textColor="#01082D"
+                        android:textColorHint="#888888"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btnselecttime2"
+                        android:layout_width="100dp"
+                        android:layout_height="48dp"
+                        android:backgroundTint="#00448D"
+                        android:text="Set"
+                        app:cornerRadius="8dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Third Feeding Time -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Third Feeding"
+                    android:layout_marginBottom="4dp"
+                    android:textColor="#666666"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/timeoffeeding"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/textbox_background"
+                        android:enabled="true"
+                        android:hint="00:00"
+                        android:padding="12dp"
+                        android:gravity="center_vertical|start"
+                        android:textColor="#01082D"
+                        android:textColorHint="#888888"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btnselecttime"
+                        android:layout_width="80dp"
+                        android:layout_height="48dp"
+                        android:backgroundTint="#00448D"
+                        android:text="Set"
+                        app:cornerRadius="8dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <ImageButton
+                        android:id="@+id/addtimebtn"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:padding="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="Add Time"
+                        android:src="@android:drawable/ic_menu_add"
+                        app:cornerRadius="8dp"
+                        android:scaleType="centerInside" />
+                </LinearLayout>
+
+                <!-- Dynamic Time Container -->
+                <LinearLayout
+                    android:id="@+id/timecontainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="6dp">
+                </LinearLayout>
+
+                <!-- Divider -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#E0E0E0"
+                    android:layout_marginVertical="16dp" />
+
+                <!-- Feed Quantity Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Feed Quantity per Cycle"
+                    android:layout_marginBottom="6dp"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
                 <EditText
                     android:id="@+id/feedquantity"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:background="@drawable/rounded_edittext"
+                    android:layout_height="48dp"
+                    android:background="@drawable/textbox_background"
                     android:enabled="true"
-                    android:hint="--"
+                    android:hint="Calculated automatically"
                     android:padding="12dp"
-                    android:textAlignment="textEnd"
+                    android:gravity="center"
                     android:textColor="#01082D"
-                    android:textSize="14sp" />
+                    android:textColorHint="#888888"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp" />
 
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="10dp">
-
+                <!-- Default Settings -->
                 <CheckBox
                     android:id="@+id/checkBoxDefault"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:alpha="0.7"
+                    android:alpha="0.9"
                     android:buttonTint="#01082D"
                     android:textColor="#01082D"
-                    android:text="Set as Default" />
+                    android:text="Set as Default Schedule"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="8dp" />
 
-            </LinearLayout>
-
-            <!-- Buttons -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center"
-                android:layout_marginTop="10dp">
-
+                <!-- Action Button -->
                 <Button
                     android:id="@+id/createbtn"
-                    android:layout_width="122dp"
-                    android:layout_height="wrap_content"
-                    android:text="CREATE"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="CREATE SCHEDULE"
                     android:backgroundTint="#00448D"
                     android:gravity="center"
-                    app:cornerRadius="5dp"
-                    android:textColor="#FFFFFF"/>
-
+                    app:cornerRadius="12dp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:elevation="2dp" />
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Pending Schedule Section -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -332,64 +401,74 @@
             android:textColor="#01082D"
             android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_marginBottom="5dp"
+            android:layout_marginBottom="12dp"
             android:layout_gravity="center"
-            android:layout_marginTop="5dp"/>
+            android:letterSpacing="0.05" />
 
-        <ScrollView
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@android:color/transparent">
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="#FFFFFF"
+            android:layout_marginBottom="16dp">
 
-            <TableLayout
-                android:id="@+id/summaryTable"
+            <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:stretchColumns="*"
-                android:background="@drawable/tablebg"
-                android:elevation="4dp"
-                android:padding="8dp"
-                android:layout_marginBottom="10dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginHorizontal="8dp">
+                android:background="@android:color/transparent">
 
-                <TableRow
+                <TableLayout
+                    android:id="@+id/summaryTable"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/tableheader"
-                    android:paddingVertical="10dp"
-                    android:layout_marginBottom="4dp">
+                    android:stretchColumns="*"
+                    android:background="@android:color/transparent">
 
-                    <TextView
-                        android:text="Date"
-                        android:paddingHorizontal="8dp"
-                        android:textColor="#FFFFFF"
-                        android:gravity="center"
-                        android:textSize="15sp" />
+                    <TableRow
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:background="@drawable/tableheader"
+                        android:paddingVertical="12dp">
 
-                    <TextView
-                        android:text="Time"
-                        android:paddingHorizontal="8dp"
-                        android:textColor="#FFFFFF"
-                        android:gravity="center"
-                        android:textSize="15sp" />
+                        <TextView
+                            android:gravity="center"
+                            android:paddingHorizontal="8dp"
+                            android:text="Date"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:text="Feed Qty"
-                        android:paddingHorizontal="8dp"
-                        android:textColor="#FFFFFF"
-                        android:gravity="center"
-                        android:textSize="15sp" />
+                        <TextView
+                            android:gravity="center"
+                            android:paddingHorizontal="8dp"
+                            android:text="Time"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
 
-                    <TextView
-                        android:text="Status"
-                        android:paddingHorizontal="8dp"
-                        android:gravity="center"
-                        android:textColor="#FFFFFF"
-                        android:textSize="15sp" />
-                </TableRow>
-            </TableLayout>
-        </ScrollView>
+                        <TextView
+                            android:gravity="center"
+                            android:paddingHorizontal="8dp"
+                            android:text="Feed Qty"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:gravity="center"
+                            android:paddingHorizontal="8dp"
+                            android:text="Status"
+                            android:textColor="#FFFFFF"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                    </TableRow>
+
+                </TableLayout>
+            </ScrollView>
+        </androidx.cardview.widget.CardView>
 
     </LinearLayout>
 </ScrollView>

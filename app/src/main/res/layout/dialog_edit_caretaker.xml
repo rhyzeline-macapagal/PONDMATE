@@ -1,39 +1,145 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
-    android:padding="20dp"
+    android:padding="24dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <EditText
-        android:id="@+id/etEditUsername"
-        android:hint="Username"
+    <!-- Title Section -->
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:text="Edit Caretaker Information"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#01082D"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"
+        android:letterSpacing="0.02"/>
 
-    <EditText
-        android:id="@+id/etEditPassword"
-        android:hint="Password"
+    <!-- Form Fields Container -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="24dp">
 
+        <!-- Username Field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Username"
+            android:textColor="#01082D"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp" />
 
-    <EditText
-        android:id="@+id/etEditFullname"
-        android:hint="Full Name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        <EditText
+            android:id="@+id/etEditUsername"
+            android:hint="Username"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#01082D"
+            android:textColorHint="#888888"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/textbox_background"
+            android:minHeight="48dp"
+            android:inputType="textPersonName" />
 
-    <EditText
-        android:id="@+id/etEditAddress"
-        android:hint="Address"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        <!-- Password Field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Password"
+            android:textColor="#01082D"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp" />
 
+        <EditText
+            android:id="@+id/etEditPassword"
+            android:hint="Password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#01082D"
+            android:textColorHint="#888888"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/textbox_background"
+            android:minHeight="48dp"
+            android:inputType="textPassword" />
 
+        <!-- Full Name Field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Full Name"
+            android:textColor="#01082D"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp" />
+
+        <EditText
+            android:id="@+id/etEditFullname"
+            android:hint="Full Name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#01082D"
+            android:textColorHint="#888888"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/textbox_background"
+            android:minHeight="48dp"
+            android:inputType="textPersonName" />
+
+        <!-- Address Field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Address"
+            android:textColor="#01082D"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp" />
+
+        <EditText
+            android:id="@+id/etEditAddress"
+            android:hint="Address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#01082D"
+            android:textColorHint="#888888"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/textbox_background"
+            android:minHeight="48dp"
+            android:inputType="textPostalAddress"
+            android:minLines="2" />
+    </LinearLayout>
+
+    <!-- Save Button -->
     <Button
         android:id="@+id/btnSaveCaretaker"
-        android:text="Save"
-        android:layout_marginTop="15dp"
+        android:text="Save Changes"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="56dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textAllCaps="false"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#00448D"
+        android:letterSpacing="0.02"
+        app:cornerRadius="8dp"
+        android:elevation="2dp"
+        android:stateListAnimator="@null"/>
+
 </LinearLayout>
