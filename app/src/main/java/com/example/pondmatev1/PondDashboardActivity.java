@@ -69,7 +69,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class PondDashboardActivity extends AppCompatActivity implements ROIChartUpdater {
+public class PondDashboardActivity extends AppCompatActivity{
 
     RecyclerView pondRecyclerView;
     PondAdapter pondAdapter;
@@ -125,11 +125,14 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         loadPondsFromServer();
     }
     private void loadPondsFromServer() {
-        pondList.clear();
-
-        if ("owner".equalsIgnoreCase(userType)) {
-            pondList.add(new PondModel("ADD_BUTTON"));
-        }
+        // Always reset adapter data on UI thread
+        runOnUiThread(() -> {
+            pondList.clear();
+            if ("owner".equalsIgnoreCase(userType)) {
+                pondList.add(new PondModel("ADD_BUTTON"));
+            }
+            pondAdapter.notifyDataSetChanged();
+        });
 
         new Thread(() -> {
             try {
@@ -146,23 +149,32 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 reader.close();
 
                 JSONArray pondsArray = new JSONArray(response.toString());
+
+                // Prepare new list
+                ArrayList<PondModel> newPonds = new ArrayList<>();
+                if ("owner".equalsIgnoreCase(userType)) {
+                    newPonds.add(new PondModel("ADD_BUTTON"));
+                }
+
                 for (int i = 0; i < pondsArray.length(); i++) {
                     JSONObject pond = pondsArray.getJSONObject(i);
-                    pondList.add(new PondModel(
+                    newPonds.add(new PondModel(
                             pond.getString("name"),
                             pond.getString("breed"),
                             pond.getInt("fish_count"),
                             pond.getDouble("cost_per_fish"),
                             pond.getString("date_started"),
                             pond.getString("date_harvest"),
-                            pond.getString("image_path") 
+                            pond.getString("image_path")
                     ));
-
                 }
 
+                // Apply changes on main thread
                 runOnUiThread(() -> {
+                    pondList.clear();
+                    pondList.addAll(newPonds);
+                    Log.d("AdapterDebug", "Ponds loaded, size=" + pondList.size());
                     pondAdapter.notifyDataSetChanged();
-                    loadChartData(); // load chart after ponds are fetched
                 });
 
             } catch (Exception e) {
@@ -172,115 +184,118 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     }
 
 
-    private Map<String, Float> getAllROIData() {
-        SharedPreferences sharedPreferences = getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-        Map<String, ?> allEntries = sharedPreferences.getAll();
 
-        Map<String, Float> roiMap = new LinkedHashMap<>();
-        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
-            if (entry.getKey().endsWith("_roi")) {
-                String pondName = entry.getKey().replace("_roi", "");
-                try {
-                    float roiValue = Float.parseFloat(entry.getValue().toString());
-                    roiMap.put(pondName, roiValue);
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        return roiMap;
-    }
+//    private Map<String, Float> getAllROIData() {
+//        SharedPreferences sharedPreferences = getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+//        Map<String, ?> allEntries = sharedPreferences.getAll();
+//
+//        Map<String, Float> roiMap = new LinkedHashMap<>();
+//        for (Map.Entry<String, ?> entry : allEntries.entrySet()) {
+//            if (entry.getKey().endsWith("_roi")) {
+//                String pondName = entry.getKey().replace("_roi", "");
+//                try {
+//                    float roiValue = Float.parseFloat(entry.getValue().toString());
+//                    roiMap.put(pondName, roiValue);
+//                } catch (NumberFormatException ignored) {
+//                }
+//            }
+//        }
+//        return roiMap;
+//    }
 
-    @Override
-    public void loadChartData() {
-        new Thread(() -> {
-            try {
-                pondNames.clear();
-                dateRanges.clear();
-                List<BarEntry> entries = new ArrayList<>();
-                Map<String, Float> roiData = getAllROIData();
-
-                // Fetch pond start/end dates from API
-                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_dates.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                JSONArray datesArray = new JSONArray(response.toString());
-                Map<String, String[]> pondDates = new LinkedHashMap<>();
-
-                for (int i = 0; i < datesArray.length(); i++) {
-                    JSONObject obj = datesArray.getJSONObject(i);
-                    String name = obj.getString("name");
-                    String start = obj.getString("date_started");
-                    String harvest = obj.getString("date_harvest");
-                    pondDates.put(name, new String[]{start, harvest});
-                }
-
-                int index = 0;
-                for (Map.Entry<String, Float> entry : roiData.entrySet()) {
-                    String pondName = entry.getKey();
-                    float roiValue = entry.getValue();
-
-                    String[] dates = pondDates.getOrDefault(pondName, new String[]{"", ""});
-                    String range = "";
-                    if (!dates[0].isEmpty() && !dates[1].isEmpty()) {
-                        range = formatMonthShort(dates[0]) + " - " + formatMonthShort(dates[1]);
-                    }
-
-                    entries.add(new BarEntry(index, roiValue));
-                    pondNames.add(pondName);
-                    dateRanges.add(range);
-                    index++;
-                }
-
-                runOnUiThread(() -> {
-                    if (entries.isEmpty()) {
-                        roiBarChart.clear();
-                        roiBarChart.invalidate();
-                        return;
-                    }
-
-                    BarDataSet dataSet = new BarDataSet(entries, "ROI (%)");
-                    dataSet.setValueTextSize(12f);
-                    dataSet.setValueTextColor(Color.BLACK);
-                    dataSet.setValueFormatter(new ValueFormatter() {
-                        @Override
-                        public String getBarLabel(BarEntry barEntry) {
-                            return "";
-                        }
-                    });
-
-                    BarData data = new BarData(dataSet);
-                    data.setBarWidth(0.9f);
-
-                    roiBarChart.setData(data);
-                    roiBarChart.setRenderer(new MultiLineBarChartRenderer(roiBarChart, dateRanges));
-
-                    XAxis xAxis = roiBarChart.getXAxis();
-                    xAxis.setValueFormatter(new IndexAxisValueFormatter(pondNames));
-                    xAxis.setGranularity(1f);
-                    xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-                    xAxis.setDrawGridLines(false);
-
-                    roiBarChart.getDescription().setEnabled(false);
-                    roiBarChart.setExtraBottomOffset(15f);
-                    roiBarChart.setFitBars(true);
-                    roiBarChart.animateY(1000);
-                    roiBarChart.invalidate();
-                });
-
-            } catch (Exception e) {
-                Log.e("LOAD_CHART", "Error: " + e.getMessage(), e);
-            }
-        }).start();
-    }
+//    @Override
+//    public void loadChartData() {
+//        new Thread(() -> {
+//            try {
+//                pondNames.clear();
+//                dateRanges.clear();
+//                List<BarEntry> entries = new ArrayList<>();
+//                Map<String, Float> roiData = getAllROIData();
+//
+//                // Fetch pond start/end dates from API
+//                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_dates.php");
+//                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+//                conn.setRequestMethod("GET");
+//
+//                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+//                StringBuilder response = new StringBuilder();
+//                String line;
+//                while ((line = reader.readLine()) != null) {
+//                    response.append(line);
+//                }
+//                reader.close();
+//
+//                JSONObject root = new JSONObject(response.toString());
+//                JSONArray datesArray = root.getJSONArray("ponds");
+//                Map<String, String[]> pondDates = new LinkedHashMap<>();
+//
+//                for (int i = 0; i < datesArray.length(); i++) {
+//                    JSONObject obj = datesArray.getJSONObject(i);
+//                    String name = obj.getString("name");
+//                    String start = obj.getString("date_started");
+//                    String harvest = obj.getString("date_harvest");
+//                    pondDates.put(name, new String[]{start, harvest});
+//                }
+//
+//
+//                int index = 0;
+//                for (Map.Entry<String, Float> entry : roiData.entrySet()) {
+//                    String pondName = entry.getKey();
+//                    float roiValue = entry.getValue();
+//
+//                    String[] dates = pondDates.getOrDefault(pondName, new String[]{"", ""});
+//                    String range = "";
+//                    if (!dates[0].isEmpty() && !dates[1].isEmpty()) {
+//                        range = formatMonthShort(dates[0]) + " - " + formatMonthShort(dates[1]);
+//                    }
+//
+//                    entries.add(new BarEntry(index, roiValue));
+//                    pondNames.add(pondName);
+//                    dateRanges.add(range);
+//                    index++;
+//                }
+//
+//                runOnUiThread(() -> {
+//                    if (entries.isEmpty()) {
+//                        roiBarChart.clear();
+//                        roiBarChart.invalidate();
+//                        return;
+//                    }
+//
+//                    BarDataSet dataSet = new BarDataSet(entries, "ROI (%)");
+//                    dataSet.setValueTextSize(12f);
+//                    dataSet.setValueTextColor(Color.BLACK);
+//                    dataSet.setValueFormatter(new ValueFormatter() {
+//                        @Override
+//                        public String getBarLabel(BarEntry barEntry) {
+//                            return "";
+//                        }
+//                    });
+//
+//                    BarData data = new BarData(dataSet);
+//                    data.setBarWidth(0.9f);
+//
+//                    roiBarChart.setData(data);
+//                    roiBarChart.setRenderer(new MultiLineBarChartRenderer(roiBarChart, dateRanges));
+//
+//                    XAxis xAxis = roiBarChart.getXAxis();
+//                    xAxis.setValueFormatter(new IndexAxisValueFormatter(pondNames));
+//                    xAxis.setGranularity(1f);
+//                    xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+//                    xAxis.setDrawGridLines(false);
+//
+//                    roiBarChart.getDescription().setEnabled(false);
+//                    roiBarChart.setExtraBottomOffset(15f);
+//                    roiBarChart.setFitBars(true);
+//                    roiBarChart.animateY(1000);
+//                    roiBarChart.invalidate();
+//                });
+//
+//            } catch (Exception e) {
+//                Log.e("LOAD_CHART", "Error: " + e.getMessage(), e);
+//            }
+//        }).start();
+//    }
 
     private String formatMonthShort(String dateStr) {
         try {
