@@ -2,11 +2,8 @@ package com.example.pondmatev1;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.pdf.PdfDocument;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -17,8 +14,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -27,21 +22,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
 public class ProductionCostFragment extends Fragment {
 
     TextView tvBreed, tvCount, tvAmountPerPiece, tvTotalCost;
     TextView tvSummaryFingerlings, tvSummaryFeeds, tvSummaryMaintenance, tvSummaryTotal;
-    TextView tvCapital, tvROIAmount, tvROI;
-    EditText etEstimatedSales;
+    TextView tvCapital, tvROIAmount, tvROI, tvEstimatedRoI, tvRoIDifference;
+    EditText etEstimatedSales, etEstimatedRevenue;
+
+    private double totalCost = 0.0;
+    private String pondName = "";
 
     @Nullable
     @Override
@@ -54,9 +47,12 @@ public class ProductionCostFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if (getArguments() != null) {
+            pondName = getArguments().getString("pond_name", "");
+        }
+
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
-
 
         tvBreed = view.findViewById(R.id.fishbreedpcostdisplay);
         tvCount = view.findViewById(R.id.numoffingerlings);
@@ -72,6 +68,10 @@ public class ProductionCostFragment extends Fragment {
         tvROIAmount = view.findViewById(R.id.tvROIAmount);
         tvROI = view.findViewById(R.id.tvROI);
         etEstimatedSales = view.findViewById(R.id.etActualSales);
+
+        etEstimatedRevenue = view.findViewById(R.id.etEstimatedRevenue);
+        tvEstimatedRoI = view.findViewById(R.id.tvEstimatedROI);
+        tvRoIDifference = view.findViewById(R.id.tvROIDifference);
 
         // Load values from SharedPreferences
         SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
@@ -90,23 +90,20 @@ public class ProductionCostFragment extends Fragment {
         tvTotalCost.setText("₱" + formatPrice(totalFingerlingCost));
         tvSummaryFingerlings.setText("₱" + formatPrice(totalFingerlingCost));
 
-        // For now feeds and maintenance are placeholders
-        double feedCost = 0.0;  // Replace later when you implement feeds
-        double maintenanceCost = 0.0; // Replace later when you add maintenance entries
+        double feedCost = 0.0;
+        double maintenanceCost = 0.0;
 
         tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
         tvSummaryMaintenance.setText("₱" + formatPrice(maintenanceCost));
 
-        double totalCost = totalFingerlingCost + feedCost + maintenanceCost;
-
+        totalCost = totalFingerlingCost + feedCost + maintenanceCost;
         tvSummaryTotal.setText("₱" + formatPrice(totalCost));
         tvCapital.setText("₱" + formatPrice(totalCost));
 
-        // ROI calculation listener
+        // === Actual Sales → save ONLY <pond>_roi ===
         etEstimatedSales.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
             public void afterTextChanged(Editable s) {
                 String str = s.toString();
                 if (!str.isEmpty() && !str.startsWith("₱")) {
@@ -117,25 +114,70 @@ public class ProductionCostFragment extends Fragment {
                     return;
                 }
 
-                double estimatedRevenue = parseDouble(s.toString());
-                double roiAmount = estimatedRevenue - totalCost;
+                double revenue = parseDouble(s.toString());
+                double roiAmount = revenue - totalCost;
                 double roiPercent = (totalCost > 0) ? (roiAmount / totalCost) * 100 : 0;
 
                 tvROIAmount.setText("₱" + formatPrice(roiAmount));
                 tvROI.setText(formatPrice(roiPercent) + "%");
 
-                saveROIToSharedPref(roiPercent);
-                if (getActivity() instanceof ROIChartUpdater) {
-                    ((ROIChartUpdater) getActivity()).loadChartData();
+                if (!pondName.isEmpty()) {
+                    saveActualROI(pondName, roiPercent);
+                    notifyChart();
                 }
             }
         });
 
+        // === Estimated Revenue → save ONLY <pond>_roi_diff ===
+        etEstimatedRevenue.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void afterTextChanged(Editable s) {
+                String str = s.toString();
+                if (!str.isEmpty() && !str.startsWith("₱")) {
+                    etEstimatedRevenue.removeTextChangedListener(this);
+                    etEstimatedRevenue.setText("₱" + str);
+                    etEstimatedRevenue.setSelection(etEstimatedRevenue.getText().length());
+                    etEstimatedRevenue.addTextChangedListener(this);
+                    return;
+                }
+
+                double estimatedRevenue = parseDouble(s.toString());
+                double capital = parseDouble(tvCapital.getText().toString());
+                double netProfit = estimatedRevenue - capital;
+                double roiPercent = (capital > 0) ? (netProfit / capital) * 100 : 0;
+                if (roiPercent < 25) roiPercent = 25; // Ensure minimum 25%
+
+                tvEstimatedRoI.setText(formatPrice(roiPercent) + "%");
+                tvRoIDifference.setText(formatPrice(roiPercent) + "%");
+
+                if (!pondName.isEmpty()) {
+                    saveComparisonROI(pondName, roiPercent);
+                    notifyChart();
+                }
+            }
+        });
+    }
+
+    private void notifyChart() {
+        if (getActivity() instanceof ROIChartUpdater) {
+            ((ROIChartUpdater) getActivity()).loadChartData();
+        }
+    }
+
+    private void saveActualROI(String pond, double roiPercent) {
+        SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+        sp.edit().putFloat(pond + "_roi", (float) roiPercent).apply();
+    }
+
+    private void saveComparisonROI(String pond, double roiPercent) {
+        SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+        sp.edit().putFloat(pond + "_roi_diff", (float) roiPercent).apply();
     }
 
     private double parseDouble(String str) {
         try {
-            return Double.parseDouble(str.replace("₱", "").trim());
+            return Double.parseDouble(str.replace("₱", "").replace("%", "").trim());
         } catch (Exception e) {
             return 0;
         }
@@ -159,30 +201,23 @@ public class ProductionCostFragment extends Fragment {
         Button btnCancel = dialogView.findViewById(R.id.btnCancelMaintenance);
         TextView btnClose = dialogView.findViewById(R.id.btnClose);
 
-        // Sample maintenance types
         List<String> types = Arrays.asList("Water Change", "Water Monitoring", "Waste Removal", "Algae Control",
                 "Cleaning Ponds & Filters", "Leak Repair", "Inspection",
                 "Pump & Pipe Maintenance", "Parasite Treatment", "Net or Screen Repair", "Others");
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, types);
         spinnerType.setAdapter(adapter);
 
-        // Show/hide "Other" field
         spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selected = parent.getItemAtPosition(position).toString();
                 etOtherType.setVisibility(selected.equals("Other") ? View.VISIBLE : View.GONE);
             }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        // Cancel or Close
         btnCancel.setOnClickListener(v -> dialog.dismiss());
         btnClose.setOnClickListener(v -> dialog.dismiss());
 
-        // Add Maintenance Handler
         btnAdd.setOnClickListener(v -> {
             String selectedType = spinnerType.getSelectedItem().toString();
             String description = selectedType.equals("Other") ? etOtherType.getText().toString().trim() : selectedType;
@@ -201,31 +236,10 @@ public class ProductionCostFragment extends Fragment {
                 return;
             }
 
-            // Sample: You can store to database here or display it dynamically
             Toast.makeText(requireContext(), "Added: " + description + " ₱" + amount, Toast.LENGTH_SHORT).show();
-
-            // You may call calculateTotalCapital() here if needed
             dialog.dismiss();
         });
 
         dialog.show();
     }
-
-    private void saveROIToSharedPref(double roiPercent) {
-        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-
-        // to get pond name from arguments (passed from MainActivity)
-        String pondName = "";
-        if (getArguments() != null) {
-            pondName = getArguments().getString("pond_name", "");
-        }
-
-        if (!pondName.isEmpty()) {
-            editor.putFloat(pondName + "_roi", (float) roiPercent);
-            editor.commit();
-        }
-    }
-
-
 }

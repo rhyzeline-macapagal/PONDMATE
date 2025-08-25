@@ -25,7 +25,9 @@ public class PondInfoFragment extends Fragment {
     private PondModel pond;
     private boolean isEditing = false;
     private EditText tvPondName, tvCostPerFish;
+
     public PondInfoFragment() {}
+
     public static PondInfoFragment newInstance(PondModel pond) {
         PondInfoFragment fragment = new PondInfoFragment();
         Bundle args = new Bundle();
@@ -45,7 +47,6 @@ public class PondInfoFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_pond_info, container, false);
     }
 
-
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -64,37 +65,43 @@ public class PondInfoFragment extends Fragment {
         String pondJson = prefs.getString("selected_pond", null);
 
         if (pondJson != null) {
-            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+            pond = new Gson().fromJson(pondJson, PondModel.class);
 
             int fishCount = pond.getFishCount();
             double costPerFish = pond.getCostPerFish();
 
             tvPondName.setText(pond.getName());
             tvBreed.setText(pond.getBreed());
-            tvFishCount.setText(String.valueOf(pond.getFishCount()));
+            tvFishCount.setText(String.valueOf(fishCount));
             tvCostPerFish.setText(String.valueOf(costPerFish));
 
             String formattedDateStarted = formatDateDisplay(pond.getDateStarted());
-            String formatDateHarvest = formatDateDisplay(pond.getDateHarvest());
+            String formattedDateHarvest = formatDateDisplay(pond.getDateHarvest());
 
             tvDateStarted.setText(formattedDateStarted);
-            tvHarvestDate.setText(formatDateHarvest);
+            tvHarvestDate.setText(formattedDateHarvest);
 
             updateMortalityData(fishCount);
 
-            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("fish_breed", tvBreed.getText().toString().trim());
-            editor.putString("fish_amount", tvCostPerFish.getText().toString().trim());
-            editor.putString("number_fish", tvFishCount.getText().toString().trim());
-            editor.putString("date_started", tvDateStarted.getText().toString().trim());
-            editor.putString("date_harvest", tvHarvestDate.getText().toString().trim());
-            editor.apply();
+            // ✅ Save per-pond data into SharedPreferences
+            SharedPreferences sharedPreferences = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+            SharedPreferences.Editor roiEditor = sharedPreferences.edit();
+            String pondName = pond.getName();
 
+            // Save per-pond date range
+            roiEditor.putString(pondName + "_date_started", formattedDateStarted);
+            roiEditor.putString(pondName + "_date_harvest", formattedDateHarvest);
 
+            // Save other general pond info
+            roiEditor.putString("fish_breed", tvBreed.getText().toString().trim());
+            roiEditor.putString("fish_amount", tvCostPerFish.getText().toString().trim());
+            roiEditor.putString("number_fish", tvFishCount.getText().toString().trim());
+            roiEditor.apply();
+
+            // Update ViewModel
             PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
             viewModel.setSelectedPond(pond);
-            viewModel.setFishCount(pond.getFishCount());
+            viewModel.setFishCount(fishCount);
         }
 
         PondSharedViewModel viewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
@@ -121,7 +128,7 @@ public class PondInfoFragment extends Fragment {
                 btnEdit.setText("Edit");
                 tvPondName.setEnabled(false);
                 tvCostPerFish.setEnabled(false);
-                // TODO: Save updated values
+                // TODO: Save updated values if needed
                 isEditing = false;
             }
         });
@@ -151,6 +158,4 @@ public class PondInfoFragment extends Fragment {
             return inputDate;
         }
     }
-
-
 }
