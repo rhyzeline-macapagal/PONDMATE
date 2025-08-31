@@ -91,6 +91,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         // Item click to open MainActivity
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, MainActivity.class);
+            intent.putExtra("pond_id", pond.getId());
             intent.putExtra("pond_name", pond.getName());
             intent.putExtra("breed", pond.getBreed());
             intent.putExtra("fish_count", pond.getFishCount());

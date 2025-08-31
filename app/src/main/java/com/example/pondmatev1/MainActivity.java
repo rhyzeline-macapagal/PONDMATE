@@ -50,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -115,16 +117,17 @@ public class MainActivity extends AppCompatActivity {
                 case 2:
                     ProductionCostFragment fragment = new ProductionCostFragment();
 
-                    // Get the pond name from the label
-                    String pondName = pondNameLabel.getText().toString();
                     Bundle args = new Bundle();
-                    args.putString("pond_name", pondName); // Add more if needed
+                    args.putString("pond_id", getIntent().getStringExtra("pond_id"));  // ✅ pass pond_id
+                    args.putString("pond_name", pondNameLabel.getText().toString());
+
                     fragment.setArguments(args);
 
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.con, fragment)
                             .commit();
                     break;
+
                 case 3:
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.con, new FeederFragment())
@@ -140,18 +143,20 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        if (getIntent() != null && getIntent().hasExtra("pond_name")) {
+        if (getIntent() != null && getIntent().hasExtra("pond_id")) {
             PondModel pond = new PondModel(
+                    getIntent().getStringExtra("pond_id"),   // ✅ include pond_id
                     getIntent().getStringExtra("pond_name"),
                     getIntent().getStringExtra("breed"),
                     getIntent().getIntExtra("fish_count", 0),
                     getIntent().getDoubleExtra("cost_per_fish", 0.0),
                     getIntent().getStringExtra("date_started"),
-                    getIntent().getStringExtra("date_harvest")
+                    getIntent().getStringExtra("date_harvest"),
+                    null,
+                    null
             );
 
             openPondInfoFragment(pond);
-
         }
 
     }

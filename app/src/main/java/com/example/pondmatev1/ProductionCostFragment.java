@@ -48,7 +48,11 @@ public class ProductionCostFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         if (getArguments() != null) {
-            pondName = getArguments().getString("pond_name", "");
+            String pondId = getArguments().getString("pond_id", "--");   // ✅ get pond_id
+            String pondName = getArguments().getString("pond_name", "");
+
+            TextView tvPondId = view.findViewById(R.id.tvPondId);
+            tvPondId.setText("Pond ID: " + pondId);
         }
 
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
