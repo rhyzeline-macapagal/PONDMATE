@@ -8,20 +8,16 @@ public class PondModel {
     private double costPerFish;
     private String dateStarted;
     private String dateHarvest;
-    private String imagePath; // Full public URL
-    private String mode;      // For "ADD_BUTTON" etc.
+    private String imagePath;
+    private String mode;
     private String extraData;
-
-    public PondModel(String name, String breed, int fishCount, double costPerFish,
-                     String dateStarted, String dateHarvest) {
-        this(null, name, breed, fishCount, costPerFish, dateStarted, dateHarvest, null, null);
-    }
+    private float actualROI;
+    private float estimatedROI;
 
     // Full constructor
-
-    // Constructor for MainActivity (6 params)
     public PondModel(String id, String name, String breed, int fishCount, double costPerFish,
-                     String dateStarted, String dateHarvest, String imagePath, String extraData) {
+                     String dateStarted, String dateHarvest, String imagePath,
+                     float actualROI, float estimatedROI) {
         this.id = id;
         this.name = name;
         this.breed = breed;
@@ -30,29 +26,17 @@ public class PondModel {
         this.dateStarted = dateStarted;
         this.dateHarvest = dateHarvest;
         this.imagePath = imagePath;
-        this.extraData = extraData;
+        this.actualROI = actualROI;
+        this.estimatedROI = estimatedROI;
     }
 
-    // Constructor for when you also have an image path (7 params)
-    public PondModel(String name, String breed, int fishCount, double costPerFish, String dateStarted, String dateHarvest, String imagePath) {
-        this.name = name;
-        this.breed = breed;
-        this.fishCount = fishCount;
-        this.costPerFish = costPerFish;
-        this.dateStarted = dateStarted;
-        this.dateHarvest = dateHarvest;
-        this.imagePath = imagePath;
-    }
-
-
-    // Constructor for special mode (e.g., "ADD_BUTTON")
     public PondModel(String mode) {
         this.mode = mode;
     }
 
-    // Getters and Setters
+    // --- Getters and Setters ---
     public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public void setId(String id) { this.id = id; }   // ✅ Added back
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -73,11 +57,17 @@ public class PondModel {
     public void setDateHarvest(String dateHarvest) { this.dateHarvest = dateHarvest; }
 
     public String getImagePath() { return imagePath; }
-    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }   // ✅ Added back
 
     public String getMode() { return mode; }
     public void setMode(String mode) { this.mode = mode; }
+
     public String getExtraData() { return extraData; }
+    public void setExtraData(String extraData) { this.extraData = extraData; }
 
+    public float getActualROI() { return actualROI; }
+    public void setActualROI(float actualROI) { this.actualROI = actualROI; }
 
+    public float getEstimatedROI() { return estimatedROI; }
+    public void setEstimatedROI(float estimatedROI) { this.estimatedROI = estimatedROI; }
 }

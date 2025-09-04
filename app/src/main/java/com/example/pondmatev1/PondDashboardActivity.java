@@ -119,17 +119,11 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 ArrayList<PondModel> newPonds = new ArrayList<>();
                 if ("owner".equalsIgnoreCase(userType)) newPonds.add(new PondModel("ADD_BUTTON"));
 
-                SharedPreferences sp = getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = sp.edit();
-
-                // Track pond names returned from server
-                ArrayList<String> serverPondNames = new ArrayList<>();
-
                 for (int i = 0; i < pondsArray.length(); i++) {
                     JSONObject pond = pondsArray.getJSONObject(i);
-                    String name = pond.getString("name");
-                    serverPondNames.add(name);
 
+                    String id = pond.getString("pond_id");
+                    String name = pond.getString("name");
                     String breed = pond.getString("breed");
                     int fishCount = pond.getInt("fish_count");
                     double costPerFish = pond.getDouble("cost_per_fish");
@@ -137,25 +131,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     String dateHarvest = pond.getString("date_harvest");
                     String imagePath = pond.getString("image_path");
 
-                    editor.putString(name + "_date_started_raw", dateStarted);
-                    editor.putString(name + "_date_harvest_raw", dateHarvest);
+                    float actualROI = (float) pond.optDouble("actual_roi", 0);
+                    float estimatedROI = (float) pond.optDouble("estimated_roi", 0);
 
-                    newPonds.add(new PondModel(name, breed, fishCount, costPerFish, dateStarted, dateHarvest, imagePath));
+                    newPonds.add(new PondModel(id, name, breed, fishCount, costPerFish,
+                            dateStarted, dateHarvest, imagePath, actualROI, estimatedROI));
                 }
-
-                // Efficient cleanup: remove any keys for ponds not returned by server
-                for (String key : sp.getAll().keySet()) {
-                    for (String suffix : new String[]{"_roi", "_roi_diff", "_roi_last_sent", "_date_started", "_date_harvest", "_date_started_raw", "_date_harvest_raw"}) {
-                        if (key.endsWith(suffix)) {
-                            String pondName = key.substring(0, key.length() - suffix.length());
-                            if (!serverPondNames.contains(pondName)) {
-                                editor.remove(key);
-                            }
-                        }
-                    }
-                }
-
-                editor.apply();
 
                 runOnUiThread(() -> {
                     pondList.clear();
@@ -170,29 +151,24 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         }).start();
     }
 
-
     private void renderChartData() {
         Map<String, float[]> roiMap = new LinkedHashMap<>();
         dateRangeMap.clear();
-
-        SharedPreferences sp = getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
 
         for (PondModel pond : pondList) {
             if ("ADD_BUTTON".equals(pond.getMode())) continue;
 
             String pondName = pond.getName();
-            float actual = sp.getFloat(pondName + "_roi", 0f);
-            float compare = sp.getFloat(pondName + "_roi_diff", 0f);
-            String startRaw   = sp.getString(pondName + "_date_started_raw", "");
-            String harvestRaw = sp.getString(pondName + "_date_harvest_raw", "");
-            String range;
-            if (startRaw.isEmpty() || harvestRaw.isEmpty()) {
-                range = "N/A";
-            } else {
-                range = formatDateDisplay(startRaw) + " - " + formatDateDisplay(harvestRaw);
-            }
-            dateRangeMap.put(pondName, range);
+            float actual = pond.getActualROI();
+            float compare = pond.getEstimatedROI();
 
+            String startRaw = pond.getDateStarted();
+            String harvestRaw = pond.getDateHarvest();
+            String range = (startRaw.isEmpty() || harvestRaw.isEmpty())
+                    ? "N/A"
+                    : formatDateDisplay(startRaw) + " - " + formatDateDisplay(harvestRaw);
+
+            dateRangeMap.put(pondName, range);
             roiMap.put(pondName, new float[]{actual, compare});
         }
 
@@ -251,7 +227,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         roiBarChart.setMarker(markerView);
 
         roiBarChart.invalidate();
-        saveROIsToServer(); // always sync after rendering
     }
 
     private String formatDateDisplay(String inputDate) {
@@ -265,34 +240,20 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     }
 
     private void saveROIsToServer() {
-        SharedPreferences sp = getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
         List<Map<String, Object>> pondsToSend = new ArrayList<>();
-        SharedPreferences.Editor editor = sp.edit();
 
         for (PondModel pond : pondList) {
             if ("ADD_BUTTON".equals(pond.getMode())) continue;
 
-            String pondName = pond.getName();
-            float actual = sp.getFloat(pondName + "_roi", 0f);
-            float lastSent = sp.getFloat(pondName + "_roi_last_sent", -1f);
-
-            if (actual != lastSent) { // only send changed ROI
-                float estimate = sp.getFloat(pondName + "_roi_diff", 0f);
-
-                Map<String, Object> pondMap = new HashMap<>();
-                pondMap.put("name", pondName);
-                pondMap.put("actual_roi", actual);
-                pondMap.put("estimated_roi", estimate);
-
-                pondsToSend.add(pondMap);
-                editor.putFloat(pondName + "_roi_last_sent", actual);
-            }
+            Map<String, Object> pondMap = new HashMap<>();
+            pondMap.put("name", pond.getName());
+            pondMap.put("actual_roi", pond.getActualROI());
+            pondMap.put("estimated_roi", pond.getEstimatedROI());
+            pondsToSend.add(pondMap);
         }
-        editor.apply();
 
         if (pondsToSend.isEmpty()) return;
 
-        // Send JSON via POST
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/update_roi.php");

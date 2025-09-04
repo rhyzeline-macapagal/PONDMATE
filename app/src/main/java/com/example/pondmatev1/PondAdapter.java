@@ -142,14 +142,5 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         String pondName = pond.getName();
         pondList.remove(position);
         notifyItemRemoved(position);
-
-        SharedPreferences sp = context.getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sp.edit();
-        editor.remove(pondName + "_roi");
-        editor.remove(pondName + "_roi_diff");
-        editor.remove(pondName + "_roi_last_sent");
-        editor.remove(pondName + "_date_started");
-        editor.remove(pondName + "_date_harvest");
-        editor.apply();
     }
 }

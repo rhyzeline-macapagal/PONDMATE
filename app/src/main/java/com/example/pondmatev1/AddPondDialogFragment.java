@@ -2,11 +2,8 @@ package com.example.pondmatev1;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -69,7 +66,7 @@ public class AddPondDialogFragment extends DialogFragment {
         ivPondImage = view.findViewById(R.id.ivPondImage);
         btnCaptureImage = view.findViewById(R.id.btnCaptureImage);
 
-        //camera start
+        // Camera button
         btnCaptureImage.setOnClickListener(v -> {
             if (requireActivity().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)) {
                 Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -114,7 +111,6 @@ public class AddPondDialogFragment extends DialogFragment {
                 }
         );
 
-
         btnSave.setOnClickListener(v -> {
             String name = etPondName.getText().toString().trim();
             String breed = spinnerBreed.getSelectedItem().toString();
@@ -150,7 +146,6 @@ public class AddPondDialogFragment extends DialogFragment {
                     .setPositiveButton("Yes", (dialogInterface, which) -> {
 
                         // Show loading dialog
-
                         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
                         View loadingView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null);
                         builder.setView(loadingView);
@@ -163,26 +158,17 @@ public class AddPondDialogFragment extends DialogFragment {
                                 String.format(Locale.getDefault(), "%02d", dateStarted.getDayOfMonth());
                         String dateHarvestStr = rawHarvestDateForDB;
 
-                        // Save minimal info to SharedPreferences
-                        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.putString("fish_breed", breed);
-                        editor.putString("fish_amount", costStr);
-                        editor.putString("number_fish", fishCountStr);
-                        editor.putString("date_started", dateStartedStr);
-                        editor.apply();
-
-
                         PondModel pond = new PondModel(
-                                null, // ID will be set after server responds
-                                name,
-                                breed,
-                                fishCount,
-                                cost,
-                                dateStartedStr,
-                                dateHarvestStr,
-                                null, // imagePath will be set later
-                                "DATA"
+                                null,                // id
+                                name,                // name
+                                breed,               // breed
+                                fishCount,           // fish count
+                                cost,                // cost per fish
+                                dateStartedStr,      // date started
+                                dateHarvestStr,      // date harvest
+                                null,                // imagePath
+                                0f,                  // actualROI default
+                                0f                   // estimatedROI default
                         );
 
                         // Upload pond to server
@@ -234,7 +220,6 @@ public class AddPondDialogFragment extends DialogFragment {
                     .show();
         });
 
-
         return view;
     }
 
@@ -268,5 +253,4 @@ public class AddPondDialogFragment extends DialogFragment {
         byte[] byteArray = byteArrayOutputStream.toByteArray();
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
-
 }
