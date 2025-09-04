@@ -25,6 +25,10 @@ import androidx.fragment.app.Fragment;
 
 import com.google.gson.Gson;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
@@ -60,6 +64,8 @@ public class ProductionCostFragment extends Fragment {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             pondName = pond.getName(); // ✅ Save it globally for this fragment
         }
+
+        loadMaintenanceTotal();
 
 
 
@@ -107,7 +113,7 @@ public class ProductionCostFragment extends Fragment {
         double maintenanceCost = 0.0;
 
         tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
-        tvSummaryMaintenance.setText("₱" + formatPrice(maintenanceCost));
+
 
         totalCost = totalFingerlingCost + feedCost + maintenanceCost;
         tvSummaryTotal.setText("₱" + formatPrice(totalCost));
@@ -250,6 +256,51 @@ public class ProductionCostFragment extends Fragment {
 
     private String formatPrice(double value) {
         return String.format("%.2f", value);
+    }
+
+    private void loadMaintenanceTotal() {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_maintenance_total.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData = "name=" + pondName;
+                conn.getOutputStream().write(postData.getBytes("UTF-8"));
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                String json = response.toString();
+                JSONObject obj = new JSONObject(json);
+
+                if (obj.getString("status").equals("success")) {
+                    double maintenanceCost = obj.getDouble("total_maintenance");
+
+                    requireActivity().runOnUiThread(() -> {
+                        tvSummaryMaintenance.setText("₱" + formatPrice(maintenanceCost));
+
+                        // Update totals
+                        double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
+                        double feeds = parseDouble(tvSummaryFeeds.getText().toString());
+                        double total = fingerlings + feeds + maintenanceCost;
+
+                        tvSummaryTotal.setText("₱" + formatPrice(total));
+                        tvCapital.setText("₱" + formatPrice(total));
+                    });
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
 
