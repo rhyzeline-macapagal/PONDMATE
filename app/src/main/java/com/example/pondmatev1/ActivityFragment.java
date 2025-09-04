@@ -22,9 +22,16 @@ import com.prolificinteractive.materialcalendarview.DayViewDecorator;
 import com.prolificinteractive.materialcalendarview.DayViewFacade;
 import com.prolificinteractive.materialcalendarview.spans.DotSpan;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import java.util.Scanner;
 
 public class ActivityFragment extends Fragment {
 
@@ -55,24 +62,15 @@ public class ActivityFragment extends Fragment {
         selectedBreed = prefs.getString("fish_breed", "Tilapia");
         String startDateStr = prefs.getString("date_started", null);
 
-        // Parse date with format "MMM. dd, yyyy" (example: "Jul. 28, 2025")
-        SimpleDateFormat sdf = new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
-        if (startDateStr != null) {
-            try {
-                startDate = sdf.parse(startDateStr);
-            } catch (ParseException e) {
-                e.printStackTrace();
-                startDate = new Date(); // fallback to today
-            }
-        } else {
-            startDate = new Date();
+        // Parse date using multiple possible formats
+        startDate = parseDate(startDateStr);
+        if (startDate == null) {
+            startDate = new Date(); // fallback
         }
 
-        generateSchedule();
+        fetchActivitiesFromServer();
 
-        setupCalendarDots();
-
-        // Spinner to toggle calendar visibility
+        // Spinner setup
         calendarToggleSpinner.setAdapter(new ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_spinner_dropdown_item,
                 getResources().getStringArray(R.array.calendar_toggle_options)));
@@ -105,61 +103,106 @@ public class ActivityFragment extends Fragment {
         return view;
     }
 
-    private void generateSchedule() {
-        activityMap.clear();
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(startDate);
-
-        int durationDays;
-        switch (selectedBreed.toLowerCase()) {
-            case "alimango":
-                durationDays = 270; // approx 9 months
-                break;
-            case "bangus":
-                durationDays = 120; // approx 4 months
-                break;
-            case "tilapia":
-            default:
-                durationDays = 120;
-                break;
+    private Date parseDate(String dateStr) {
+        if (dateStr == null) return null;
+        List<SimpleDateFormat> formats = Arrays.asList(
+                new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault()), // e.g. Jul. 28, 2025
+                new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())     // e.g. 2025-07-28
+        );
+        for (SimpleDateFormat sdf : formats) {
+            try {
+                return sdf.parse(dateStr);
+            } catch (ParseException ignored) { }
         }
+        return null;
+    }
 
-        for (int day = 0; day <= durationDays; day++) {
-            CalendarDay calDay = CalendarDay.from(calendar);
-            List<String> activities = new ArrayList<>();
+    private void fetchActivitiesFromServer() {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_dates.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.connect();
 
-            // Daily activities every day (starting day 0)
-            activities.add("Daily feeding and monitoring");
+                Scanner sc = new Scanner(conn.getInputStream());
+                StringBuilder sb = new StringBuilder();
+                while (sc.hasNext()) sb.append(sc.nextLine());
+                sc.close();
 
-            // Weekly activities every 7 days starting on day 7 (no weekly task before day 7)
-            if (day >= 7 && day % 7 == 0 && day != durationDays) {
-                activities.add("Weekly maintenance tasks");
-            }
+                String json = sb.toString();
+                System.out.println("🔥 RAW SERVER RESPONSE: " + json);
 
-            // Special activity on day 0
-            if (day == 0) {
-                activities.add("Pond preparation");
-                if (selectedBreed.equalsIgnoreCase("alimango")) {
-                    activities.add("Stock crablets");
-                } else {
-                    activities.add("Stock fingerlings");
+                JSONObject root = new JSONObject(json);
+                if (!root.optBoolean("success", false)) return;
+
+                JSONArray arr = root.getJSONArray("data");
+
+                Calendar baseCal = Calendar.getInstance();
+                baseCal.setTime(startDate);
+
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject obj = arr.getJSONObject(i);
+
+                    String breed = obj.getString("breed");
+                    if (!breed.equalsIgnoreCase(selectedBreed)) continue;
+
+                    String activityName = obj.getString("activity_name");
+                    String type = obj.optString("activity_type", "Core");
+
+                    if ("Daily".equalsIgnoreCase(type)) {
+                        // Repeat daily for 120 days (or adjust per species)
+                        for (int d = 0; d <= 120; d++) {
+                            Calendar activityCal = (Calendar) baseCal.clone();
+                            activityCal.add(Calendar.DAY_OF_YEAR, d);
+                            CalendarDay calDay = CalendarDay.from(activityCal);
+                            activityMap.computeIfAbsent(calDay, k -> new ArrayList<>()).add(activityName);
+                        }
+                    } else if ("Weekly".equalsIgnoreCase(type)) {
+                        // Repeat weekly for 16 weeks
+                        for (int w = 0; w <= 16; w++) {
+                            Calendar activityCal = (Calendar) baseCal.clone();
+                            activityCal.add(Calendar.DAY_OF_YEAR, w * 7);
+                            CalendarDay calDay = CalendarDay.from(activityCal);
+                            activityMap.computeIfAbsent(calDay, k -> new ArrayList<>()).add(activityName);
+                        }
+                    } else {
+                        // Core activities use suggested_day
+                        if (!obj.isNull("suggested_day")) {
+                            int suggestedDay = obj.getInt("suggested_day");
+                            Calendar activityCal = (Calendar) baseCal.clone();
+                            activityCal.add(Calendar.DAY_OF_YEAR, suggestedDay);
+                            CalendarDay calDay = CalendarDay.from(activityCal);
+                            activityMap.computeIfAbsent(calDay, k -> new ArrayList<>()).add(activityName);
+                        }
+                    }
+                }
+
+                if (getActivity() == null || !isAdded()) return;
+                requireActivity().runOnUiThread(() -> {
+                    setupCalendarDots();
+                    CalendarDay initialDay = CalendarDay.from(startDate);
+                    calendarView.setSelectedDate(initialDay);
+                    showActivitiesForDate(initialDay);
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (getActivity() != null) {
+                    requireActivity().runOnUiThread(() ->
+                            android.widget.Toast.makeText(requireContext(),
+                                    "❌ Error fetching activities", android.widget.Toast.LENGTH_LONG).show()
+                    );
                 }
             }
-
-            // Harvest day
-            if (day == durationDays) {
-                activities.clear();
-                activities.add("Harvesting");
-            }
-
-            activityMap.put(calDay, activities);
-            calendar.add(Calendar.DATE, 1);
-        }
+        }).start();
     }
+
+
+
 
     private void setupCalendarDots() {
         calendarView.removeDecorators();
-
         List<CalendarDay> daysWithActivities = new ArrayList<>(activityMap.keySet());
         calendarView.addDecorator(new EventDecorator(Color.BLUE, daysWithActivities));
         calendarView.invalidateDecorators();
@@ -174,7 +217,6 @@ public class ActivityFragment extends Fragment {
         activitiesListView.setAdapter(adapter);
         activitiesListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
 
-        // Restore checked states
         String dateKey = formatDateKey(date);
         for (int i = 0; i < activities.size(); i++) {
             String key = dateKey + "_" + activities.get(i);
@@ -182,7 +224,6 @@ public class ActivityFragment extends Fragment {
             activitiesListView.setItemChecked(i, done);
         }
 
-        // Save on click
         activitiesListView.setOnItemClickListener((parent, view, position, id) -> {
             boolean checked = ((CheckedTextView) view).isChecked();
             String key = dateKey + "_" + activities.get(position);

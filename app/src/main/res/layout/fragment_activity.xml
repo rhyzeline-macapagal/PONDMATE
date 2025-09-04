@@ -1,56 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:fillViewport="true"
     android:padding="10dp">
 
-    <!-- Title at the top -->
-    <TextView
-        android:id="@+id/tvTitle"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Production Activity"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:paddingBottom="10dp" />
+        android:orientation="vertical">
 
-    <!-- Dropdown Button to hide/show calendar -->
-    <Spinner
-        android:id="@+id/calendarToggleSpinner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:minWidth="48dp"
-        android:entries="@array/calendar_toggle_options"
-        android:spinnerMode="dropdown" />
+        <!-- Title at the top -->
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Production Activity"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:textColor="@android:color/black"
+            android:paddingBottom="10dp" />
 
-    <!-- Calendar -->
-    <com.prolificinteractive.materialcalendarview.MaterialCalendarView
-        android:id="@+id/calendarView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:mcv_showOtherDates="all"
-        app:mcv_selectionColor="@color/teal_200" />
+        <!-- Dropdown Button to hide/show calendar -->
+        <Spinner
+            android:id="@+id/calendarToggleSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:entries="@array/calendar_toggle_options"
+            android:spinnerMode="dropdown"
+            android:padding="8dp" />
 
-    <!-- My Activities Header -->
-    <TextView
-        android:id="@+id/activitiesHeader"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="My Activities"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:paddingTop="10dp"
-        android:paddingBottom="5dp" />
+        <!-- Calendar -->
+        <com.prolificinteractive.materialcalendarview.MaterialCalendarView
+            android:id="@+id/calendarView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:mcv_showOtherDates="all"
+            app:mcv_selectionColor="@color/teal_200" />
 
-    <!-- Checklist of Activities -->
-    <ListView
-        android:id="@+id/activitiesListView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:dividerHeight="5dp"
-        android:choiceMode="multipleChoice" />
+        <!-- My Activities Header -->
+        <TextView
+            android:id="@+id/activitiesHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="My Activities"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            android:paddingTop="10dp"
+            android:paddingBottom="5dp" />
 
-</LinearLayout>
+        <!-- Checklist of Activities -->
+        <ListView
+            android:id="@+id/activitiesListView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:choiceMode="multipleChoice"
+            android:dividerHeight="5dp"
+            android:background="@android:color/white"
+            android:cacheColorHint="@android:color/transparent"
+            android:scrollbars="vertical" />
+
+    </LinearLayout>
+</ScrollView>
