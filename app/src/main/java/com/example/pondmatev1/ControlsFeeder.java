@@ -99,6 +99,7 @@ public class ControlsFeeder extends Fragment {
                     connection.disconnect();
 
                     requireActivity().runOnUiThread(() -> {
+                        if (!isAdded()) return;
                         if (responseCode == 200) {
                             isConnected[0] = true;
                             btnToggleFeeder.setText("Connected");
@@ -115,6 +116,7 @@ public class ControlsFeeder extends Fragment {
 
                 } catch (Exception e) {
                     requireActivity().runOnUiThread(() ->
+
                             feederStatusText.setText("Connection failed: " + e.getMessage()));
                 }
             }).start();
@@ -216,6 +218,7 @@ public class ControlsFeeder extends Fragment {
                 connection.disconnect();
 
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
                     if (responseCode == 200) {
                         System.out.println("✅ Time synced to ESP.");
                     } else {
@@ -224,8 +227,10 @@ public class ControlsFeeder extends Fragment {
                 });
 
             } catch (Exception e) {
-                requireActivity().runOnUiThread(() ->
-                        System.out.println("⚠ Sync error: " + e.getMessage()));
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
+                    System.out.println("⚠ Sync error: " + e.getMessage());
+                });
             }
         }).start();
     }
@@ -255,6 +260,7 @@ public class ControlsFeeder extends Fragment {
                 connection.disconnect();
 
                 requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return;
                     if (responseCode == 200) {
                         System.out.println("✅ Feeding times synced to ESP: " + feedingTimesStr);
                     } else {
@@ -263,8 +269,11 @@ public class ControlsFeeder extends Fragment {
                 });
 
             } catch (Exception e) {
-                requireActivity().runOnUiThread(() ->
-                        System.out.println("⚠ Feeding times sync error: " + e.getMessage()));
+                requireActivity().runOnUiThread(() -> {
+                    if (!isAdded()) return; // ✅ make sure fragment is still attached
+                    System.out.println("⚠ Sync error: " + e.getMessage());
+                });
+
             }
         }).start();
     }

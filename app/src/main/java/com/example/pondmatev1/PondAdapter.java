@@ -94,8 +94,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             holder.deleteIcon.setVisibility(View.VISIBLE);
             holder.deleteIcon.setOnClickListener(v -> {
                 if (deleteListener != null) {
-                    // 🔥 Pass pond + position to activity
-                    deleteListener.onPondDeleteRequest(pond, holder.getBindingAdapterPosition());
+                   return;
                 }
             });
         } else {

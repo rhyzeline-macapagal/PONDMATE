@@ -11,19 +11,6 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvPondId"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Pond ID: --"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#1A237E"
-            android:padding="8dp"
-            android:background="@drawable/textbox_background"
-            android:layout_marginBottom="12dp"/>
-
-
         <!-- Action Buttons Row -->
         <LinearLayout
             android:layout_width="match_parent"
