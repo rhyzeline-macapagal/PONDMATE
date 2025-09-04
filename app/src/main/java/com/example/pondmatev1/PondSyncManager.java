@@ -2,13 +2,13 @@ package com.example.pondmatev1;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.OutputStream; 
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -70,43 +70,22 @@ public class PondSyncManager {
         }).start();
     }
 
-    // Fetch ponds from MySQL server
-    public static void fetchPondsFromServer(Callback callback) {
+
+
+
+    public static void uploadMaintenanceToServer(String pond, String description, double cost, Callback callback) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://pondmate.alwaysdata.net/get_ponds.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                JSONArray pondsArray = new JSONArray(response.toString());
-                if (callback != null) callback.onSuccess(pondsArray);
-            } catch (Exception e) {
-                if (callback != null) callback.onError(e.getMessage());
-            }
-        }).start();
-    }
-
-    // Upload production cost directly
-    public static void uploadProductionCostToServer(PondModel pond, Callback callback) {
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/add_production_cost.php");
+                URL url = new URL("https://pondmate.alwaysdata.net/add_maintenance.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
 
-                // Only send minimal info; PHP handles all three cost types
-                String postData = "pond_id=" + pond.getId() +
-                        "&fish_count=" + pond.getFishCount() +
-                        "&cost_per_fish=" + pond.getCostPerFish();
+                // Send pond_name + maintenance details
+                Log.d("UPLOAD_MAINT", "Posting pond=" + pond + ", desc=" + description + ", amount=" + cost);
+                String postData = "name=" + URLEncoder.encode(pond, "UTF-8") +
+                        "&description=" + URLEncoder.encode(description, "UTF-8") +
+                        "&amount=" + cost;
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
@@ -132,29 +111,8 @@ public class PondSyncManager {
     }
 
 
-    // Fetch production costs from server
-    public static void fetchProductionCostsFromServer(Callback callback) {
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/get_production_costs.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
 
-                JSONArray costsArray = new JSONArray(response.toString());
-                if (callback != null) callback.onSuccess(costsArray);
-            } catch (Exception e) {
-                if (callback != null) callback.onError(e.getMessage());
-            }
-        }).start();
-    }
 
     // Callback interface for async results
     public interface Callback {

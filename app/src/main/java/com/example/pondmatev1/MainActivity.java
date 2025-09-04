@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -79,10 +80,11 @@ public class MainActivity extends AppCompatActivity {
 
         ImageView profileIcon = findViewById(R.id.profileIcon);
 
-//        profileIcon.setOnClickListener(v -> {
-//            UserProfileDialogFragment dialog = new UserProfileDialogFragment();
-//            dialog.show(getSupportFragmentManager(), "UserProfileDialog");
-//        });
+        profileIcon.setOnClickListener(v -> {
+            Log.d("DEBUG", "Profile icon clicked");
+            UserProfileDialogFragment dialog = new UserProfileDialogFragment();
+            dialog.show(getSupportFragmentManager(), "UserProfileDialog");
+        });
 
 
         adminIcon.setOnClickListener(v -> {

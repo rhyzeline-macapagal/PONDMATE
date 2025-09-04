@@ -23,8 +23,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
+import com.google.gson.Gson;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -49,23 +49,23 @@ public class ProductionCostFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        TextView tvPondId = view.findViewById(R.id.tvPondId);
+        // 🔑 Load pond from SharedPreferences (POND_PREF)
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
 
-        // ✅ Get pond_id and pond_name from arguments if available
-        String pondId = "--";
+        if (pondJson != null) {
+            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+            pondName = pond.getName(); // ✅ Save it globally for this fragment
+        }
+
+
         if (getArguments() != null) {
-            pondId = getArguments().getString("pond_id", "--");
-            this.pondName = getArguments().getString("pond_name", ""); // ✅ assign to field, not local var
-        }
+            String pondId = getArguments().getString("pond_id", "--");   // ✅ get pond_id
+            String pondName = getArguments().getString("pond_name", "");
 
-        // ✅ Fallback to SharedPreferences if pond_id is missing
-        if (pondId == null || pondId.equals("--")) {
-            SharedPreferences sp = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-            pondId = sp.getString("pond_id", "--");
+            TextView tvPondId = view.findViewById(R.id.tvPondId);
+            tvPondId.setText("Pond ID: " + pondId);
         }
-
-        // ✅ Display Pond ID
-        tvPondId.setText("Pond ID: " + pondId);
 
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
@@ -87,7 +87,7 @@ public class ProductionCostFragment extends Fragment {
 
         etEstimatedRevenue = view.findViewById(R.id.etEstimatedRevenue);
         tvEstimatedRoI = view.findViewById(R.id.tvEstimatedROI);
-        tvRoIDifference = view. findViewById(R.id.tvROIDifference);
+        tvRoIDifference = view.findViewById(R.id.tvROIDifference);
 
         // Load values from SharedPreferences
         SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
@@ -116,40 +116,19 @@ public class ProductionCostFragment extends Fragment {
         tvSummaryTotal.setText("₱" + formatPrice(totalCost));
         tvCapital.setText("₱" + formatPrice(totalCost));
 
-        // --- Load stored ROI values for this pond ---
-        if (!pondName.isEmpty()) {
-            SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-            float savedActualROI = sp.getFloat(pondName + "_roi", -1f);
-            float savedEstimatedROI = sp.getFloat(pondName + "_roi_diff", -1f);
-            String savedActualSales = sp.getString(pondName + "_actual_sales", "");
-            String savedEstimatedRevenue = sp.getString(pondName + "_estimated_revenue", "");
-
-            if (savedActualROI != -1f) {
-                double roiAmountValue = parseDouble(tvCapital.getText().toString()) * savedActualROI / 100;
-                tvROIAmount.setText("₱" + formatPrice(roiAmountValue));
-                tvROI.setText(formatPrice(savedActualROI) + "%");
-
-                // Optionally, populate EditText
-                etEstimatedSales.setText(""); // Keep user input blank or format as needed
-            }
-
-            if (savedEstimatedROI != -1f) {
-                tvEstimatedRoI.setText(formatPrice(savedEstimatedROI) + "%");
-                tvRoIDifference.setText(formatPrice(savedEstimatedROI) + "%");
-
-                // Optionally, populate EditText
-                etEstimatedRevenue.setText(""); // Keep user input blank or format as needed
-            }
-        }
-
         // === Actual Sales → save ONLY <pond>_roi ===
         etEstimatedSales.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
             public void afterTextChanged(Editable s) {
                 String str = s.toString();
-                SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-                sp.edit().putString(pondName + "_actual_sales", str).apply();
+                if (!str.isEmpty() && !str.startsWith("₱")) {
+                    etEstimatedSales.removeTextChangedListener(this);
+                    etEstimatedSales.setText("₱" + str);
+                    etEstimatedSales.setSelection(etEstimatedSales.getText().length());
+                    etEstimatedSales.addTextChangedListener(this);
+                    return;
+                }
 
                 double revenue = parseDouble(s.toString());
                 double roiAmount = revenue - totalCost;
@@ -171,8 +150,13 @@ public class ProductionCostFragment extends Fragment {
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
             public void afterTextChanged(Editable s) {
                 String str = s.toString();
-                SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-                sp.edit().putString(pondName + "_estimated_revenue", str).apply();
+                if (!str.isEmpty() && !str.startsWith("₱")) {
+                    etEstimatedRevenue.removeTextChangedListener(this);
+                    etEstimatedRevenue.setText("₱" + str);
+                    etEstimatedRevenue.setSelection(etEstimatedRevenue.getText().length());
+                    etEstimatedRevenue.addTextChangedListener(this);
+                    return;
+                }
 
                 double estimatedRevenue = parseDouble(s.toString());
                 double capital = parseDouble(tvCapital.getText().toString());
@@ -200,48 +184,12 @@ public class ProductionCostFragment extends Fragment {
     private void saveActualROI(String pond, double roiPercent) {
         SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
         sp.edit().putFloat(pond + "_roi", (float) roiPercent).apply();
-
-        // Send immediately to server
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/update_roi.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-                String postData = "pond_name=" + pond + "&actual_roi=" + roiPercent;
-                conn.getOutputStream().write(postData.getBytes("UTF-8"));
-                conn.getInputStream().close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
     }
-
 
     private void saveComparisonROI(String pond, double roiPercent) {
         SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
         sp.edit().putFloat(pond + "_roi_diff", (float) roiPercent).apply();
-
-        // Send immediately to server
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/update_roi.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-                String postData = "pond_name=" + pond + "&estimated_roi=" + roiPercent;
-                conn.getOutputStream().write(postData.getBytes("UTF-8"));
-                conn.getInputStream().close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
     }
-
 
     private double parseDouble(String str) {
         try {
@@ -304,10 +252,43 @@ public class ProductionCostFragment extends Fragment {
                 return;
             }
 
-            Toast.makeText(requireContext(), "Added: " + description + " ₱" + amount, Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
+            // ✅ Show confirmation before uploading
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Confirm Maintenance")
+                    .setMessage("Are you sure you want to add this maintenance?\n\n" +
+                            "Pond: " + pondName + "\n" +
+                            "Type: " + description + "\n" +
+                            "Cost: ₱" + amount)
+                    .setPositiveButton("Yes", (dialogConfirm, which) -> {
+                        // Upload maintenance to server
+                        PondSyncManager.uploadMaintenanceToServer(pondName, description, amount, new PondSyncManager.Callback() {
+                            @Override
+                            public void onSuccess(Object result) {
+                                requireActivity().runOnUiThread(() -> {
+                                    Toast.makeText(requireContext(),
+                                            "Maintenance added for " + pondName + ": " + description + " ₱" + amount,
+                                            Toast.LENGTH_SHORT).show();
+                                });
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                requireActivity().runOnUiThread(() -> {
+                                    Toast.makeText(requireContext(),
+                                            "Error uploading maintenance: " + error,
+                                            Toast.LENGTH_SHORT).show();
+                                });
+                            }
+                        });
+
+                        dialog.dismiss(); // close the add-maintenance dialog
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
         });
+
 
         dialog.show();
     }
+
 }
