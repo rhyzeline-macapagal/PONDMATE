@@ -1,6 +1,7 @@
 package com.example.pondmatev1;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
@@ -28,6 +29,8 @@ import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+
+import com.google.gson.Gson;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -364,7 +367,6 @@ public class ScheduleFeeder extends Fragment {
                 String time2 = timeFS2.getText().toString().trim();
                 String weight = Fweight.getText().toString().trim();
 
-
                 // Clean and format feed quantity
                 String feedQuantityStr = feedqttycont.getText().toString().trim();
                 String cleanedFeedQtyStr = feedQuantityStr.replaceAll("[^\\d.]", "");
@@ -376,125 +378,94 @@ public class ScheduleFeeder extends Fragment {
                 }
                 String feedQuantity = String.format(Locale.getDefault(), "%.2f kg", feedAmount);
 
-                int dynamicTimeCount = containert.getChildCount();
-
                 if (weight.isEmpty()) {
                     Toast.makeText(getContext(), "Please enter the fish weight.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-
                 if (staticDate.isEmpty()) {
                     Toast.makeText(getContext(), "Please select a date.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-
-                // Add secondary times
                 if (time1.isEmpty()) {
                     Toast.makeText(getContext(), "Please select the first feeding time.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                String status1 = getStatus(staticDate, time1);
-                addTableRow(staticDate, time1, feedQuantity, status1);
-
                 if (time2.isEmpty()) {
                     Toast.makeText(getContext(), "Please select the secondary feeding time.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                String status2 = getStatus(staticDate, time2);
-                addTableRow(staticDate, time2, feedQuantity, status2);
-
-                // Add main time
                 if (staticTime.isEmpty()) {
                     Toast.makeText(getContext(), "Please select the third feeding time.", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                String status = getStatus(staticDate, staticTime);
-                addTableRow(staticDate, staticTime, feedQuantity, status);
 
-                // Add dynamic times
-                savedFeedingTimes.clear();
-                for (int i = 0; i < dynamicTimeCount; i++) {
-                    View timeRow = containert.getChildAt(i);
-                    TextView timeText = timeRow.findViewById(R.id.timeoffeeding);
-                    if (timeText != null) {
-                        String time = timeText.getText().toString();
-                        if (!time.isEmpty() && !time.equals(staticTime)) {
-                            String dynamicStatus = getStatus(staticDate, time);
-                            addTableRow(staticDate, time, feedQuantity, dynamicStatus);
-                        }
-                    } else {
-                        Toast.makeText(getContext(), "Time field is missing in one row.", Toast.LENGTH_SHORT).show();
-                    }
-                }
-                // 1. SAVE DEFAULTS before clearing inputs
-                SharedPreferences prefsSave = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                SharedPreferences.Editor editor = prefsSave.edit();
+                // ✅ Show confirmation dialog
+                float finalFeedAmount = feedAmount;
+                new AlertDialog.Builder(getContext())
+                        .setTitle("Confirm Feeding Schedule")
+                        .setMessage("Do you really want to save and upload this feeding schedule?")
+                        .setPositiveButton("Yes", (dialog, which) -> {
+                            // Proceed with upload + local save
+                            SharedPreferences prefss = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                            String pondJson = prefss.getString("selected_pond", null);
+                            String pondName = "";
 
-                if (checkbox.isChecked()) {
-                    editor.putBoolean(KEY_REMEMBER, true);
-                    editor.putString(KEY_TIME_MAIN, timeFS.getText().toString());
-                    editor.putString(KEY_TIME_1, timeFS1.getText().toString());
-                    editor.putString(KEY_TIME_2, timeFS2.getText().toString());
+                            if (pondJson != null) {
+                                PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                                pondName = pond.getName();   // ✅ get the actual pond name
+                            }
 
-                    Set<String> dynamicTimes = new HashSet<>();
-                    for (int i = 0; i < containert.getChildCount(); i++) {
-                        View row = containert.getChildAt(i);
-                        TextView timeText = row.findViewById(R.id.timeoffeeding);
-                        if (timeText != null && !timeText.getText().toString().isEmpty()) {
-                            dynamicTimes.add(timeText.getText().toString());
-                        }
-                    }
-                    editor.putStringSet(KEY_DYNAMIC_TIMES, dynamicTimes);
-                } else {
-                    editor.putBoolean(KEY_REMEMBER, false);
-                    editor.remove(KEY_TIME_MAIN);
-                    editor.remove(KEY_TIME_1);
-                    editor.remove(KEY_TIME_2);
-                    editor.remove(KEY_DYNAMIC_TIMES);
-                }
-                editor.apply();
+                            if (pondName.isEmpty()) {
+                                Toast.makeText(getContext(), "No pond selected!", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
 
-                SharedPreferences prefsAfterSave = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-                boolean remember = prefsAfterSave.getBoolean(KEY_REMEMBER, false);
-                checkbox.setChecked(remember);
 
-                // Disable fields after saving
-                selectDate.setEnabled(false);
-                selectTime1.setEnabled(false);
-                selectTime2.setEnabled(false);
-                selectTime.setEnabled(false);
-                addTbtn.setEnabled(false);
-                feedqttycont.setEnabled(false);
-                Fweight.setEnabled(false);
-                checkbox.setEnabled(false);
+                            PondSyncManager.uploadFeedingScheduleToServer(
+                                    pondName,
+                                    staticTime,
+                                    time1,
+                                    time2,
+                                    finalFeedAmount,
+                                    new PondSyncManager.Callback() {
+                                        @Override
+                                        public void onSuccess(Object result) {
+                                            requireActivity().runOnUiThread(() ->
+                                                    Toast.makeText(getContext(), "Uploaded to server: " + result, Toast.LENGTH_SHORT).show());
+                                        }
 
-                for (int i = 0; i < containert.getChildCount(); i++) {
-                    View timeRow = containert.getChildAt(i);
-                    Button selectTimeBtn = timeRow.findViewById(R.id.btnselecttime);
-                    ImageButton removeTimeBtn = timeRow.findViewById(R.id.removetime);
-                    if (selectTimeBtn != null) selectTimeBtn.setEnabled(false);
-                    if (removeTimeBtn != null) removeTimeBtn.setEnabled(false);
-                }
+                                        @Override
+                                        public void onError(String error) {
+                                            requireActivity().runOnUiThread(() ->
+                                                    Toast.makeText(getContext(), "Upload failed: " + error, Toast.LENGTH_SHORT).show());
+                                        }
+                                    }
+                            );
 
-                if (!checkbox.isChecked()) {
-                    dateFS.setText("");
-                    timeFS.setText("");
-                    timeFS1.setText("");
-                    timeFS2.setText("");
-                    feedqttycont.setText("");
-                    Fweight.setText("");
+                            // ✅ Local saving code
+                            String status1 = getStatus(staticDate, time1);
+                            addTableRow(staticDate, time1, feedQuantity, status1);
 
-                    for (int i = containert.getChildCount() - 1; i >= 0; i--) {
-                        containert.removeViewAt(i);
-                    }
-                }
+                            String status2 = getStatus(staticDate, time2);
+                            addTableRow(staticDate, time2, feedQuantity, status2);
 
-                Createbtn.setText("Create");
-                isCreating = true;
+                            String status = getStatus(staticDate, staticTime);
+                            addTableRow(staticDate, staticTime, feedQuantity, status);
 
-                Toast.makeText(getContext(), "Schedule saved", Toast.LENGTH_SHORT).show();
+                            Createbtn.setText("Create");
+                            isCreating = true;
+
+                            Toast.makeText(getContext(), "Schedule saved locally", Toast.LENGTH_SHORT).show();
+                        })
+                        .setNegativeButton("No", (dialog, which) -> {
+                            // Cancel save
+                            Toast.makeText(getContext(), "Schedule not saved", Toast.LENGTH_SHORT).show();
+                        })
+                        .show();
             }
+
         });
+
 
         selectDate.setEnabled(false);
         selectTime.setEnabled(false);

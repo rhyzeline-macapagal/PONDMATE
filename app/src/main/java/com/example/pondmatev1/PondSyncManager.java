@@ -110,6 +110,59 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void uploadFeedingScheduleToServer(String pondName,
+                                                     String schedOne,
+                                                     String schedTwo,
+                                                     String schedThree,
+                                                     double feedAmount,
+                                                     Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/save_feeding_schedule.php"); // your PHP file
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                // Debug log
+                Log.d("UPLOAD_FEED", "Posting pond=" + pondName +
+                        ", sched1=" + schedOne +
+                        ", sched2=" + schedTwo +
+                        ", sched3=" + schedThree +
+                        ", amount=" + feedAmount);
+
+                // Build POST data
+                String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
+                        "&sched_one=" + URLEncoder.encode(schedOne, "UTF-8") +
+                        "&sched_two=" + URLEncoder.encode(schedTwo != null ? schedTwo : "", "UTF-8") +
+                        "&sched_three=" + URLEncoder.encode(schedThree != null ? schedThree : "", "UTF-8") +
+                        "&feed_amount=" + feedAmount;
+
+                // Send to server
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                // Handle response
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                    reader.close();
+                    callback.onSuccess(response.toString());
+                } else {
+                    callback.onError("Server returned code: " + responseCode);
+                }
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+
 
 
 
@@ -119,4 +172,6 @@ public class PondSyncManager {
         void onSuccess(Object result);
         void onError(String error);
     }
+
+
 }

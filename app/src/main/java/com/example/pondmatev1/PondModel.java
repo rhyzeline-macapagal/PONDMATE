@@ -36,7 +36,7 @@ public class PondModel {
 
     // --- Getters and Setters ---
     public String getId() { return id; }
-    public void setId(String id) { this.id = id; }   // ✅ Added back
+    public void setId(String id) { this.id = id; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -57,7 +57,7 @@ public class PondModel {
     public void setDateHarvest(String dateHarvest) { this.dateHarvest = dateHarvest; }
 
     public String getImagePath() { return imagePath; }
-    public void setImagePath(String imagePath) { this.imagePath = imagePath; }   // ✅ Added back
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 
     public String getMode() { return mode; }
     public void setMode(String mode) { this.mode = mode; }

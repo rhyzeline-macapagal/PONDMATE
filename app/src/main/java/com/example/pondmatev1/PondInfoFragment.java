@@ -67,6 +67,7 @@ public class PondInfoFragment extends Fragment {
         if (pondJson != null) {
             pond = new Gson().fromJson(pondJson, PondModel.class);
 
+
             int fishCount = pond.getFishCount();
             double costPerFish = pond.getCostPerFish();
 
