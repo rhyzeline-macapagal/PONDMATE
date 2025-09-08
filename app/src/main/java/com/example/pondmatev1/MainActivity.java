@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.content.SharedPreferences;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -25,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
     NafisBottomNavigation bottomNavigation;
     private TextView pondNameLabel;
-    private PondModel selectedPond; // ✅ store pond in memory instead of SharedPreferences
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,14 +101,16 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case 2:
-                    if (selectedPond == null) {
-                        Toast.makeText(this, "Please select a pond first", Toast.LENGTH_SHORT).show();
-                        return null;
-                    }
+
+
+
+
                     ProductionCostFragment fragment = new ProductionCostFragment();
+
                     Bundle args = new Bundle();
-                    args.putString("pond_id", selectedPond.getId());
-                    args.putString("pond_name", selectedPond.getName());
+                    args.putString("pond_id", getIntent().getStringExtra("pond_id"));  // ✅ pass pond_id
+                    args.putString("pond_name", pondNameLabel.getText().toString());
+
                     fragment.setArguments(args);
 
                     getSupportFragmentManager().beginTransaction()
@@ -149,30 +152,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void openPondInfoFragment(PondModel pond) {
-        // ✅ keep pond in memory
-        selectedPond = pond;
+        // Save pond as JSON in SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("POND_PREF", MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        String pondJson = new Gson().toJson(pond);
+        editor.putString("selected_pond", pondJson);
+        editor.apply();
+        TextView pondNameLabel = findViewById(R.id.pondNameLabel);
 
         if (pondNameLabel != null) {
-            pondNameLabel.setText(pond.getName());
+            pondNameLabel.setText(pond.getName()); // or pond.getName() depending on your model
             pondNameLabel.setVisibility(View.VISIBLE);
         }
 
-        PondInfoFragment fragment = new PondInfoFragment();
-        Bundle args = new Bundle();
-        args.putString("pond_id", pond.getId());
-        args.putString("pond_name", pond.getName());
-        args.putString("breed", pond.getBreed());
-        args.putInt("fish_count", pond.getFishCount());
-        args.putDouble("cost_per_fish", pond.getCostPerFish());
-        args.putString("date_started", pond.getDateStarted());
-        args.putString("date_harvest", pond.getDateHarvest());
-        fragment.setArguments(args);
-
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.con, fragment)
+                .replace(R.id.con, new PondInfoFragment())
                 .addToBackStack(null)
                 .commit();
     }
+
+
+
 
     public boolean isInternetAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
