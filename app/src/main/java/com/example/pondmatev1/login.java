@@ -42,6 +42,17 @@ public class login extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        SessionManager session = new SessionManager(this);
+
+
+        if (session.getUsername() != null && !session.getUsername().isEmpty()) {
+            Intent intent = new Intent(this, PondDashboardActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_login);
 
         if (!isInternetAvailable()) {
@@ -175,10 +186,14 @@ public class login extends AppCompatActivity {
                         if ("success".equals(status)) {
                             String returnedUsername = responseJson.getString("username");
                             String returnedUsertype = responseJson.getString("usertype");
+                            String returnedFullname = responseJson.optString("fullname", "");
+                            String returnedAddress  = responseJson.optString("address", "");
 
                             SessionManager session = new SessionManager(this);
                             session.saveUsername(returnedUsername);
                             session.saveUsertype(returnedUsertype);
+                            session.saveFullName(returnedFullname);
+                            session.saveAddress(returnedAddress);
 
                             if (rememberMeCheckBox.isChecked()) {
                                 savePreferences(returnedUsername, password);

@@ -1,36 +1,21 @@
 package com.example.pondmatev1;
 
-import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.graphics.Color;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.Button;
 import android.widget.TextView;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
-
-import com.google.android.material.imageview.ShapeableImageView;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 
 public class UserProfileDialogFragment extends DialogFragment {
 
     private SessionManager sessionManager;
 
     private TextView fullNameText, addressText, userTypeText;
-    private ShapeableImageView imgProfilePhoto;
-    private ActivityResultLauncher<Intent> imagePickerLauncher;
 
     @Nullable
     @Override
@@ -75,74 +60,14 @@ public class UserProfileDialogFragment extends DialogFragment {
         TextView closeCaretaker = view.findViewById(R.id.closeCaretaker);
         closeCaretaker.setOnClickListener(v -> dismiss());
 
-        imgProfilePhoto = view.findViewById(R.id.imgProfilePhoto);
-        Button changePhotoButton = view.findViewById(R.id.btnChangePhoto);
-
-        imagePickerLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        Uri selectedImage = result.getData().getData();
-                        if (selectedImage != null) {
-                            saveProfileImage(selectedImage);
-                        }
-                    }
-                }
-        );
-
-        changePhotoButton.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK);
-            intent.setType("image/*");
-            imagePickerLauncher.launch(intent);
-        });
-
+        // Profile info textviews
         fullNameText = view.findViewById(R.id.txtFullNameValue);
         addressText = view.findViewById(R.id.txtAddressValue);
         userTypeText = view.findViewById(R.id.txtPositionValue);
 
-        // Load user info from SessionManager or SharedPreferences
+        // Load user info
         fullNameText.setText(sessionManager.getFullName());
         addressText.setText(sessionManager.getAddress());
         userTypeText.setText(sessionManager.getUsertype());
-
-        loadSavedProfilePhoto();
-    }
-
-    private void saveProfileImage(Uri imageUri) {
-        try {
-            InputStream inputStream = requireContext().getContentResolver().openInputStream(imageUri);
-            File file = new File(requireContext().getFilesDir(), "profile_" + sessionManager.getUsername() + ".jpg");
-            FileOutputStream outputStream = new FileOutputStream(file);
-
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
-            }
-
-            outputStream.close();
-            inputStream.close();
-
-            SharedPreferences prefs = requireContext().getSharedPreferences("user_profile", Activity.MODE_PRIVATE);
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString("profile_photo_path_" + sessionManager.getUsername(), file.getAbsolutePath());
-            editor.apply();
-
-            imgProfilePhoto.setImageURI(Uri.fromFile(file));
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void loadSavedProfilePhoto() {
-        SharedPreferences prefs = requireContext().getSharedPreferences("user_profile", Activity.MODE_PRIVATE);
-        String path = prefs.getString("profile_photo_path_" + sessionManager.getUsername(), null);
-        if (path != null) {
-            File file = new File(path);
-            if (file.exists()) {
-                imgProfilePhoto.setImageURI(Uri.fromFile(file));
-            }
-        }
     }
 }

@@ -44,6 +44,13 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
 
         findViewById(R.id.btnAddCaretaker).setOnClickListener(v -> showAddCaretakerDialog());
 
+        TextView closeCaretaker = findViewById(R.id.closeCaretaker);
+        if (closeCaretaker != null) {
+            closeCaretaker.setOnClickListener(v -> {
+                finish();
+            });
+        }
+
         recyclerView = findViewById(R.id.caretakerRecyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -87,6 +94,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         TextView closeDialog = dialog.findViewById(R.id.closeDialog);
 
         closeDialog.setOnClickListener(v -> dialog.dismiss());
+
 
         saveBtn.setOnClickListener(v -> {
             String u = username.getText().toString().trim();

@@ -7,7 +7,6 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,7 +44,6 @@ public class ProductionCostFragment extends Fragment {
 
     private double totalCost = 0.0;
     private String pondName = "";
-    private String pondId;
 
     @Nullable
     @Override
@@ -62,14 +60,15 @@ public class ProductionCostFragment extends Fragment {
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
 
-        pondId = getArguments() != null ? getArguments().getString("pond_id") : null;
-
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
-            pondName = pond.getName(); // ✅ Save it globally for this fragment
+            pondName = pond.getName();
         }
 
         loadMaintenanceTotal();
+
+
+
 
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
@@ -93,32 +92,33 @@ public class ProductionCostFragment extends Fragment {
         tvEstimatedRoI = view.findViewById(R.id.tvEstimatedROI);
         tvRoIDifference = view.findViewById(R.id.tvROIDifference);
 
-        // Load values from SharedPreferences
-        SharedPreferences sharedPreferences = requireContext().getSharedPreferences("SharedData", Context.MODE_PRIVATE);
-        String breed = sharedPreferences.getString("fish_breed", "--");
-        String amountStr = sharedPreferences.getString("fish_amount", "0");
-        String countStr = sharedPreferences.getString("number_fish", "0");
 
-        tvBreed.setText(breed);
-        tvAmountPerPiece.setText("₱" + amountStr);
-        tvCount.setText(countStr);
+        if (pondJson != null) {
+            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
 
-        double amountPerPiece = parseDouble(amountStr);
-        double count = parseDouble(countStr);
-        double totalFingerlingCost = amountPerPiece * count;
+            String breed = pond.getBreed();
+            int fishCount = pond.getFishCount();
+            double costPerFish = pond.getCostPerFish();
 
-        tvTotalCost.setText("₱" + formatPrice(totalFingerlingCost));
-        tvSummaryFingerlings.setText("₱" + formatPrice(totalFingerlingCost));
+            tvBreed.setText(breed);
+            tvCount.setText(String.valueOf(fishCount));
+            tvAmountPerPiece.setText("₱" + formatPrice(costPerFish));
 
-        double feedCost = 0.0;
-        double maintenanceCost = 0.0;
+            double totalFingerlingCost = fishCount * costPerFish;
 
-        tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
+            tvTotalCost.setText("₱" + formatPrice(totalFingerlingCost));
+            tvSummaryFingerlings.setText("₱" + formatPrice(totalFingerlingCost));
 
+            double feedCost = 0.0;
+            double maintenanceCost = 0.0;
 
-        totalCost = totalFingerlingCost + feedCost + maintenanceCost;
-        tvSummaryTotal.setText("₱" + formatPrice(totalCost));
-        tvCapital.setText("₱" + formatPrice(totalCost));
+            tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
+
+            totalCost = totalFingerlingCost + feedCost + maintenanceCost;
+            tvSummaryTotal.setText("₱" + formatPrice(totalCost));
+            tvCapital.setText("₱" + formatPrice(totalCost));
+        }
+
 
         // --- Load stored ROI values for this pond ---
         if (!pondName.isEmpty()) {
@@ -129,29 +129,13 @@ public class ProductionCostFragment extends Fragment {
             String savedEstimatedRevenue = sp.getString(pondName + "_estimated_revenue", "");
 
             if (savedActualROI != -1f) {
-                String capitalStr = tvCapital.getText().toString().replace("₱", "").replace(",", "").trim();
-                String revenueStr = etEstimatedSales.getText().toString().replace("₱", "").replace(",", "").trim(); // assuming you have revenue field
+                double roiAmountValue = parseDouble(tvCapital.getText().toString()) * savedActualROI / 100;
+                tvROIAmount.setText("₱" + formatPrice(roiAmountValue));
+                tvROI.setText(formatPrice(savedActualROI) + "%");
 
-                if (!capitalStr.isEmpty() && !revenueStr.isEmpty()) {
-                    try {
-                        double capitalValue = Double.parseDouble(capitalStr);
-                        double revenueValue = Double.parseDouble(revenueStr);
-
-                        double netProfit = revenueValue - capitalValue;
-                        double roiPercent = (netProfit / capitalValue) * 100;
-
-                        tvROIAmount.setText("₱" + formatPrice(netProfit)); // ROI in pesos
-                        tvROI.setText(formatPrice(roiPercent) + "%");      // ROI in percentage
-                    } catch (NumberFormatException e) {
-                        tvROIAmount.setText("₱0.00");
-                        tvROI.setText("0%");
-                    }
-                } else {
-                    tvROIAmount.setText("₱0.00");
-                    tvROI.setText("0%");
-                }
+                // Optionally, populate EditText
+                etEstimatedSales.setText(""); // Keep user input blank or format as needed
             }
-
 
             if (savedEstimatedROI != -1f) {
                 tvEstimatedRoI.setText(formatPrice(savedEstimatedROI) + "%");
@@ -167,6 +151,10 @@ public class ProductionCostFragment extends Fragment {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
             public void afterTextChanged(Editable s) {
+                String str = s.toString();
+                SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+                sp.edit().putString(pondName + "_actual_sales", str).apply();
+
                 double revenue = parseDouble(s.toString());
                 double roiAmount = revenue - totalCost;
                 double roiPercent = (totalCost > 0) ? (roiAmount / totalCost) * 100 : 0;
@@ -174,10 +162,10 @@ public class ProductionCostFragment extends Fragment {
                 tvROIAmount.setText("₱" + formatPrice(roiAmount));
                 tvROI.setText(formatPrice(roiPercent) + "%");
 
-                if (pondId != null) {
-                    uploadROI(pondId, roiPercent, null); // ✅ save to DB
+                if (!pondName.isEmpty()) {
+                    saveActualROI(pondName, roiPercent);
+                    notifyChart();
                 }
-
             }
         });
 
@@ -186,17 +174,22 @@ public class ProductionCostFragment extends Fragment {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
             public void afterTextChanged(Editable s) {
+                String str = s.toString();
+                SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+                sp.edit().putString(pondName + "_estimated_revenue", str).apply();
+
                 double estimatedRevenue = parseDouble(s.toString());
                 double capital = parseDouble(tvCapital.getText().toString());
                 double netProfit = estimatedRevenue - capital;
                 double roiPercent = (capital > 0) ? (netProfit / capital) * 100 : 0;
-                if (roiPercent < 25) roiPercent = 25;
+                if (roiPercent < 25) roiPercent = 25; // Ensure minimum 25%
 
                 tvEstimatedRoI.setText(formatPrice(roiPercent) + "%");
                 tvRoIDifference.setText(formatPrice(roiPercent) + "%");
 
-                if (pondId != null) {
-                    uploadROI(pondId, null, roiPercent); // ✅ save to DB
+                if (!pondName.isEmpty()) {
+                    saveComparisonROI(pondName, roiPercent);
+                    notifyChart();
                 }
             }
         });
@@ -399,33 +392,5 @@ public class ProductionCostFragment extends Fragment {
 
         dialog.show();
     }
-
-    private void uploadROI(String pondId, @Nullable Double actual, @Nullable Double estimated) {
-        new Thread(() -> {
-            HttpURLConnection conn = null;
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/update_roi.php");
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-                conn.setDoOutput(true);
-
-                org.json.JSONObject json = new org.json.JSONObject();
-                json.put("pond_id", pondId);
-                if (actual != null)    json.put("actual_roi", actual);
-                if (estimated != null) json.put("estimated_roi", estimated);
-
-                conn.getOutputStream().write(json.toString().getBytes("UTF-8"));
-
-                int code = conn.getResponseCode();
-                Log.d("ROI_UPLOAD", "Response code: " + code);
-            } catch (Exception e) {
-                Log.e("ROI_UPLOAD", "Error uploading ROI", e);
-            } finally {
-                if (conn != null) conn.disconnect();
-            }
-        }).start();
-    }
-
 
 }

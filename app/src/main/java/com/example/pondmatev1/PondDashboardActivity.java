@@ -67,6 +67,13 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             adminIcon.setVisibility(View.GONE); // ✅ Fixed
         }
 
+        ImageView profileIcon = findViewById(R.id.profileIcon);
+        profileIcon.setOnClickListener(v -> {
+            Log.d("DEBUG", "Profile icon clicked");
+            UserProfileDialogFragment dialog = new UserProfileDialogFragment();
+            dialog.show(getSupportFragmentManager(), "UserProfileDialog");
+        });
+
         pondRecyclerView = findViewById(R.id.pondRecyclerView);
         int spacing = getResources().getDimensionPixelSize(R.dimen.pond_card_spacing);
         pondRecyclerView.addItemDecoration(new SpacingItemDecoration(spacing));
