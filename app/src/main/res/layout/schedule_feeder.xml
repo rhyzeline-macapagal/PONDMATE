@@ -95,7 +95,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Fish Weight"
+                            android:text="Fish Weight Sample"
                             android:layout_marginBottom="6dp"
                             android:textColor="#01082D"
                             android:textSize="14sp"
@@ -110,7 +110,7 @@
                             android:cursorVisible="true"
                             android:focusable="true"
                             android:focusableInTouchMode="true"
-                            android:hint="grams per piece"
+                            android:hint="(in grams)"
                             android:inputType="numberDecimal"
                             android:gravity="center"
                             android:padding="12dp"
@@ -205,6 +205,47 @@
                     android:layout_marginBottom="6dp">
 
                     <TextView
+                        android:id="@+id/timeoffeeding3"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/textbox_background"
+                        android:enabled="true"
+                        android:hint="00:00"
+                        android:padding="12dp"
+                        android:gravity="center_vertical|start"
+                        android:textColor="#01082D"
+                        android:textColorHint="#888888"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
+
+                    <Button
+                        android:id="@+id/btnselecttimes"
+                        android:layout_width="100dp"
+                        android:layout_height="48dp"
+                        android:backgroundTint="#00448D"
+                        android:text="Set"
+                        app:cornerRadius="8dp"
+                        android:textColor="#FFFFFF"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Second Feeding Time -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Second Feeding"
+                    android:layout_marginBottom="4dp"
+                    android:textColor="#666666"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="6dp">
+
+                    <TextView
                         android:id="@+id/timeoffeeding1"
                         android:layout_width="0dp"
                         android:layout_height="48dp"
@@ -230,11 +271,11 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <!-- Second Feeding Time -->
+                <!-- Third Feeding Time -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Second Feeding"
+                    android:text="Third Feeding"
                     android:layout_marginBottom="4dp"
                     android:textColor="#666666"
                     android:textSize="12sp" />
@@ -262,47 +303,6 @@
 
                     <Button
                         android:id="@+id/btnselecttime2"
-                        android:layout_width="100dp"
-                        android:layout_height="48dp"
-                        android:backgroundTint="#00448D"
-                        android:text="Set"
-                        app:cornerRadius="8dp"
-                        android:textColor="#FFFFFF"
-                        android:textSize="12sp" />
-                </LinearLayout>
-
-                <!-- Third Feeding Time -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Third Feeding"
-                    android:layout_marginBottom="4dp"
-                    android:textColor="#666666"
-                    android:textSize="12sp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="6dp">
-
-                    <TextView
-                        android:id="@+id/timeoffeeding"
-                        android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1"
-                        android:background="@drawable/textbox_background"
-                        android:enabled="true"
-                        android:hint="00:00"
-                        android:padding="12dp"
-                        android:gravity="center_vertical|start"
-                        android:textColor="#01082D"
-                        android:textColorHint="#888888"
-                        android:textSize="14sp"
-                        android:layout_marginEnd="8dp" />
-
-                    <Button
-                        android:id="@+id/btnselecttime"
                         android:layout_width="80dp"
                         android:layout_height="48dp"
                         android:backgroundTint="#00448D"
@@ -312,26 +312,10 @@
                         android:textSize="12sp"
                         android:layout_marginEnd="8dp" />
 
-                    <ImageButton
-                        android:id="@+id/addtimebtn"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:padding="8dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:contentDescription="Add Time"
-                        android:src="@android:drawable/ic_menu_add"
-                        app:cornerRadius="8dp"
-                        android:scaleType="centerInside" />
+
                 </LinearLayout>
 
-                <!-- Dynamic Time Container -->
-                <LinearLayout
-                    android:id="@+id/timecontainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="6dp">
-                </LinearLayout>
+
 
                 <!-- Divider -->
                 <View

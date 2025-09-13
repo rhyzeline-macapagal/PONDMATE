@@ -24,7 +24,6 @@ import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
 import androidx.fragment.app.Fragment;
@@ -37,16 +36,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
 public class ScheduleFeeder extends Fragment {
 
-    private LinearLayout containert;
 
-    private ImageButton addTbtn;
 
     private EditText Fweight, feedqttycont;
     private Button selectDate, selectTime, Createbtn, selectTime1, selectTime2;
@@ -77,12 +73,11 @@ public class ScheduleFeeder extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.schedule_feeder, container, false);
 
-        containert = view.findViewById(R.id.timecontainer);
-        addTbtn = view.findViewById(R.id.addtimebtn);
+
         dateFS = view.findViewById(R.id.dateoffeedingschedule);
-        timeFS = view.findViewById(R.id.timeoffeeding);
+        timeFS = view.findViewById(R.id.timeoffeeding3);
         selectDate = view.findViewById(R.id.btnselectdate);
-        selectTime = view.findViewById(R.id.btnselecttime);
+        selectTime = view.findViewById(R.id.btnselecttimes);
         Createbtn = view.findViewById(R.id.createbtn);
         SummaryT= view.findViewById(R.id.summaryTable);
         feedqttycont = view.findViewById(R.id.feedquantity);
@@ -123,27 +118,15 @@ public class ScheduleFeeder extends Fragment {
             timeFS1.setText(prefs.getString(KEY_TIME_1, ""));
             timeFS2.setText(prefs.getString(KEY_TIME_2, ""));
             Set<String> savedDynamicTimes = prefs.getStringSet(KEY_DYNAMIC_TIMES, null);
-            if (savedDynamicTimes != null) {
-                for (String t : savedDynamicTimes) {
-                    addDynamicTimeRow(t);
-                }
-            }
+
             selectDate.setEnabled(false);
             selectTime1.setEnabled(false);
             selectTime2.setEnabled(false);
             selectTime.setEnabled(false);
-            addTbtn.setEnabled(false);
+
             feedqttycont.setEnabled(false);
             Fweight.setEnabled(false);
 
-            // Disable dynamic row buttons
-            for (int i = 0; i < containert.getChildCount(); i++) {
-                View timeRow = containert.getChildAt(i);
-                Button selectTimeBtn = timeRow.findViewById(R.id.btnselecttime);
-                ImageButton removeTimeBtn = timeRow.findViewById(R.id.removetime);
-                if (selectTimeBtn != null) selectTimeBtn.setEnabled(false);
-                if (removeTimeBtn != null) removeTimeBtn.setEnabled(false);
-            }
         }
 
         Fweight.addTextChangedListener(new TextWatcher() {
@@ -170,28 +153,14 @@ public class ScheduleFeeder extends Fragment {
                 if (timeFS1.getText().toString().isEmpty() && !def1.isEmpty()) timeFS1.setText(def1);
                 if (timeFS2.getText().toString().isEmpty() && !def2.isEmpty()) timeFS2.setText(def2);
 
-                boolean hasDynamic = false;
-                for (int i = 0; i < containert.getChildCount(); i++) {
-                    View child = containert.getChildAt(i);
-                    if (child.getTag() != null && "dynamic_time_row".equals(child.getTag())) {
-                        hasDynamic = true;
-                        break;
-                    }
-                }
-                if (!hasDynamic) {
-                    Set<String> savedDynamicTimes = inprefs.getStringSet(KEY_DYNAMIC_TIMES, null);
-                    if (savedDynamicTimes != null) {
-                        LayoutInflater li = LayoutInflater.from(getContext());
-                        for (String t : savedDynamicTimes) addTimeRow(li, t);
-                    }
-                }
             }
         });
 
         selectDate.setOnClickListener(v -> {
             Calendar now = Calendar.getInstance();
 
-            DatePickerDialog datePickerDialog = new DatePickerDialog(getContext(),
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                    getContext(),
                     (view1, year, month, dayOfMonth) -> {
                         Calendar selected = Calendar.getInstance();
                         selected.set(year, month, dayOfMonth);
@@ -200,18 +169,30 @@ public class ScheduleFeeder extends Fragment {
                             Toast.makeText(getContext(), "Cannot select a past date.", Toast.LENGTH_SHORT).show();
                         } else {
                             @SuppressLint("DefaultLocale")
-                            SimpleDateFormat displayFormat = new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
+                            SimpleDateFormat displayFormat =
+                                    new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
                             String formattedDate = displayFormat.format(selected.getTime());
 
                             dateFS.setText(formattedDate);
                         }
                     },
-                    now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH)
+                    now.get(Calendar.YEAR),
+                    now.get(Calendar.MONTH),
+                    now.get(Calendar.DAY_OF_MONTH)
             );
 
-            datePickerDialog.getDatePicker().setMinDate(now.getTimeInMillis()); // prevent past dates
+            // prevent past dates
+            datePickerDialog.getDatePicker().setMinDate(now.getTimeInMillis());
+
+            // ✅ Force spinner/text input mode instead of calendar
+            try {
+                datePickerDialog.getDatePicker().setCalendarViewShown(false);
+                datePickerDialog.getDatePicker().setSpinnersShown(true);
+            } catch (Exception ignored) {}
+
             datePickerDialog.show();
         });
+
 
         selectTime1.setOnClickListener(v ->{
             String selectedDateStr = dateFS.getText().toString();
@@ -332,7 +313,7 @@ public class ScheduleFeeder extends Fragment {
         });
 
         //dynamically added row
-        addTbtn.setOnClickListener(v ->addTimeRow(inflater));
+
 
         Createbtn.setOnClickListener(v -> {
             if (isCreating) {
@@ -341,20 +322,12 @@ public class ScheduleFeeder extends Fragment {
                 selectTime.setEnabled(true);
                 selectTime1.setEnabled(true);
                 selectTime2.setEnabled(true);
-                addTbtn.setEnabled(true);
                 Fweight.setEnabled(true);
                 feedqttycont.setEnabled(false);
                 checkbox.setEnabled(true);
 
                 computeFeedQuantityIfReady();
 
-                for (int i = 0; i < containert.getChildCount(); i++) {
-                    View timeRow = containert.getChildAt(i);
-                    Button selectTimeBtn = timeRow.findViewById(R.id.btnselecttime);
-                    ImageButton removeTimeBtn = timeRow.findViewById(R.id.removetime);
-                    if (selectTimeBtn != null) selectTimeBtn.setEnabled(true);
-                    if (removeTimeBtn != null) removeTimeBtn.setEnabled(true);
-                }
 
                 Createbtn.setText("Save");
                 isCreating = false;
@@ -470,73 +443,13 @@ public class ScheduleFeeder extends Fragment {
         selectDate.setEnabled(false);
         selectTime.setEnabled(false);
         feedqttycont.setEnabled(false);
-        addTbtn.setEnabled(false);
+
         Fweight.setEnabled(false);
         checkbox.setEnabled(false);
 
         return view;
     }
 
-    private void addTimeRow(LayoutInflater inflater) {
-        addTimeRow(inflater, "");
-    }
-
-    private void addTimeRow(LayoutInflater inflater, String initialTime) {
-        View row = inflater.inflate(R.layout.row_time, containert, false);
-        row.setTag("dynamic_time_row");
-
-        TextView timedar = row.findViewById(R.id.timeoffeeding);
-        Button selecttimedar = row.findViewById(R.id.btnselecttime);
-        ImageButton removetimedar = row.findViewById(R.id.removetime);
-
-        timedar.setText(initialTime == null ? "" : initialTime);
-
-        selecttimedar.setOnClickListener(v -> {
-            String selectedDateStr = dateFS.getText().toString(); // using the same date field as your static picker
-            if (selectedDateStr.isEmpty()) {
-                Toast.makeText(getContext(), "Please select a date first.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            Calendar now = Calendar.getInstance();
-            int hour = now.get(Calendar.HOUR_OF_DAY);
-            int minute = now.get(Calendar.MINUTE);
-
-            TimePickerDialog timePickerDialog = new TimePickerDialog(
-                    getContext(),
-                    (view12, selectedHour, selectedMinute) -> {
-                        try {
-                            // Parse the date and selected time into one Calendar object
-                            SimpleDateFormat parser = new SimpleDateFormat("MMM. dd, yyyy HH:mm", Locale.getDefault());
-                            Calendar selectedTime = Calendar.getInstance();
-                            selectedTime.setTime(parser.parse(selectedDateStr + " " + selectedHour + ":" + selectedMinute));
-
-                            if (selectedTime.before(now)) {
-                                Toast.makeText(getContext(), "Cannot select a past time.", Toast.LENGTH_SHORT).show();
-                            } else {
-                                // Format into 12-hour AM/PM
-                                Calendar displayCal = Calendar.getInstance();
-                                displayCal.set(Calendar.HOUR_OF_DAY, selectedHour);
-                                displayCal.set(Calendar.MINUTE, selectedMinute);
-                                SimpleDateFormat displayFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
-                                String formattedTime = displayFormat.format(displayCal.getTime());
-
-                                timedar.setText(formattedTime);
-                            }
-                        } catch (Exception e) {
-                            Toast.makeText(getContext(), "Invalid date or time.", Toast.LENGTH_SHORT).show();
-                        }
-                    },
-                    hour, minute, false
-            );
-            timePickerDialog.show();
-        });
-        removetimedar.setOnClickListener(v -> {
-            containert.removeView(row);
-            checkIfAllEmptyAndUncheck();
-        });
-        containert.addView(row);
-    }
 
     private final List<ScheduleRow> tableRows = new ArrayList<>();
     private void addTableRow(String date, String time, String feedQty, String status) {
@@ -641,48 +554,4 @@ public class ScheduleFeeder extends Fragment {
             feedqttycont.setText("--");
         }
     }
-
-    private void addDynamicTimeRow(String time) {
-        View row = LayoutInflater.from(getContext()).inflate(R.layout.row_time, containert, false);
-        TextView timeText = row.findViewById(R.id.timeoffeeding);
-        timeText.setText(time);
-
-        ImageButton removeBtn = row.findViewById(R.id.removetime);
-        removeBtn.setOnClickListener(v -> containert.removeView(row));
-
-        containert.addView(row);
-    }
-
-    private void removeAllDynamicRows() {
-        for (int i = containert.getChildCount() - 1; i >= 0; i--) {
-            View child = containert.getChildAt(i);
-            Object tag = child.getTag();
-            if (tag != null && "dynamic_time_row".equals(tag)) {
-                containert.removeViewAt(i);
-            }
-        }
-    }
-
-    private void checkIfAllEmptyAndUncheck() {
-        boolean staticEmpty = timeFS.getText().toString().isEmpty()
-                && timeFS1.getText().toString().isEmpty()
-                && timeFS2.getText().toString().isEmpty();
-
-        boolean hasDynamic = false;
-        for (int i = 0; i < containert.getChildCount(); i++) {
-            View child = containert.getChildAt(i);
-            if (child.getTag() != null && "dynamic_time_row".equals(child.getTag())) {
-                hasDynamic = true;
-                break;
-            }
-        }
-
-        if (!hasDynamic && staticEmpty && checkbox.isChecked()) {
-            // Temporarily suppress listener so it doesn't clear fields
-            suppressCheckboxListener = true;
-            checkbox.setChecked(false);
-            suppressCheckboxListener = false;
-        }
-    }
-
 }

@@ -23,7 +23,7 @@
         android:layout_marginEnd="8dp" />
 
     <Button
-        android:id="@+id/btnselecttime"
+        android:id="@+id/btnselecttimes"
         android:layout_width="80dp"
         android:layout_height="48dp"
         android:backgroundTint="#00448D"
