@@ -97,7 +97,18 @@ public class AddPondDialogFragment extends DialogFragment {
                     startCalendar.set(year, monthOfYear, dayOfMonth);
 
                     Calendar harvestCalendar = (Calendar) startCalendar.clone();
-                    harvestCalendar.add(Calendar.DAY_OF_YEAR, 120);
+
+                    // ✅ Get the selected breed
+                    String selectedBreed = spinnerBreed.getSelectedItem().toString();
+
+                    // ✅ Apply correct harvest time
+                    if (selectedBreed.equals("Tilapia")) {
+                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 60);
+                    } else if (selectedBreed.equals("Bangus")) {
+                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 90);
+                    } else if (selectedBreed.equals("Alimango")) {
+                        harvestCalendar.add(Calendar.MONTH, 9); // 9 months
+                    }
 
                     // Format for DB
                     SimpleDateFormat dbFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -110,6 +121,7 @@ public class AddPondDialogFragment extends DialogFragment {
                     tvDateHarvest.setText(formattedDisplayDate);
                 }
         );
+
 
         btnSave.setOnClickListener(v -> {
             String name = etPondName.getText().toString().trim();
