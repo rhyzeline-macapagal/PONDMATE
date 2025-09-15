@@ -65,6 +65,7 @@ dependencies {
     implementation ("com.github.sundeepk:compact-calendar-view:3.0.0")
     implementation("com.prolificinteractive:material-calendarview:1.4.3")
     implementation ("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
 
 
 

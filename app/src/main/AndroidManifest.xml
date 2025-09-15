@@ -22,6 +22,7 @@
         android:theme="@style/Theme.PONDMATEv1"
         android:usesCleartextTraffic="true"
         tools:targetApi="33">
+
         <activity
             android:name=".PondDashboardActivity"
             android:exported="false"
