@@ -44,6 +44,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import java.io.IOException;
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+import org.json.JSONObject;
+import org.json.JSONException;
 import java.net.URLEncoder;
 import java.io.UnsupportedEncodingException;
 
@@ -176,34 +180,50 @@ public class ScheduleFeeder extends Fragment {
     }
     private void uploadFeedingTimesToESP(String main, String t1, String t2) {
         OkHttpClient client = new OkHttpClient();
-        try {
-            String mainEnc = URLEncoder.encode(main, "UTF-8");
-            String t1Enc = URLEncoder.encode(t1, "UTF-8");
-            String t2Enc = URLEncoder.encode(t2, "UTF-8");
 
-            String url = "http://192.168.1.7/setFeedTimes?main=" + mainEnc + "&t1=" + t1Enc + "&t2=" + t2Enc;
-            Request request = new Request.Builder().url(url).build();
+        // TODO: put your own Adafruit values here
+        String username = "ver_lev";
+        String feedKey = "schedule"; // your Adafruit feed key
+        String aioKey = "aio_rbMO35hDTY4e03yh5JxqtmKTBvez";
+
+        // We’ll send a simple CSV like "07:00,12:00,17:00"
+        String value = main + "," + t1 + "," + t2;
+
+        try {
+            JSONObject json = new JSONObject();
+            json.put("value", value);
+            RequestBody body = RequestBody.create(json.toString(),
+                    MediaType.parse("application/json; charset=utf-8"));
+
+            String url = "https://io.adafruit.com/api/v2/" + username + "/feeds/" + feedKey + "/data";
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("X-AIO-Key", aioKey)
+                    .post(body)
+                    .build();
 
             client.newCall(request).enqueue(new Callback() {
                 @Override public void onFailure(Call call, IOException e) {
                     e.printStackTrace();
                     requireActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Failed to send schedule to ESP: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            Toast.makeText(getContext(), "Failed to post to Adafruit: " + e.getMessage(), Toast.LENGTH_LONG).show());
                 }
 
                 @Override public void onResponse(Call call, Response response) throws IOException {
-                    final String body = (response.body() != null) ? response.body().string() : "No response body";
+                    final String bodyStr = (response.body()!=null) ? response.body().string() : "";
                     requireActivity().runOnUiThread(() -> {
                         if (response.isSuccessful()) {
-                            Toast.makeText(getContext(), "Schedule uploaded to ESP: " + body, Toast.LENGTH_LONG).show();
+                            Toast.makeText(getContext(), "Schedule posted to Adafruit!", Toast.LENGTH_LONG).show();
                         } else {
-                            Toast.makeText(getContext(), "ESP error: " + response.code() + " " + body, Toast.LENGTH_LONG).show();
+                            Toast.makeText(getContext(), "Adafruit error: " + response.code() + " " + bodyStr, Toast.LENGTH_LONG).show();
                         }
                     });
                 }
             });
-        } catch (UnsupportedEncodingException e) {
-            Toast.makeText(getContext(), "Encoding error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } catch (JSONException ex) {
+            ex.printStackTrace();
+            Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
