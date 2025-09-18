@@ -110,6 +110,38 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void fetchProductionReportByName(String pondName, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_report.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData = "name=" + URLEncoder.encode(pondName, "UTF-8");
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+
+                callback.onSuccess(result.toString());
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+
+
     public static void savePondHistory(PondModel pond, String actionType, Callback callback) {
         new Thread(() -> {
             try {
@@ -266,6 +298,8 @@ public class PondSyncManager {
             }
         }).start();
     }
+
+
 
 
 
