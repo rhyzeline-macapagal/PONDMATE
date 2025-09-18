@@ -191,9 +191,11 @@ public class ScheduleFeeder extends Fragment {
         OkHttpClient client = new OkHttpClient();
 
         // Your Adafruit credentials
-        String username = "ver_lev";
+
         String feedKey = "schedule"; // your Adafruit feed key
-        String aioKey = "aio_LMJk21cmrBUsJQp3umuE5XJGjC5n";
+        String username = getString(R.string.adafruit_username);
+        String aioKey = getString(R.string.adafruit_aio_key);
+
 
         // ✅ Now includes pond name
         String value = pondName + "|" + main + "," + t1 + "," + t2;
@@ -329,6 +331,7 @@ public class ScheduleFeeder extends Fragment {
         String time1 = timeFS1.getText().toString().trim();
         String time2 = timeFS2.getText().toString().trim();
         String weight = Fweight.getText().toString().trim();
+
 
         String feedQuantityStr = feedqttycont.getText().toString().trim();
         String cleanedFeedQtyStr = feedQuantityStr.replaceAll("[^\\d.]", "");
