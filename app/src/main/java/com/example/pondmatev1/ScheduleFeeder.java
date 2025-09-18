@@ -68,6 +68,7 @@ public class ScheduleFeeder extends Fragment {
     private static final String KEY_TIME_1 = "time_1";
     private static final String KEY_TIME_2 = "time_2";
     private static final String KEY_DYNAMIC_TIMES = "dynamic_times";
+    private String pondName = "";
 
     private static class ScheduleRow {
         String date;
@@ -81,6 +82,14 @@ public class ScheduleFeeder extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.schedule_feeder, container, false);
+
+        SharedPreferences pref = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = pref.getString("selected_pond", null);
+
+        if (pondJson != null) {
+            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+            pondName = pond.getName();
+        }
 
         // Initialize views
         dateFS = view.findViewById(R.id.dateoffeedingschedule);
@@ -181,17 +190,18 @@ public class ScheduleFeeder extends Fragment {
     private void uploadFeedingTimesToESP(String main, String t1, String t2) {
         OkHttpClient client = new OkHttpClient();
 
-        // TODO: put your own Adafruit values here
+        // Your Adafruit credentials
         String username = "ver_lev";
         String feedKey = "schedule"; // your Adafruit feed key
-        String aioKey = "aio_rbMO35hDTY4e03yh5JxqtmKTBvez";
+        String aioKey = "aio_LMJk21cmrBUsJQp3umuE5XJGjC5n";
 
-        // We’ll send a simple CSV like "07:00,12:00,17:00"
-        String value = main + "," + t1 + "," + t2;
+        // ✅ Now includes pond name
+        String value = pondName + "|" + main + "," + t1 + "," + t2;
 
         try {
             JSONObject json = new JSONObject();
             json.put("value", value);
+
             RequestBody body = RequestBody.create(json.toString(),
                     MediaType.parse("application/json; charset=utf-8"));
 
@@ -214,7 +224,7 @@ public class ScheduleFeeder extends Fragment {
                     final String bodyStr = (response.body()!=null) ? response.body().string() : "";
                     requireActivity().runOnUiThread(() -> {
                         if (response.isSuccessful()) {
-                            Toast.makeText(getContext(), "Schedule posted to Adafruit!", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getContext(), "Schedule posted to Adafruit with pond name!", Toast.LENGTH_LONG).show();
                         } else {
                             Toast.makeText(getContext(), "Adafruit error: " + response.code() + " " + bodyStr, Toast.LENGTH_LONG).show();
                         }
@@ -226,6 +236,8 @@ public class ScheduleFeeder extends Fragment {
             Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+
+
 
     // ----------------- Date & Time Pickers -----------------
     private void showDatePicker() {
