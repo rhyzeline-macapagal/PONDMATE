@@ -110,6 +110,64 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void savePondHistory(PondModel pond, String actionType, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/savePondHistory.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData = "pond_id=" + URLEncoder.encode(pond.getId(), "UTF-8") +
+                        "&name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
+                        "&action=" + URLEncoder.encode(actionType, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                reader.close();
+
+                String response = sb.toString();
+
+                // 🔥 ADD THIS LOG
+                Log.e("POND_SYNC_DEBUG", "Raw Response: " + response);
+
+                try {
+                    JSONObject json = new JSONObject(response);
+                    String status = json.getString("status");
+                    String message = json.getString("message");
+
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        if ("success".equalsIgnoreCase(status)) {
+                            if (callback != null) callback.onSuccess(response);
+                        } else {
+                            if (callback != null) callback.onError(message);
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.e("POND_SYNC_DEBUG", "JSON parse failed", e);
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        if (callback != null) callback.onError("Invalid JSON: " + response);
+                    });
+                }
+
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+            }
+        }).start();
+    }
+
+
+
     public static void uploadFeedingScheduleToServer(String pondName,
                                                      String schedOne,
                                                      String schedTwo,
@@ -163,43 +221,52 @@ public class PondSyncManager {
     }
 
 
-
-    public static void fetchProductionReportByName(String pondName, Callback callback) {
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_report.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-
-                String postData = "name=" + URLEncoder.encode(pondName, "UTF-8");
-                OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
-                os.flush();
-                os.close();
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder result = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    result.append(line);
-                }
-                reader.close();
-
-                callback.onSuccess(result.toString());
-
-            } catch (Exception e) {
-                callback.onError(e.getMessage());
-            }
-        }).start();
-    }
-
-
     // Callback interface for async results
     public interface Callback {
         void onSuccess(Object result);
         void onError(String error);
     }
+
+    public static void updatePondDetails(PondModel pond, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://yourserver.com/updatePond.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData = "pond_id=" + URLEncoder.encode(pond.getId(), "UTF-8") +
+                        "&name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
+                        "&breed=" + URLEncoder.encode(pond.getBreed(), "UTF-8") +
+                        "&fish_count=" + pond.getFishCount() +
+                        "&cost_per_fish=" + pond.getCostPerFish() +
+                        "&date_started=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
+                        "&date_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) response.append(line);
+
+                br.close();
+                conn.disconnect();
+
+                if (callback != null) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(response.toString()));
+                }
+            } catch (Exception e) {
+                if (callback != null) {
+                    new Handler(Looper.getMainLooper()).post(() -> callback.onError(e.getMessage()));
+                }
+            }
+        }).start();
+    }
+
 
 
 }

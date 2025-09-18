@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -119,20 +120,40 @@ public class PondInfoFragment extends Fragment {
         btnEdit.setVisibility("owner".equalsIgnoreCase(userType) ? View.VISIBLE : View.GONE);
 
         btnEdit.setOnClickListener(v -> {
-            if (!isEditing) {
-                btnEdit.setText("Save");
-                tvPondName.setEnabled(true);
-                tvCostPerFish.setEnabled(true);
-                tvPondName.requestFocus();
-                isEditing = true;
-            } else {
-                btnEdit.setText("Edit");
-                tvPondName.setEnabled(false);
-                tvCostPerFish.setEnabled(false);
-                // TODO: Save updated values if needed
-                isEditing = false;
-            }
+            ResetPondDialogFragment dialog = new ResetPondDialogFragment();
+            dialog.setPond(pond); // Pass current pond object
+
+            dialog.setOnPondResetListener(updatedPond -> {
+                // ✅ Update pond object
+                pond = updatedPond;
+
+                // ✅ Update UI
+                tvPondName.setText(updatedPond.getName());
+                tvBreed.setText(updatedPond.getBreed());
+                tvFishCount.setText(String.valueOf(updatedPond.getFishCount()));
+                tvCostPerFish.setText(String.valueOf(updatedPond.getCostPerFish()));
+                tvDateStarted.setText(formatDateDisplay(updatedPond.getDateStarted()));
+                tvHarvestDate.setText(formatDateDisplay(updatedPond.getDateHarvest()));
+
+                updateMortalityData(updatedPond.getFishCount());
+
+                // ✅ Optionally sync to server
+                PondSyncManager.uploadPondToServer(updatedPond, "", new PondSyncManager.Callback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        Toast.makeText(getContext(), "Pond updated successfully!", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Toast.makeText(getContext(), "Failed to update pond: " + error, Toast.LENGTH_LONG).show();
+                    }
+                });
+            });
+
+            dialog.show(getParentFragmentManager(), "ResetPondDialog");
         });
+
     }
 
     private void updateMortalityData(int fishCount) {
