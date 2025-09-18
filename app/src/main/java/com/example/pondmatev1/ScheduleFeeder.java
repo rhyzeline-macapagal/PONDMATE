@@ -48,8 +48,7 @@ import okhttp3.MediaType;
 import okhttp3.RequestBody;
 import org.json.JSONObject;
 import org.json.JSONException;
-import java.net.URLEncoder;
-import java.io.UnsupportedEncodingException;
+
 
 public class ScheduleFeeder extends Fragment {
 
