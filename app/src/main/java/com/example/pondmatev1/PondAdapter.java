@@ -3,16 +3,17 @@ package com.example.pondmatev1;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.view.*;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+
 import java.util.ArrayList;
 
 public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
@@ -20,7 +21,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     private final Context context;
     private final ArrayList<PondModel> pondList;
     private final String userType;
-    private OnPondDeletedListener deleteListener; // callback to activity
+    private OnPondDeletedListener deleteListener;
 
     public PondAdapter(Context context, ArrayList<PondModel> pondList, String userType) {
         this.context = context;
@@ -28,7 +29,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         this.userType = userType;
     }
 
-    // Listener interface for delete action
+    // Listener for delete action
     public interface OnPondDeletedListener {
         void onPondDeleteRequest(PondModel pond, int position);
     }
@@ -48,13 +49,12 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         PondModel pond = pondList.get(position);
 
-        // ADD button card
+        // Handle "Add" card
         if ("ADD_BUTTON".equals(pond.getMode())) {
             if ("owner".equalsIgnoreCase(userType)) {
                 holder.pondImage.setImageResource(R.drawable.ic_addpond);
                 holder.pondName.setVisibility(View.GONE);
-                holder.deleteIcon.setVisibility(View.GONE);
-                holder.itemView.setVisibility(View.VISIBLE);
+                holder.stopIcon.setVisibility(View.GONE);
 
                 holder.itemView.setOnClickListener(v -> {
                     if (context instanceof AppCompatActivity) {
@@ -72,7 +72,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             return;
         }
 
-        // Load pond image
+        // Normal pond card
         if (pond.getImagePath() != null && !pond.getImagePath().isEmpty()) {
             Glide.with(context)
                     .load(pond.getImagePath())
@@ -89,19 +89,61 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         holder.pondName.setVisibility(View.VISIBLE);
         holder.itemView.setVisibility(View.VISIBLE);
 
-        // Delete only for owner
         if ("owner".equalsIgnoreCase(userType)) {
-            holder.deleteIcon.setVisibility(View.VISIBLE);
-            holder.deleteIcon.setOnClickListener(v -> {
-                if (deleteListener != null) {
-                   return;
-                }
+            holder.stopIcon.setVisibility(View.VISIBLE);
+            holder.stopIcon.setOnClickListener(v -> {
+                new androidx.appcompat.app.AlertDialog.Builder(context)
+                        .setTitle("Stop Pond")
+                        .setMessage("Choose what you want to do with this pond:")
+                        .setPositiveButton("Reset Pond Details", (dialog, which) -> {
+                            ResetPondDialogFragment resetDialog = new ResetPondDialogFragment();
+                            resetDialog.setPond(pond);
+
+                            // ✅ Use correct listener name
+                            resetDialog.setOnPondResetListener(updatedPond -> {
+                                // Save updated details in DB history
+                                PondSyncManager.savePondHistory(updatedPond, "RESET", new PondSyncManager.Callback() {
+                                    @Override
+                                    public void onSuccess(Object result) {
+                                        pondList.set(holder.getAdapterPosition(), updatedPond);
+                                        notifyItemChanged(holder.getAdapterPosition());
+                                        Toast.makeText(context, "Pond details updated!", Toast.LENGTH_SHORT).show();
+                                    }
+
+                                    @Override
+                                    public void onError(String error) {
+                                        Toast.makeText(context, "Failed: " + error, Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            });
+
+                            resetDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ResetPondDialog");
+                        })
+                        .setNegativeButton("Delete Pond", (dialog, which) -> {
+                            PondSyncManager.savePondHistory(pond, "DELETED", new PondSyncManager.Callback() {
+                                @Override
+                                public void onSuccess(Object result) {
+                                    if (deleteListener != null) {
+                                        deleteListener.onPondDeleteRequest(pond, holder.getAdapterPosition());
+                                    }
+                                    Toast.makeText(context, "Pond deleted successfully!", Toast.LENGTH_SHORT).show();
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    Toast.makeText(context, "Failed: " + error, Toast.LENGTH_LONG).show();
+                                }
+                            });
+                            dialog.dismiss();
+                        })
+                        .setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss())
+                        .show();
             });
         } else {
-            holder.deleteIcon.setVisibility(View.GONE);
+            holder.stopIcon.setVisibility(View.GONE);
         }
 
-        // Open pond details in MainActivity
+        // Open pond details when clicked
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, MainActivity.class);
             intent.putExtra("pond_id", pond.getId());
@@ -126,21 +168,13 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     public static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView pondImage;
         TextView pondName;
-        ImageView deleteIcon;
+        ImageView stopIcon;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             pondImage = itemView.findViewById(R.id.pondImage);
             pondName = itemView.findViewById(R.id.pondName);
-            deleteIcon = itemView.findViewById(R.id.deleteIcon);
+            stopIcon = itemView.findViewById(R.id.stopIcon);
         }
-    }
-
-    // Remove pond locally and clean ROI data
-    public void removePond(int position) {
-        PondModel pond = pondList.get(position);
-        String pondName = pond.getName();
-        pondList.remove(position);
-        notifyItemRemoved(position);
     }
 }

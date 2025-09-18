@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/rounded_dialog_bg"
+        android:minWidth="320dp"
+        android:maxWidth="400dp"
+        android:padding="24dp"
+        android:elevation="12dp">
+
+        <!-- Header Section with Close Button -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/btnClose"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:text="✖"
+                android:textSize="16sp"
+                android:textColor="#666666"
+                android:layout_alignParentEnd="true"
+                android:gravity="center"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"/>
+        </RelativeLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Title -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="RESET POND DETAILS"
+                    android:textColor="#01082D"
+                    android:layout_marginBottom="24dp"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:letterSpacing="0.02" />
+
+                <!-- Fish Breed Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fish Breed"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="2dp"
+                    android:layout_marginBottom="16dp">
+
+                    <Spinner
+                        android:id="@+id/spinnerBreed"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:padding="12dp"
+                        android:spinnerMode="dropdown"
+                        android:background="@android:color/transparent" />
+                </LinearLayout>
+
+                <!-- Fish Count Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Number of Fishes"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp"/>
+
+                <EditText
+                    android:id="@+id/etFishCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Enter number"
+                    android:inputType="number"
+                    android:backgroundTint="#787575"
+                    android:textColor="#01082D"
+                    android:textColorHint="#888888"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="16dp"
+                    android:fontFamily="sans-serif"
+                    android:padding="12dp"
+                    android:minHeight="48dp"/>
+
+                <!-- Cost per Fingerling Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cost per Fingerling (₱)"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp"/>
+
+                <EditText
+                    android:id="@+id/etCostPerFish"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Enter cost"
+                    android:inputType="numberDecimal"
+                    android:backgroundTint="#787575"
+                    android:textColor="#01082D"
+                    android:textColorHint="#888888"
+                    android:textSize="16sp"
+                    android:layout_marginBottom="16dp"
+                    android:fontFamily="sans-serif"
+                    android:padding="12dp"
+                    android:minHeight="48dp"/>
+
+                <!-- Date Started Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Date Started"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginStart="4dp"/>
+
+                <DatePicker
+                    android:id="@+id/dateStarted"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:theme="@style/CustomDatePickerTheme"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Estimated Harvest Date Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Estimated Harvest Date"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="12dp"
+                    android:layout_marginBottom="20dp">
+
+                    <TextView
+                        android:id="@+id/tvDateHarvest"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Jan. 01, 2025"
+                        android:textColor="#01082D"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:minHeight="24dp"
+                        android:gravity="center_vertical"/>
+                </LinearLayout>
+
+                <!-- Save Button -->
+                <Button
+                    android:id="@+id/btnSavePond"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="RESET POND"
+                    android:backgroundTint="#00448D"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:layout_gravity="center"
+                    android:letterSpacing="0.02"
+                    app:cornerRadius="8dp"
+                    android:elevation="2dp"
+                    android:stateListAnimator="@null"/>
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+</LinearLayout>
