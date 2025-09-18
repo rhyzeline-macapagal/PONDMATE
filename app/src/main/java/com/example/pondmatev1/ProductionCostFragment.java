@@ -1,12 +1,22 @@
 package com.example.pondmatev1;
 
+
+import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,18 +31,35 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
-import com.google.gson.Gson;
 
+import com.github.barteksc.pdfviewer.PDFView;
+import com.google.gson.Gson;
+import com.itextpdf.text.pdf.PdfWriter;
+
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfPTable;
+
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
+
+
 
 
 public class ProductionCostFragment extends Fragment {
@@ -45,6 +72,9 @@ public class ProductionCostFragment extends Fragment {
     private double totalCost = 0.0;
     private String pondName = "";
 
+    Button btnDownload;
+
+    File generatedPdfFile;
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -56,7 +86,6 @@ public class ProductionCostFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // 🔑 Load pond from SharedPreferences (POND_PREF)
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
 
@@ -68,10 +97,74 @@ public class ProductionCostFragment extends Fragment {
         loadMaintenanceTotal();
 
 
-
-
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
+        Button btnGenerateReport = view.findViewById(R.id.btnGenerateReport);
+        btnGenerateReport.setOnClickListener(v -> {
+            if (pondJson != null) {
+                PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                String pondName = pond.getName();
+
+                PondSyncManager.fetchProductionReportByName(pondName, new PondSyncManager.Callback() {
+                    @Override
+                    public void onSuccess(Object response) {
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            try {
+                                JSONObject json = new JSONObject(String.valueOf(response));
+
+                                if (json.getString("status").equals("success")) {
+                                    generatedPdfFile = generatePDF(json);
+
+                                    if (generatedPdfFile != null && generatedPdfFile.exists()) {
+                                        // ✅ In-app preview using PDFView
+                                        previewPDF(generatedPdfFile);
+                                        Log.d("PDF_DEBUG", "showPdfDialog called for file: " + generatedPdfFile.getAbsolutePath() +
+                                                ", size: " + generatedPdfFile.length());
+
+
+                                        // ✅ Still save a copy to Downloads
+                                        savePDFToDownloads(generatedPdfFile);
+
+                                        Toast.makeText(getContext(),
+                                                "Report generated for " + pondName,
+                                                Toast.LENGTH_SHORT).show();
+
+
+                                    } else {
+                                        Toast.makeText(getContext(), "Failed to create PDF", Toast.LENGTH_SHORT).show();
+                                        Log.d("PDF_DEBUG", "generatePDF returned null or file does not exist");
+                                    }
+
+                                } else {
+                                    Toast.makeText(getContext(),
+                                            "Error: " + json.optString("message", "Unknown error"),
+                                            Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                Toast.makeText(getContext(),
+                                        "Parse error: " + e.getMessage(),
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        new Handler(Looper.getMainLooper()).post(() ->
+                                Toast.makeText(getContext(),
+                                        "Network Error: " + error,
+                                        Toast.LENGTH_SHORT).show()
+                        );
+                    }
+                });
+            } else {
+                Toast.makeText(getContext(), "No pond selected", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
+
 
         tvBreed = view.findViewById(R.id.fishbreedpcostdisplay);
         tvCount = view.findViewById(R.id.numoffingerlings);
@@ -194,6 +287,156 @@ public class ProductionCostFragment extends Fragment {
             }
         });
     }
+
+    private File generatePDF(JSONObject data) {
+        File pdfFile = new File(requireContext().getCacheDir(), "pond_report_" + System.currentTimeMillis() + ".pdf");
+        Log.d("PDF_DEBUG", "Generating PDF at: " + pdfFile.getAbsolutePath());
+
+        try (FileOutputStream outputStream = new FileOutputStream(pdfFile)) {
+            Document document = new Document();
+            PdfWriter.getInstance(document, outputStream);
+            document.open();
+
+            // --- HEADER ---
+            document.add(new Paragraph("PRODUCTION REPORT"));
+            document.add(new Paragraph("--------------------------\n"));
+
+            JSONObject pond = data.optJSONObject("pond");
+
+            String pondName = pond != null ? pond.optString("name", "N/A") : "N/A";
+            String breed = pond != null ? pond.optString("breed", "N/A") : "N/A";
+            String start = pond != null ? pond.optString("date_started", "N/A") : "N/A";
+            String end = pond != null ? pond.optString("date_harvest", "N/A") : "N/A";
+
+            document.add(new Paragraph("Pond: " + pondName));
+            document.add(new Paragraph("Breed: " + breed));
+            document.add(new Paragraph("Period: " + start + " to " + end));
+            document.add(new Paragraph("\n"));
+
+            // --- Fingerlings Table ---
+            document.add(new Paragraph("Fingerlings Cost"));
+            PdfPTable ftable = new PdfPTable(5);
+            ftable.setWidthPercentage(100);
+            ftable.addCell("Description");
+            ftable.addCell("Qty");
+            ftable.addCell("Unit");
+            ftable.addCell("Cost/Unit");
+            ftable.addCell("Amount");
+
+            JSONArray fingerlings = data.optJSONArray("fingerlings");
+            if (fingerlings != null && fingerlings.length() > 0) {
+                for (int i = 0; i < fingerlings.length(); i++) {
+                    JSONObject f = fingerlings.getJSONObject(i);
+                    ftable.addCell(f.optString("description", "-"));
+                    ftable.addCell(f.optString("quantity", "0"));
+                    ftable.addCell(f.optString("unit", "-"));
+                    ftable.addCell(f.optString("cost_per_unit", "0"));
+                    ftable.addCell(f.optString("amount", "0"));
+                }
+            } else {
+                // Ensure table has at least one visible row
+                ftable.addCell("No data"); ftable.addCell("-"); ftable.addCell("-"); ftable.addCell("-"); ftable.addCell("-");
+            }
+            document.add(ftable);
+
+            // --- Summary Section ---
+            document.add(new Paragraph("\nSUMMARY"));
+
+            JSONObject feeds = data.optJSONObject("feeds");
+            JSONObject maintenance = data.optJSONObject("maintenance");
+            JSONObject salary = data.optJSONObject("salary");
+            JSONObject roi = data.optJSONObject("roi");
+
+            document.add(new Paragraph("Feeds Total Cost: ₱" + (feeds != null ? String.format("%.2f", feeds.optDouble("total_feed_cost", 0)) : "0.00")));
+            document.add(new Paragraph("Maintenance Total: ₱" + (maintenance != null ? String.format("%.2f", maintenance.optDouble("total_maintenance", 0)) : "0.00")));
+            document.add(new Paragraph("Salary Total: ₱" + (salary != null ? String.format("%.2f", salary.optDouble("total_salary", 0)) : "0.00")));
+
+            // --- ROI Section ---
+            document.add(new Paragraph("\nROI"));
+            document.add(new Paragraph("Total Cost: ₱" + (roi != null ? String.format("%.2f", roi.optDouble("total_cost", 0)) : "0.00")));
+            document.add(new Paragraph("Estimated ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("estimated", 0)) : "0.00")));
+            document.add(new Paragraph("Actual ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("actual", 0)) : "0.00")));
+
+            // --- Fallback Test Text (ensures PDF is never empty) ---
+            document.add(new Paragraph("\n\n--- End of Report ---"));
+
+            document.close();
+
+            Log.d("PDF_DEBUG", "PDF generated successfully. Size: " + pdfFile.length());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return pdfFile;
+    }
+
+
+    // Replace showPdfDialog with this
+    private void previewPDF(File pdfFile) {
+        if (pdfFile == null || !pdfFile.exists()) {
+            Toast.makeText(requireContext(), "PDF not available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(getContext(), PdfPreviewActivity.class);
+        intent.putExtra(PdfPreviewActivity.EXTRA_PDF_PATH, pdfFile.getAbsolutePath());
+        startActivity(intent);
+    }
+
+
+
+
+
+    private void savePDFToDownloads(File sourceFile) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // ✅ For Android 10+ (API 29 and above)
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.MediaColumns.DISPLAY_NAME, "pond_report_" + System.currentTimeMillis() + ".pdf");
+                values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+
+                Uri uri = getContext().getContentResolver()
+                        .insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+
+                try (InputStream in = new FileInputStream(sourceFile);
+                     OutputStream out = getContext().getContentResolver().openOutputStream(uri)) {
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = in.read(buffer)) > 0) {
+                        out.write(buffer, 0, length);
+                    }
+                }
+            } else {
+                // ✅ For Android 9 and below
+                File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                if (!downloadsDir.exists()) {
+                    downloadsDir.mkdirs();
+                }
+                File destFile = new File(downloadsDir, "pond_report_" + System.currentTimeMillis() + ".pdf");
+
+                try (InputStream in = new FileInputStream(sourceFile);
+                     OutputStream out = new FileOutputStream(destFile)) {
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = in.read(buffer)) > 0) {
+                        out.write(buffer, 0, length);
+                    }
+                }
+
+                // Let MediaScanner know about the new file
+                getContext().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(destFile)));
+            }
+
+            Toast.makeText(getContext(), "Saved to Downloads", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
 
     private void notifyChart() {
         if (getActivity() instanceof ROIChartUpdater) {
@@ -392,5 +635,7 @@ public class ProductionCostFragment extends Fragment {
 
         dialog.show();
     }
+
+
 
 }

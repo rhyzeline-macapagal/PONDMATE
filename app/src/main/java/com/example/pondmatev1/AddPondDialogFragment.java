@@ -107,7 +107,7 @@ public class AddPondDialogFragment extends DialogFragment {
                     } else if (selectedBreed.equals("Bangus")) {
                         harvestCalendar.add(Calendar.DAY_OF_YEAR, 90);
                     } else if (selectedBreed.equals("Alimango")) {
-                        harvestCalendar.add(Calendar.MONTH, 9); // 9 months
+                        harvestCalendar.add(Calendar.MONTH, 9);
                     }
 
                     // Format for DB
