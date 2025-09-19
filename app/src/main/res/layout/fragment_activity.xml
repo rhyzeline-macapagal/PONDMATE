@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/scrollView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -11,7 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Title at the top -->
+        <!-- Title -->
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="match_parent"
@@ -23,12 +24,12 @@
             android:textColor="@android:color/black"
             android:paddingBottom="10dp" />
 
-        <!-- Dropdown Button to hide/show calendar -->
+        <!-- Spinner to show/hide calendar -->
         <Spinner
             android:id="@+id/calendarToggleSpinner"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:entries="@array/calendar_toggle_options"
+            android:minHeight="48dp"
             android:spinnerMode="dropdown"
             android:padding="8dp" />
 
@@ -40,7 +41,7 @@
             app:mcv_showOtherDates="all"
             app:mcv_selectionColor="@color/teal_200" />
 
-        <!-- My Activities Header -->
+        <!-- Header for activities -->
         <TextView
             android:id="@+id/activitiesHeader"
             android:layout_width="match_parent"
@@ -52,16 +53,14 @@
             android:paddingTop="10dp"
             android:paddingBottom="5dp" />
 
-        <!-- Checklist of Activities -->
-        <ListView
-            android:id="@+id/activitiesListView"
+        <!-- Container for dynamically added activity checkboxes -->
+        <LinearLayout
+            android:id="@+id/activitiesLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:choiceMode="multipleChoice"
-            android:dividerHeight="5dp"
+            android:orientation="vertical"
             android:background="@android:color/white"
-            android:cacheColorHint="@android:color/transparent"
-            android:scrollbars="vertical" />
+            android:padding="8dp" />
 
     </LinearLayout>
 </ScrollView>
