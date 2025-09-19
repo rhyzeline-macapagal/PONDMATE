@@ -1,5 +1,4 @@
 package com.example.pondmatev1;
-
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -7,6 +6,11 @@ import android.util.Log;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -140,64 +144,92 @@ public class PondSyncManager {
         }).start();
     }
 
-
-
-    public static void savePondHistory(PondModel pond, String actionType, Callback callback) {
+    public static void savePondHistoryWithPDF(PondModel pond, String action, File pdfFile, Callback callback) {
         new Thread(() -> {
+            String boundary = "----PondBoundary" + System.currentTimeMillis();
+            String LINE_FEED = "\r\n";
+
             try {
-                URL url = new URL("https://pondmate.alwaysdata.net/savePondHistory.php");
+                URL url = new URL("https://yourserver.com/savePondHistory.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 
-                String postData = "pond_id=" + URLEncoder.encode(pond.getId(), "UTF-8") +
-                        "&name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
-                        "&action=" + URLEncoder.encode(actionType, "UTF-8");
+                DataOutputStream request = new DataOutputStream(conn.getOutputStream());
 
-                OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
-                os.flush();
-                os.close();
+                // --- Add text fields ---
+                writeFormField(request, "pond_id", pond.getId(), boundary);
+                writeFormField(request, "name", pond.getName(), boundary);
+                writeFormField(request, "action", action, boundary);
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) sb.append(line);
-                reader.close();
-
-                String response = sb.toString();
-
-                // 🔥 ADD THIS LOG
-                Log.e("POND_SYNC_DEBUG", "Raw Response: " + response);
-
-                try {
-                    JSONObject json = new JSONObject(response);
-                    String status = json.getString("status");
-                    String message = json.getString("message");
-
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        if ("success".equalsIgnoreCase(status)) {
-                            if (callback != null) callback.onSuccess(response);
-                        } else {
-                            if (callback != null) callback.onError(message);
-                        }
-                    });
-                } catch (Exception e) {
-                    Log.e("POND_SYNC_DEBUG", "JSON parse failed", e);
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        if (callback != null) callback.onError("Invalid JSON: " + response);
-                    });
+                // ✅ Send existing path if no file is provided
+                if (pdfFile == null) {
+                    writeFormField(request, "pdf_path", pond.getPdfPath() != null ? pond.getPdfPath() : "", boundary);
                 }
 
+                // --- Add file if exists ---
+                if (pdfFile != null && pdfFile.exists()) {
+                    writeFileField(request, "pdf_file", pdfFile, boundary);
+                }
+
+                // End multipart
+                request.writeBytes("--" + boundary + "--" + LINE_FEED);
+                request.flush();
+                request.close();
+
+                int responseCode = conn.getResponseCode();
+                InputStream responseStream = (responseCode >= 200 && responseCode < 300)
+                        ? conn.getInputStream()
+                        : conn.getErrorStream();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(responseStream));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                if (responseCode == 200) {
+                    callback.onSuccess(response.toString());
+                } else {
+                    callback.onError("HTTP Error: " + responseCode + " → " + response);
+                }
+
+                conn.disconnect();
+
             } catch (Exception e) {
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (callback != null) callback.onError(e.getMessage());
-                });
+                callback.onError("Exception: " + e.getMessage());
             }
         }).start();
     }
 
+    // --- Helper methods ---
+    private static void writeFormField(DataOutputStream request, String name, String value, String boundary) throws IOException {
+        String LINE_FEED = "\r\n";
+        request.writeBytes("--" + boundary + LINE_FEED);
+        request.writeBytes("Content-Disposition: form-data; name=\"" + name + "\"" + LINE_FEED);
+        request.writeBytes(LINE_FEED);
+        request.writeBytes(value + LINE_FEED);
+    }
+
+    private static void writeFileField(DataOutputStream request, String fieldName, File file, String boundary) throws IOException {
+        String LINE_FEED = "\r\n";
+        request.writeBytes("--" + boundary + LINE_FEED);
+        request.writeBytes("Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\"" + file.getName() + "\"" + LINE_FEED);
+        request.writeBytes("Content-Type: application/pdf" + LINE_FEED);
+        request.writeBytes(LINE_FEED);
+
+        FileInputStream inputStream = new FileInputStream(file);
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            request.write(buffer, 0, bytesRead);
+        }
+        inputStream.close();
+        request.writeBytes(LINE_FEED);
+    }
 
 
     public static void uploadFeedingScheduleToServer(String pondName,
@@ -298,9 +330,4 @@ public class PondSyncManager {
             }
         }).start();
     }
-
-
-
-
-
 }

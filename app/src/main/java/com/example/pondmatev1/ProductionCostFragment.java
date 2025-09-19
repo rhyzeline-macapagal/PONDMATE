@@ -1,6 +1,5 @@
 package com.example.pondmatev1;
 
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -38,7 +37,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
-
 import com.github.barteksc.pdfviewer.PDFView;
 import com.google.gson.Gson;
 import com.itextpdf.text.BaseColor;
@@ -57,7 +55,6 @@ import com.itextpdf.text.pdf.PdfPTable;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -69,8 +66,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
-
-
 
 public class ProductionCostFragment extends Fragment {
 
@@ -85,6 +80,7 @@ public class ProductionCostFragment extends Fragment {
     Button btnDownload;
 
     File generatedPdfFile;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -106,16 +102,15 @@ public class ProductionCostFragment extends Fragment {
 
         loadMaintenanceTotal();
 
-
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
         Button btnGenerateReport = view.findViewById(R.id.btnGenerateReport);
         btnGenerateReport.setOnClickListener(v -> {
             if (pondJson != null) {
                 PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
-                String pondName = pond.getName();
+                String pondNameLocal = pond.getName();
 
-                PondSyncManager.fetchProductionReportByName(pondName, new PondSyncManager.Callback() {
+                PondSyncManager.fetchProductionReportByName(pondNameLocal, new PondSyncManager.Callback() {
                     @Override
                     public void onSuccess(Object response) {
                         new Handler(Looper.getMainLooper()).post(() -> {
@@ -123,20 +118,32 @@ public class ProductionCostFragment extends Fragment {
                                 JSONObject json = new JSONObject(String.valueOf(response));
 
                                 if (json.getString("status").equals("success")) {
-                                    generatedPdfFile = generatePDF(json);
+                                    // extract pond id from returned JSON
+                                    JSONObject pondObj = json.optJSONObject("pond");
+                                    String pondId = "";
+                                    if (pondObj != null) {
+                                        // Try common keys
+                                        pondId = pondObj.optString("id", pondObj.optString("pond_id", ""));
+                                    }
+
+                                    // fallback to using name if no id
+                                    if (pondId == null) pondId = "";
+                                    generatedPdfFile = generatePDF(json, pondId);
 
                                     if (generatedPdfFile != null && generatedPdfFile.exists()) {
-                                        // ✅ In-app preview using PDFView
+                                        // In-app preview using PDFView (via PdfPreviewActivity)
                                         previewPDF(generatedPdfFile);
                                         Log.d("PDF_DEBUG", "showPdfDialog called for file: " + generatedPdfFile.getAbsolutePath() +
                                                 ", size: " + generatedPdfFile.length());
 
-
-                                        // ✅ Still save a copy to Downloads
+                                        // Still save a copy to Downloads
                                         savePDFToDownloads(generatedPdfFile);
 
+                                        // Upload the generated PDF and save history (pass pond id & name)
+                                        uploadPdfAndSaveHistory(pondId, pondNameLocal, generatedPdfFile);
+
                                         Toast.makeText(getContext(),
-                                                "Report generated for " + pondName,
+                                                "Report generated for " + pondNameLocal,
                                                 Toast.LENGTH_SHORT).show();
 
 
@@ -173,9 +180,7 @@ public class ProductionCostFragment extends Fragment {
             }
         });
 
-
-
-
+        // --- view bindings (same as before) ---
         tvBreed = view.findViewById(R.id.fishbreedpcostdisplay);
         tvCount = view.findViewById(R.id.numoffingerlings);
         tvAmountPerPiece = view.findViewById(R.id.amtperpiece);
@@ -222,7 +227,6 @@ public class ProductionCostFragment extends Fragment {
             tvCapital.setText("₱" + formatPrice(totalCost));
         }
 
-
         // --- Load stored ROI values for this pond ---
         if (!pondName.isEmpty()) {
             SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
@@ -235,17 +239,13 @@ public class ProductionCostFragment extends Fragment {
                 double roiAmountValue = parseDouble(tvCapital.getText().toString()) * savedActualROI / 100;
                 tvROIAmount.setText("₱" + formatPrice(roiAmountValue));
                 tvROI.setText(formatPrice(savedActualROI) + "%");
-
-                // Optionally, populate EditText
-                etEstimatedSales.setText(""); // Keep user input blank or format as needed
+                etEstimatedSales.setText("");
             }
 
             if (savedEstimatedROI != -1f) {
                 tvEstimatedRoI.setText(formatPrice(savedEstimatedROI) + "%");
                 tvRoIDifference.setText(formatPrice(savedEstimatedROI) + "%");
-
-                // Optionally, populate EditText
-                etEstimatedRevenue.setText(""); // Keep user input blank or format as needed
+                etEstimatedRevenue.setText("");
             }
         }
 
@@ -300,28 +300,43 @@ public class ProductionCostFragment extends Fragment {
 
     private String formatDate(String dateString) {
         try {
-            // Input format (the one from JSON, e.g. "2025-08-15")
             SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-            // Desired output format (e.g. "January 1, 2023")
             SimpleDateFormat outputFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.getDefault());
 
             Date date = inputFormat.parse(dateString);
             return outputFormat.format(date);
         } catch (ParseException e) {
             e.printStackTrace();
-            return dateString; // fallback to original if parsing fails
+            return dateString;
         }
     }
 
     PdfPCell headerCell(String text) {
         PdfPCell cell = new PdfPCell(new Phrase(text));
-        cell.setHorizontalAlignment(Element.ALIGN_CENTER); // center text
-        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);   // vertical middle
-        cell.setBackgroundColor(BaseColor.LIGHT_GRAY);     // optional highlight
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setBackgroundColor(BaseColor.LIGHT_GRAY);
         return cell;
     }
-    private File generatePDF(JSONObject data) {
-        File pdfFile = new File(requireContext().getCacheDir(), "pond_report_" + System.currentTimeMillis() + ".pdf");
+
+    /**
+     * generatePDF now takes pond JSON and the pondId (used for stable filename).
+     * It writes the file to cacheDir and returns the File.
+     */
+    private File generatePDF(JSONObject data, String pondId) {
+        // Build stable filename: prefer pondId; fallback to sanitized pond name + timestamp
+        String baseName;
+        if (pondId != null && !pondId.isEmpty()) {
+            baseName = "pond_report_" + pondId + ".pdf";
+        } else {
+            JSONObject pondObj = data.optJSONObject("pond");
+            String pname = (pondObj != null) ? pondObj.optString("name", "unknown") : "unknown";
+            // sanitize name to use in filename
+            pname = pname.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+            baseName = "pond_report_" + pname + ".pdf";
+        }
+
+        File pdfFile = new File(requireContext().getCacheDir(), baseName);
         Log.d("PDF_DEBUG", "Generating PDF at: " + pdfFile.getAbsolutePath());
 
         try (FileOutputStream outputStream = new FileOutputStream(pdfFile)) {
@@ -330,7 +345,7 @@ public class ProductionCostFragment extends Fragment {
             writer.setPageEvent(new BorderPageEvent());
             document.open();
 
-            // --- HEADER ---
+            // --- content (same as before) ---
             document.add(new Paragraph("PRODUCTION REPORT"));
             String dateCreated = new SimpleDateFormat("MMMM d, yyyy hh:mm a", Locale.getDefault())
                     .format(new Date());
@@ -346,7 +361,6 @@ public class ProductionCostFragment extends Fragment {
             String endRaw = pond != null ? pond.optString("date_harvest", "N/A") : "N/A";
             String start = !startRaw.equals("N/A") ? formatDate(startRaw) : "N/A";
             String end = !endRaw.equals("N/A") ? formatDate(endRaw) : "N/A";
-
 
             document.add(new Paragraph("Pond Name: " + pondName));
             document.add(new Paragraph("Breed: " + breed));
@@ -379,13 +393,12 @@ public class ProductionCostFragment extends Fragment {
             document.add(ftable);
             document.add(new Paragraph("\n"));
 
-// --- Maintenance Table ---
+            // --- Maintenance Table ---
             document.add(new Paragraph("Maintenance Cost"));
             document.add(new Paragraph("\n"));
             PdfPTable mtable = new PdfPTable(2);
             mtable.setWidthPercentage(100);
             mtable.addCell(headerCell("Description"));
-
             mtable.addCell(headerCell("Amount"));
 
             JSONObject maintenance = data.optJSONObject("maintenance");
@@ -397,12 +410,12 @@ public class ProductionCostFragment extends Fragment {
                     mtable.addCell("₱" + m.optString("amount", "0"));
                 }
             } else {
-                mtable.addCell("No data"); mtable.addCell("-"); mtable.addCell("-"); mtable.addCell("-"); mtable.addCell("-");
+                mtable.addCell("No data"); mtable.addCell("-");
             }
             document.add(mtable);
             document.add(new Paragraph("\n"));
 
-// --- Salary Table ---
+            // --- Salary Table ---
             document.add(new Paragraph("Salary Cost"));
             document.add(new Paragraph("\n"));
             PdfPTable stable = new PdfPTable(5);
@@ -430,7 +443,7 @@ public class ProductionCostFragment extends Fragment {
             document.add(stable);
             document.add(new Paragraph("\n"));
 
-// --- Feeds Logs Table ---
+            // --- Feeds Logs Table ---
             document.add(new Paragraph("Feeds Logs"));
             document.add(new Paragraph("\n"));
             PdfPTable feedsTable = new PdfPTable(5);
@@ -458,7 +471,6 @@ public class ProductionCostFragment extends Fragment {
             document.add(feedsTable);
             document.add(new Paragraph("\n"));
 
-
             feeds = data.optJSONObject("feeds");
             maintenance = data.optJSONObject("maintenance");
             salary = data.optJSONObject("salary");
@@ -468,13 +480,13 @@ public class ProductionCostFragment extends Fragment {
             document.add(new Paragraph("Maintenance Total: ₱" + (maintenance != null ? String.format("%.2f", maintenance.optDouble("total_maintenance", 0)) : "0.00")));
             document.add(new Paragraph("Salary Total: ₱" + (salary != null ? String.format("%.2f", salary.optDouble("total_salary", 0)) : "0.00")));
 
+
             // --- ROI Section ---
             document.add(new Paragraph("\nROI"));
             document.add(new Paragraph("Total Cost: ₱" + (roi != null ? String.format("%.2f", roi.optDouble("total_cost", 0)) : "0.00")));
             document.add(new Paragraph("Estimated ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("estimated", 0)) : "0.00")));
             document.add(new Paragraph("Actual ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("actual", 0)) : "0.00")));
 
-            // --- Fallback Test Text (ensures PDF is never empty) ---
             document.add(new Paragraph("\n\n--- End of Report ---"));
 
             document.close();
@@ -495,20 +507,19 @@ public class ProductionCostFragment extends Fragment {
             PdfContentByte canvas = writer.getDirectContent();
             Rectangle rect = document.getPageSize();
 
-            // Gamit tayo ng offset para hindi dikit sa contents
-            float offset = 20f; // adjust mo kung gaano kalayo
+            float offset = 20f;
 
             float left   = document.leftMargin() - offset;
             float right  = rect.getRight() - document.rightMargin() + offset;
             float top    = rect.getTop() - document.topMargin() + offset;
             float bottom = document.bottomMargin() - offset;
 
-            canvas.setLineWidth(1.5f); // kapal ng linya
+            canvas.setLineWidth(1.5f);
             canvas.rectangle(left, bottom, right - left, top - bottom);
             canvas.stroke();
         }
     }
-    // Replace showPdfDialog with this
+
     private void previewPDF(File pdfFile) {
         if (pdfFile == null || !pdfFile.exists()) {
             Toast.makeText(requireContext(), "PDF not available", Toast.LENGTH_SHORT).show();
@@ -520,14 +531,9 @@ public class ProductionCostFragment extends Fragment {
         startActivity(intent);
     }
 
-
-
-
-
     private void savePDFToDownloads(File sourceFile) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // ✅ For Android 10+ (API 29 and above)
                 ContentValues values = new ContentValues();
                 values.put(MediaStore.MediaColumns.DISPLAY_NAME, "pond_report_" + System.currentTimeMillis() + ".pdf");
                 values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
@@ -545,7 +551,6 @@ public class ProductionCostFragment extends Fragment {
                     }
                 }
             } else {
-                // ✅ For Android 9 and below
                 File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
                 if (!downloadsDir.exists()) {
                     downloadsDir.mkdirs();
@@ -561,7 +566,6 @@ public class ProductionCostFragment extends Fragment {
                     }
                 }
 
-                // Let MediaScanner know about the new file
                 getContext().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(destFile)));
             }
 
@@ -570,8 +574,6 @@ public class ProductionCostFragment extends Fragment {
             e.printStackTrace();
         }
     }
-
-
 
     private void notifyChart() {
         if (getActivity() instanceof ROIChartUpdater) {
@@ -583,7 +585,6 @@ public class ProductionCostFragment extends Fragment {
         SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
         sp.edit().putFloat(pond + "_roi", (float) roiPercent).apply();
 
-        // Send immediately to server
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/update_roi.php");
@@ -601,12 +602,10 @@ public class ProductionCostFragment extends Fragment {
         }).start();
     }
 
-
     private void saveComparisonROI(String pond, double roiPercent) {
         SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
         sp.edit().putFloat(pond + "_roi_diff", (float) roiPercent).apply();
 
-        // Send immediately to server
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/update_roi.php");
@@ -623,7 +622,6 @@ public class ProductionCostFragment extends Fragment {
             }
         }).start();
     }
-
 
     private double parseDouble(String str) {
         try {
@@ -666,7 +664,6 @@ public class ProductionCostFragment extends Fragment {
                     requireActivity().runOnUiThread(() -> {
                         tvSummaryMaintenance.setText("₱" + formatPrice(maintenanceCost));
 
-                        // Update totals
                         double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
                         double feeds = parseDouble(tvSummaryFeeds.getText().toString());
                         double total = fingerlings + feeds + maintenanceCost;
@@ -681,7 +678,6 @@ public class ProductionCostFragment extends Fragment {
             }
         }).start();
     }
-
 
     private void showAddMaintenanceDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -732,7 +728,6 @@ public class ProductionCostFragment extends Fragment {
                 return;
             }
 
-            // ✅ Show confirmation before uploading
             new AlertDialog.Builder(requireContext())
                     .setTitle("Confirm Maintenance")
                     .setMessage("Are you sure you want to add this maintenance?\n\n" +
@@ -740,7 +735,6 @@ public class ProductionCostFragment extends Fragment {
                             "Type: " + description + "\n" +
                             "Cost: ₱" + amount)
                     .setPositiveButton("Yes", (dialogConfirm, which) -> {
-                        // Upload maintenance to server
                         PondSyncManager.uploadMaintenanceToServer(pondName, description, amount, new PondSyncManager.Callback() {
                             @Override
                             public void onSuccess(Object result) {
@@ -761,16 +755,98 @@ public class ProductionCostFragment extends Fragment {
                             }
                         });
 
-                        dialog.dismiss(); // close the add-maintenance dialog
+                        dialog.dismiss();
                     })
                     .setNegativeButton("Cancel", null)
                     .show();
         });
 
-
         dialog.show();
     }
 
+    /**
+     * Uploads PDF via multipart and writes the pond_history record (server should save file and pdf_path).
+     * We POST pond_id, name, action and pdf_file.
+     */
+    private void uploadPdfAndSaveHistory(String pondId, String pondName, File pdfFile) {
+        new Thread(() -> {
+            try {
+                String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
+                URL url = new URL("https://pondmate.alwaysdata.net/savePondHistory.php"); // ensure your server script handles multipart
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setDoOutput(true);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 
+                try (OutputStream outputStream = conn.getOutputStream()) {
+                    // --- pond_id ---
+                    outputStream.write(("--" + boundary + "\r\n").getBytes());
+                    outputStream.write("Content-Disposition: form-data; name=\"pond_id\"\r\n\r\n".getBytes());
+                    outputStream.write((pondId != null ? pondId : "").getBytes());
+                    outputStream.write("\r\n".getBytes());
 
+                    // --- name ---
+                    outputStream.write(("--" + boundary + "\r\n").getBytes());
+                    outputStream.write("Content-Disposition: form-data; name=\"name\"\r\n\r\n".getBytes());
+                    outputStream.write((pondName != null ? pondName : "").getBytes());
+                    outputStream.write("\r\n".getBytes());
+
+                    // --- action ---
+                    outputStream.write(("--" + boundary + "\r\n").getBytes());
+                    outputStream.write("Content-Disposition: form-data; name=\"action\"\r\n\r\n".getBytes());
+                    outputStream.write("generate_report".getBytes());
+                    outputStream.write("\r\n".getBytes());
+
+                    // --- file field ---
+                    if (pdfFile != null && pdfFile.exists()) {
+                        outputStream.write(("--" + boundary + "\r\n").getBytes());
+                        outputStream.write(("Content-Disposition: form-data; name=\"pdf_file\"; filename=\"" +
+                                pdfFile.getName() + "\"\r\n").getBytes());
+                        outputStream.write("Content-Type: application/pdf\r\n\r\n".getBytes());
+
+                        try (FileInputStream fileInputStream = new FileInputStream(pdfFile)) {
+                            byte[] buffer = new byte[4096];
+                            int bytesRead;
+                            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, bytesRead);
+                            }
+                        }
+                        outputStream.write("\r\n".getBytes());
+                    }
+
+                    // --- End boundary ---
+                    outputStream.write(("--" + boundary + "--\r\n").getBytes());
+                    outputStream.flush();
+                }
+
+                int responseCode = conn.getResponseCode();
+                InputStream is = (responseCode >= 200 && responseCode < 400) ? conn.getInputStream() : conn.getErrorStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                Log.d("PDF_UPLOAD", "Server Response: " + response.toString());
+
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "PDF uploaded & saved to pond history", Toast.LENGTH_SHORT).show()
+                    );
+                } else {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "PDF upload failed: HTTP " + responseCode, Toast.LENGTH_LONG).show()
+                    );
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
+            }
+        }).start();
+    }
 }

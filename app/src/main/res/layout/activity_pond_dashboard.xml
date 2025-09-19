@@ -99,7 +99,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
-                android:layout_marginBottom="10dp"
+                android:layout_marginBottom="5dp"
                 android:background="@android:color/transparent"
                 android:clipToPadding="false" />
 
@@ -123,10 +123,29 @@
                 <com.github.mikephil.charting.charts.BarChart
                     android:id="@+id/roiBarChart"
                     android:layout_width="match_parent"
-                    android:layout_height="400dp"
+                    android:layout_height="380dp"
                     android:visibility="visible" />
 
             </FrameLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="Pond History"
+                android:textColor="#01082D"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/HistoryRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="5dp"
+                android:background="@android:color/transparent"
+                android:clipToPadding="false" />
 
         </LinearLayout>
 

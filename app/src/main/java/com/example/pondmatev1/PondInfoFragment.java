@@ -21,12 +21,9 @@ import com.google.gson.Gson;
 import java.util.Locale;
 
 public class PondInfoFragment extends Fragment {
-    private TextView tvBreed, tvFishCount, tvDateStarted, tvHarvestDate, tvMortalityRate, tvEstDeadFish;
+    private TextView tvBreed, tvFishCount, tvDateStarted, tvHarvestDate, tvMortalityRate, tvEstDeadFish, tvCostPerFish, tvPondName;
     private Button btnEdit;
     private PondModel pond;
-    private boolean isEditing = false;
-    private EditText tvPondName, tvCostPerFish;
-
     public PondInfoFragment() {}
 
     public static PondInfoFragment newInstance(PondModel pond) {

@@ -13,6 +13,7 @@ public class PondModel {
     private String extraData;
     private float actualROI;
     private float estimatedROI;
+    private String pdfPath;
 
     // Full constructor
     public PondModel(String id, String name, String breed, int fishCount, double costPerFish,
@@ -70,4 +71,7 @@ public class PondModel {
 
     public float getEstimatedROI() { return estimatedROI; }
     public void setEstimatedROI(float estimatedROI) { this.estimatedROI = estimatedROI; }
+
+    public String getPdfPath() { return pdfPath; }
+    public void setPdfPath(String pdfPath) { this.pdfPath = pdfPath; }
 }

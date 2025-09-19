@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
+import java.io.File;
 import java.util.ArrayList;
 
 public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
@@ -29,7 +30,6 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         this.userType = userType;
     }
 
-    // Listener for delete action
     public interface OnPondDeletedListener {
         void onPondDeleteRequest(PondModel pond, int position);
     }
@@ -99,20 +99,31 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                             ResetPondDialogFragment resetDialog = new ResetPondDialogFragment();
                             resetDialog.setPond(pond);
 
-                            // ✅ Use correct listener name
                             resetDialog.setOnPondResetListener(updatedPond -> {
-                                // Save updated details in DB history
-                                PondSyncManager.savePondHistory(updatedPond, "RESET", new PondSyncManager.Callback() {
+                                PondSyncManager.fetchProductionReportByName(updatedPond.getName(), new PondSyncManager.Callback() {
                                     @Override
-                                    public void onSuccess(Object result) {
-                                        pondList.set(holder.getAdapterPosition(), updatedPond);
-                                        notifyItemChanged(holder.getAdapterPosition());
-                                        Toast.makeText(context, "Pond details updated!", Toast.LENGTH_SHORT).show();
+                                    public void onSuccess(Object pdfData) {
+                                        File existingPDF = (pond.getPdfPath() != null && !pond.getPdfPath().isEmpty())
+                                                ? new File(pond.getPdfPath()) : null;
+
+                                        PondSyncManager.savePondHistoryWithPDF(updatedPond, "RESET", existingPDF, new PondSyncManager.Callback() {
+                                            @Override
+                                            public void onSuccess(Object result) {
+                                                pondList.set(holder.getAdapterPosition(), updatedPond);
+                                                notifyItemChanged(holder.getAdapterPosition());
+                                                Toast.makeText(context, "Pond details updated!", Toast.LENGTH_SHORT).show();
+                                            }
+
+                                            @Override
+                                            public void onError(String error) {
+                                                Toast.makeText(context, "Failed to save history: " + error, Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
                                     }
 
                                     @Override
                                     public void onError(String error) {
-                                        Toast.makeText(context, "Failed: " + error, Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(context, "Failed to fetch PDF: " + error, Toast.LENGTH_SHORT).show();
                                     }
                                 });
                             });
@@ -120,20 +131,29 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                             resetDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ResetPondDialog");
                         })
                         .setNegativeButton("Delete Pond", (dialog, which) -> {
-                            PondSyncManager.savePondHistory(pond, "DELETED", new PondSyncManager.Callback() {
-                                @Override
-                                public void onSuccess(Object result) {
-                                    if (deleteListener != null) {
-                                        deleteListener.onPondDeleteRequest(pond, holder.getAdapterPosition());
-                                    }
-                                    Toast.makeText(context, "Pond deleted successfully!", Toast.LENGTH_SHORT).show();
-                                }
 
-                                @Override
-                                public void onError(String error) {
-                                    Toast.makeText(context, "Failed: " + error, Toast.LENGTH_LONG).show();
-                                }
-                            });
+                            File existingPDF = (pond.getPdfPath() != null && !pond.getPdfPath().isEmpty())
+                                    ? new File(pond.getPdfPath()) : null;
+
+                            PondSyncManager.savePondHistoryWithPDF(
+                                    pond,
+                                    "DELETED",
+                                    existingPDF,
+                                    new PondSyncManager.Callback() {
+                                        @Override
+                                        public void onSuccess(Object result) {
+                                            if (deleteListener != null) {
+                                                deleteListener.onPondDeleteRequest(pond, holder.getAdapterPosition());
+                                            }
+                                            Toast.makeText(context, "Pond deleted successfully!", Toast.LENGTH_SHORT).show();
+                                        }
+
+                                        @Override
+                                        public void onError(String error) {
+                                            Toast.makeText(context, "Failed: " + error, Toast.LENGTH_LONG).show();
+                                        }
+                                    }
+                            );
                             dialog.dismiss();
                         })
                         .setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss())
@@ -143,7 +163,6 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             holder.stopIcon.setVisibility(View.GONE);
         }
 
-        // Open pond details when clicked
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, MainActivity.class);
             intent.putExtra("pond_id", pond.getId());
