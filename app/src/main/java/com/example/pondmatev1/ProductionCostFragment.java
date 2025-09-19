@@ -28,6 +28,10 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -37,6 +41,13 @@ import androidx.fragment.app.Fragment;
 
 import com.github.barteksc.pdfviewer.PDFView;
 import com.google.gson.Gson;
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Phrase;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPageEventHelper;
 import com.itextpdf.text.pdf.PdfWriter;
 
 import com.itextpdf.text.Document;
@@ -58,7 +69,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
-
 
 
 
@@ -288,63 +298,170 @@ public class ProductionCostFragment extends Fragment {
         });
     }
 
+    private String formatDate(String dateString) {
+        try {
+            // Input format (the one from JSON, e.g. "2025-08-15")
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            // Desired output format (e.g. "January 1, 2023")
+            SimpleDateFormat outputFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.getDefault());
+
+            Date date = inputFormat.parse(dateString);
+            return outputFormat.format(date);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return dateString; // fallback to original if parsing fails
+        }
+    }
+
+    PdfPCell headerCell(String text) {
+        PdfPCell cell = new PdfPCell(new Phrase(text));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER); // center text
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);   // vertical middle
+        cell.setBackgroundColor(BaseColor.LIGHT_GRAY);     // optional highlight
+        return cell;
+    }
     private File generatePDF(JSONObject data) {
         File pdfFile = new File(requireContext().getCacheDir(), "pond_report_" + System.currentTimeMillis() + ".pdf");
         Log.d("PDF_DEBUG", "Generating PDF at: " + pdfFile.getAbsolutePath());
 
         try (FileOutputStream outputStream = new FileOutputStream(pdfFile)) {
             Document document = new Document();
-            PdfWriter.getInstance(document, outputStream);
+            PdfWriter writer = PdfWriter.getInstance(document, outputStream);
+            writer.setPageEvent(new BorderPageEvent());
             document.open();
 
             // --- HEADER ---
             document.add(new Paragraph("PRODUCTION REPORT"));
-            document.add(new Paragraph("--------------------------\n"));
+            String dateCreated = new SimpleDateFormat("MMMM d, yyyy hh:mm a", Locale.getDefault())
+                    .format(new Date());
+            document.add(new Paragraph("Report Generated: " + dateCreated));
+
+            document.add(new Paragraph("-------------------------------------------------------------------------------\n"));
 
             JSONObject pond = data.optJSONObject("pond");
 
             String pondName = pond != null ? pond.optString("name", "N/A") : "N/A";
             String breed = pond != null ? pond.optString("breed", "N/A") : "N/A";
-            String start = pond != null ? pond.optString("date_started", "N/A") : "N/A";
-            String end = pond != null ? pond.optString("date_harvest", "N/A") : "N/A";
+            String startRaw = pond != null ? pond.optString("date_started", "N/A") : "N/A";
+            String endRaw = pond != null ? pond.optString("date_harvest", "N/A") : "N/A";
+            String start = !startRaw.equals("N/A") ? formatDate(startRaw) : "N/A";
+            String end = !endRaw.equals("N/A") ? formatDate(endRaw) : "N/A";
 
-            document.add(new Paragraph("Pond: " + pondName));
+
+            document.add(new Paragraph("Pond Name: " + pondName));
             document.add(new Paragraph("Breed: " + breed));
             document.add(new Paragraph("Period: " + start + " to " + end));
             document.add(new Paragraph("\n"));
 
             // --- Fingerlings Table ---
             document.add(new Paragraph("Fingerlings Cost"));
-            PdfPTable ftable = new PdfPTable(5);
+            document.add(new Paragraph("\n"));
+            PdfPTable ftable = new PdfPTable(4);
             ftable.setWidthPercentage(100);
-            ftable.addCell("Description");
-            ftable.addCell("Qty");
-            ftable.addCell("Unit");
-            ftable.addCell("Cost/Unit");
-            ftable.addCell("Amount");
+
+            ftable.addCell(headerCell("Quantity"));
+            ftable.addCell(headerCell("Unit"));
+            ftable.addCell(headerCell("Cost per Unit"));
+            ftable.addCell(headerCell("Amount"));
 
             JSONArray fingerlings = data.optJSONArray("fingerlings");
             if (fingerlings != null && fingerlings.length() > 0) {
                 for (int i = 0; i < fingerlings.length(); i++) {
                     JSONObject f = fingerlings.getJSONObject(i);
-                    ftable.addCell(f.optString("description", "-"));
                     ftable.addCell(f.optString("quantity", "0"));
                     ftable.addCell(f.optString("unit", "-"));
-                    ftable.addCell(f.optString("cost_per_unit", "0"));
-                    ftable.addCell(f.optString("amount", "0"));
+                    ftable.addCell("₱" + f.optString("cost_per_unit", "0"));
+                    ftable.addCell("₱" + f.optString("amount", "0"));
                 }
             } else {
-                // Ensure table has at least one visible row
-                ftable.addCell("No data"); ftable.addCell("-"); ftable.addCell("-"); ftable.addCell("-"); ftable.addCell("-");
+                ftable.addCell("No data"); ftable.addCell("-"); ftable.addCell("-"); ftable.addCell("-");
             }
             document.add(ftable);
+            document.add(new Paragraph("\n"));
 
-            // --- Summary Section ---
-            document.add(new Paragraph("\nSUMMARY"));
+// --- Maintenance Table ---
+            document.add(new Paragraph("Maintenance Cost"));
+            document.add(new Paragraph("\n"));
+            PdfPTable mtable = new PdfPTable(2);
+            mtable.setWidthPercentage(100);
+            mtable.addCell(headerCell("Description"));
+
+            mtable.addCell(headerCell("Amount"));
+
+            JSONObject maintenance = data.optJSONObject("maintenance");
+            JSONArray maintenanceLogs = maintenance != null ? maintenance.optJSONArray("logs") : null;
+            if (maintenanceLogs != null && maintenanceLogs.length() > 0) {
+                for (int i = 0; i < maintenanceLogs.length(); i++) {
+                    JSONObject m = maintenanceLogs.getJSONObject(i);
+                    mtable.addCell(m.optString("description", "-"));
+                    mtable.addCell("₱" + m.optString("amount", "0"));
+                }
+            } else {
+                mtable.addCell("No data"); mtable.addCell("-"); mtable.addCell("-"); mtable.addCell("-"); mtable.addCell("-");
+            }
+            document.add(mtable);
+            document.add(new Paragraph("\n"));
+
+// --- Salary Table ---
+            document.add(new Paragraph("Salary Cost"));
+            document.add(new Paragraph("\n"));
+            PdfPTable stable = new PdfPTable(5);
+            stable.setWidthPercentage(100);
+            stable.addCell(headerCell("Description"));
+            stable.addCell(headerCell("Quantity"));
+            stable.addCell(headerCell("Unit"));
+            stable.addCell(headerCell("Cost per Unit"));
+            stable.addCell(headerCell("Amount"));
+
+            JSONObject salary = data.optJSONObject("salary");
+            JSONArray salaryLogs = salary != null ? salary.optJSONArray("logs") : null;
+            if (salaryLogs != null && salaryLogs.length() > 0) {
+                for (int i = 0; i < salaryLogs.length(); i++) {
+                    JSONObject s = salaryLogs.getJSONObject(i);
+                    stable.addCell(s.optString("description", "-"));
+                    stable.addCell(s.optString("quantity", "0"));
+                    stable.addCell(s.optString("unit", "-"));
+                    stable.addCell("₱" + s.optString("cost_per_unit", "0"));
+                    stable.addCell("₱" + s.optString("amount", "0"));
+                }
+            } else {
+                stable.addCell("No data"); stable.addCell("-"); stable.addCell("-"); stable.addCell("-"); stable.addCell("-");
+            }
+            document.add(stable);
+            document.add(new Paragraph("\n"));
+
+// --- Feeds Logs Table ---
+            document.add(new Paragraph("Feeds Logs"));
+            document.add(new Paragraph("\n"));
+            PdfPTable feedsTable = new PdfPTable(5);
+            feedsTable.setWidthPercentage(100);
+            feedsTable.addCell(headerCell("Sched 1"));
+            feedsTable.addCell(headerCell("Sched 2"));
+            feedsTable.addCell(headerCell("Sched 3"));
+            feedsTable.addCell(headerCell("Feeder Type"));
+            feedsTable.addCell(headerCell("Feed Amount"));
 
             JSONObject feeds = data.optJSONObject("feeds");
-            JSONObject maintenance = data.optJSONObject("maintenance");
-            JSONObject salary = data.optJSONObject("salary");
+            JSONArray feedLogs = feeds != null ? feeds.optJSONArray("logs") : null;
+            if (feedLogs != null && feedLogs.length() > 0) {
+                for (int i = 0; i < feedLogs.length(); i++) {
+                    JSONObject f = feedLogs.getJSONObject(i);
+                    feedsTable.addCell(f.optString("sched_one", "-"));
+                    feedsTable.addCell(f.optString("sched_two", "-"));
+                    feedsTable.addCell(f.optString("sched_three", "-"));
+                    feedsTable.addCell(f.optString("feeder_type", "-"));
+                    feedsTable.addCell(f.optString("feed_amount", "0"));
+                }
+            } else {
+                feedsTable.addCell("No data"); feedsTable.addCell("-"); feedsTable.addCell("-"); feedsTable.addCell("-"); feedsTable.addCell("-");
+            }
+            document.add(feedsTable);
+            document.add(new Paragraph("\n"));
+
+
+            feeds = data.optJSONObject("feeds");
+            maintenance = data.optJSONObject("maintenance");
+            salary = data.optJSONObject("salary");
             JSONObject roi = data.optJSONObject("roi");
 
             document.add(new Paragraph("Feeds Total Cost: ₱" + (feeds != null ? String.format("%.2f", feeds.optDouble("total_feed_cost", 0)) : "0.00")));
@@ -372,7 +489,25 @@ public class ProductionCostFragment extends Fragment {
         return pdfFile;
     }
 
+    class BorderPageEvent extends PdfPageEventHelper {
+        @Override
+        public void onEndPage(PdfWriter writer, Document document) {
+            PdfContentByte canvas = writer.getDirectContent();
+            Rectangle rect = document.getPageSize();
 
+            // Gamit tayo ng offset para hindi dikit sa contents
+            float offset = 20f; // adjust mo kung gaano kalayo
+
+            float left   = document.leftMargin() - offset;
+            float right  = rect.getRight() - document.rightMargin() + offset;
+            float top    = rect.getTop() - document.topMargin() + offset;
+            float bottom = document.bottomMargin() - offset;
+
+            canvas.setLineWidth(1.5f); // kapal ng linya
+            canvas.rectangle(left, bottom, right - left, top - bottom);
+            canvas.stroke();
+        }
+    }
     // Replace showPdfDialog with this
     private void previewPDF(File pdfFile) {
         if (pdfFile == null || !pdfFile.exists()) {
