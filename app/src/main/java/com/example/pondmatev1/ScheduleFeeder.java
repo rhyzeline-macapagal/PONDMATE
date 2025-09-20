@@ -177,6 +177,10 @@ public class ScheduleFeeder extends Fragment {
 
         // Create / Save button
         Createbtn.setOnClickListener(v -> handleCreateSave());
+        Createbtn.setOnClickListener(v -> {
+            ScheduleFeederDialog dialog = new ScheduleFeederDialog();
+            dialog.show(getParentFragmentManager(), "ScheduleFeederDialog");
+        });
 
         selectDate.setEnabled(false);
         selectTime.setEnabled(false);

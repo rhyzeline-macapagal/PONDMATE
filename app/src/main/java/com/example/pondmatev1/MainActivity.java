@@ -53,13 +53,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         ImageButton backBtn = findViewById(R.id.backToDashboardBtn);
-        backBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, PondDashboardActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(intent);
-            overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
-            finish();
-        });
+        backBtn.setOnClickListener(v -> onBackPressed());
+
 
         ImageView adminIcon = findViewById(R.id.adminIcon);
         String usertype = sessionManager.getUsertype();
@@ -101,9 +96,6 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case 2:
-
-
-
 
                     ProductionCostFragment fragment = new ProductionCostFragment();
 

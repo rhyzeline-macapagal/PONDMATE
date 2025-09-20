@@ -73,9 +73,6 @@ public class ControlsFeeder extends Fragment {
         // Start periodic time and feeding times update
         timeHandler.post(timeUpdater);
 
-        feedleveltv = view.findViewById(R.id.feedlevel);
-        monitorbtn = view.findViewById(R.id.monitorbttn);
-        feedlvlicon = view.findViewById(R.id.feedLevelIcon);
 
         Button btnToggleFeeder = view.findViewById(R.id.btnToggleFeeder);
         TextView feederStatusText = view.findViewById(R.id.feederStatusText);
@@ -98,50 +95,38 @@ public class ControlsFeeder extends Fragment {
                     int responseCode = connection.getResponseCode();
                     connection.disconnect();
 
-                    requireActivity().runOnUiThread(() -> {
-                        if (!isAdded()) return;
-                        if (responseCode == 200) {
-                            isConnected[0] = true;
-                            btnToggleFeeder.setText("Connected");
-                            btnToggleFeeder.setEnabled(false);
-                            feederStatusText.setText("Status: Connected ✅");
+                    if (getActivity() != null && isAdded()) {
+                        getActivity().runOnUiThread(() -> {
+                            if (!isAdded()) return;
 
-                            // Manual resync after connection
-                            syncTimeToESP(baseUrl);
-                            syncFeedingTimesToESP(baseUrl);
-                        } else {
-                            feederStatusText.setText("Error: HTTP " + responseCode);
-                        }
-                    });
+                            if (responseCode == 200) {
+                                isConnected[0] = true;
+                                btnToggleFeeder.setText("Connected");
+                                btnToggleFeeder.setEnabled(false);
+                                feederStatusText.setText("Status: Connected ✅");
+
+                                // Manual resync after connection
+                                syncTimeToESP(baseUrl);
+                                syncFeedingTimesToESP(baseUrl);
+                            } else {
+                                feederStatusText.setText("Error: HTTP " + responseCode);
+                            }
+                        });
+                    }
 
                 } catch (Exception e) {
-                    requireActivity().runOnUiThread(() ->
-
-                            feederStatusText.setText("Connection failed: " + e.getMessage()));
+                    if (getActivity() != null && isAdded()) {
+                        getActivity().runOnUiThread(() -> {
+                            if (!isAdded()) return;
+                            feederStatusText.setText("Connection failed: " + e.getMessage());
+                        });
+                    }
                 }
             }).start();
+
         });
 
 
-        monitorbtn.setOnClickListener(v -> {
-            String level = levels[currentIndex];
-            feedleveltv.setText(level);
-            switch (level) {
-                case "LOW":
-                    feedleveltv.setTextColor(Color.RED);
-                    feedlvlicon.setImageResource(R.drawable.red);
-                    break;
-                case "MEDIUM":
-                    feedleveltv.setTextColor(Color.rgb(255, 165, 0));
-                    feedlvlicon.setImageResource(R.drawable.orange);
-                    break;
-                case "HIGH":
-                    feedleveltv.setTextColor(Color.GREEN);
-                    feedlvlicon.setImageResource(R.drawable.green);
-                    break;
-            }
-            currentIndex = (currentIndex + 1) % levels.length;
-        });
 
         return view;
     }
@@ -217,22 +202,28 @@ public class ControlsFeeder extends Fragment {
                 int responseCode = connection.getResponseCode();
                 connection.disconnect();
 
-                requireActivity().runOnUiThread(() -> {
-                    if (!isAdded()) return;
-                    if (responseCode == 200) {
-                        System.out.println("✅ Time synced to ESP.");
-                    } else {
-                        System.out.println("❌ Time sync failed: HTTP " + responseCode);
-                    }
-                });
+                // ✅ check muna bago mag UI thread
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded()) return;
+                        if (responseCode == 200) {
+                            System.out.println("✅ Time synced to ESP.");
+                        } else {
+                            System.out.println("❌ Time sync failed: HTTP " + responseCode);
+                        }
+                    });
+                }
 
             } catch (Exception e) {
-                requireActivity().runOnUiThread(() -> {
-                    if (!isAdded()) return;
-                    System.out.println("⚠ Sync error: " + e.getMessage());
-                });
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded()) return;
+                        System.out.println("⚠ Sync error: " + e.getMessage());
+                    });
+                }
             }
         }).start();
+
     }
 
     // New method: sync feeding times to ESP as comma separated string, e.g. "07,12,17"
@@ -259,22 +250,27 @@ public class ControlsFeeder extends Fragment {
                 int responseCode = connection.getResponseCode();
                 connection.disconnect();
 
-                requireActivity().runOnUiThread(() -> {
-                    if (!isAdded()) return;
-                    if (responseCode == 200) {
-                        System.out.println("✅ Feeding times synced to ESP: " + feedingTimesStr);
-                    } else {
-                        System.out.println("❌ Feeding times sync failed: HTTP " + responseCode);
-                    }
-                });
+                // ✅ check muna kung attached bago mag-UI update
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded()) return;
+                        if (responseCode == 200) {
+                            System.out.println("✅ Feeding times synced to ESP: " + feedingTimesStr);
+                        } else {
+                            System.out.println("❌ Feeding times sync failed: HTTP " + responseCode);
+                        }
+                    });
+                }
 
             } catch (Exception e) {
-                requireActivity().runOnUiThread(() -> {
-                    if (!isAdded()) return; // ✅ make sure fragment is still attached
-                    System.out.println("⚠ Sync error: " + e.getMessage());
-                });
-
+                if (getActivity() != null && isAdded()) {
+                    getActivity().runOnUiThread(() -> {
+                        if (!isAdded()) return;
+                        System.out.println("⚠ Sync error: " + e.getMessage());
+                    });
+                }
             }
         }).start();
+
     }
 }
