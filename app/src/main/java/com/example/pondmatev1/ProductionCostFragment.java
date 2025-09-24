@@ -122,13 +122,12 @@ public class ProductionCostFragment extends Fragment {
                                     JSONObject pondObj = json.optJSONObject("pond");
                                     String pondId = "";
                                     if (pondObj != null) {
-                                        // Try common keys
                                         pondId = pondObj.optString("id", pondObj.optString("pond_id", ""));
                                     }
 
-                                    // fallback to using name if no id
                                     if (pondId == null) pondId = "";
-                                    generatedPdfFile = generatePDF(json, pondId);
+
+                                    generatedPdfFile = PondPDFGenerator.generatePDF(requireContext(), json, pondId);
 
                                     if (generatedPdfFile != null && generatedPdfFile.exists()) {
                                         // In-app preview using PDFView (via PdfPreviewActivity)

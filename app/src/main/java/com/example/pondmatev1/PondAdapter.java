@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
+import org.json.JSONObject;
+
 import java.io.File;
 import java.util.ArrayList;
 
@@ -95,67 +97,8 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 new androidx.appcompat.app.AlertDialog.Builder(context)
                         .setTitle("Stop Pond")
                         .setMessage("Choose what you want to do with this pond:")
-                        .setPositiveButton("Reset Pond Details", (dialog, which) -> {
-                            ResetPondDialogFragment resetDialog = new ResetPondDialogFragment();
-                            resetDialog.setPond(pond);
-
-                            resetDialog.setOnPondResetListener(updatedPond -> {
-                                PondSyncManager.fetchProductionReportByName(updatedPond.getName(), new PondSyncManager.Callback() {
-                                    @Override
-                                    public void onSuccess(Object pdfData) {
-                                        File existingPDF = (pond.getPdfPath() != null && !pond.getPdfPath().isEmpty())
-                                                ? new File(pond.getPdfPath()) : null;
-
-                                        PondSyncManager.savePondHistoryWithPDF(updatedPond, "RESET", existingPDF, new PondSyncManager.Callback() {
-                                            @Override
-                                            public void onSuccess(Object result) {
-                                                pondList.set(holder.getAdapterPosition(), updatedPond);
-                                                notifyItemChanged(holder.getAdapterPosition());
-                                                Toast.makeText(context, "Pond details updated!", Toast.LENGTH_SHORT).show();
-                                            }
-
-                                            @Override
-                                            public void onError(String error) {
-                                                Toast.makeText(context, "Failed to save history: " + error, Toast.LENGTH_SHORT).show();
-                                            }
-                                        });
-                                    }
-
-                                    @Override
-                                    public void onError(String error) {
-                                        Toast.makeText(context, "Failed to fetch PDF: " + error, Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            });
-
-                            resetDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ResetPondDialog");
-                        })
-                        .setNegativeButton("Delete Pond", (dialog, which) -> {
-
-                            File existingPDF = (pond.getPdfPath() != null && !pond.getPdfPath().isEmpty())
-                                    ? new File(pond.getPdfPath()) : null;
-
-                            PondSyncManager.savePondHistoryWithPDF(
-                                    pond,
-                                    "DELETED",
-                                    existingPDF,
-                                    new PondSyncManager.Callback() {
-                                        @Override
-                                        public void onSuccess(Object result) {
-                                            if (deleteListener != null) {
-                                                deleteListener.onPondDeleteRequest(pond, holder.getAdapterPosition());
-                                            }
-                                            Toast.makeText(context, "Pond deleted successfully!", Toast.LENGTH_SHORT).show();
-                                        }
-
-                                        @Override
-                                        public void onError(String error) {
-                                            Toast.makeText(context, "Failed: " + error, Toast.LENGTH_LONG).show();
-                                        }
-                                    }
-                            );
-                            dialog.dismiss();
-                        })
+                        .setPositiveButton("Reset Pond Details", (dialog, which) -> resetPond(holder, pond))
+                        .setNegativeButton("Delete Pond", (dialog, which) -> deletePond(holder, pond))
                         .setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss())
                         .show();
             });
@@ -177,6 +120,100 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 ((Activity) context).overridePendingTransition(R.anim.fade_in, 0);
             }
         });
+    }
+
+    private void resetPond(ViewHolder holder, PondModel pond) {
+        ResetPondDialogFragment resetDialog = new ResetPondDialogFragment();
+        resetDialog.setPond(pond);
+        resetDialog.setOnPondResetListener(updatedPond -> {
+            PondSyncManager.updatePondDetails(updatedPond, new PondSyncManager.Callback() {
+                @Override
+                public void onSuccess(Object result) {
+                    File existingPDF = (updatedPond.getPdfPath() != null && !updatedPond.getPdfPath().isEmpty())
+                            ? new File(updatedPond.getPdfPath()) : null;
+
+                    PondSyncManager.savePondHistoryWithPDF(updatedPond, "RESET", existingPDF, new PondSyncManager.Callback() {
+                        @Override
+                        public void onSuccess(Object result) {
+                            int adapterPos = holder.getAdapterPosition();
+                            if (adapterPos >= 0 && adapterPos < pondList.size()) {
+                                pondList.set(adapterPos, updatedPond);
+                                notifyItemChanged(adapterPos);
+                            }
+                            runOnUiThread(() -> Toast.makeText(context, "Pond reset successfully!", Toast.LENGTH_SHORT).show());
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            runOnUiThread(() -> Toast.makeText(context, "History save failed: " + error, Toast.LENGTH_LONG).show());
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    runOnUiThread(() -> Toast.makeText(context, "Update failed: " + error, Toast.LENGTH_SHORT).show());
+                }
+            });
+        });
+        resetDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ResetPondDialog");
+    }
+
+    private void deletePond(ViewHolder holder, PondModel pond) {
+        PondSyncManager.fetchPondReport(pond.getId(), new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object result) {
+                try {
+                    JSONObject pondReport = (JSONObject) result;
+                    File generatedPDF = PondPDFGenerator.generatePDF(context, pondReport, "DELETED");
+                    if (generatedPDF == null) throw new Exception("PDF generation failed");
+
+                    PondSyncManager.savePondHistoryWithPDF(pond, "DELETED", generatedPDF, new PondSyncManager.Callback() {
+                        @Override
+                        public void onSuccess(Object result) {
+                            PondSyncManager.deletePond(pond.getId(), new PondSyncManager.Callback() {
+                                @Override
+                                public void onSuccess(Object result) {
+                                    int adapterPos = holder.getAdapterPosition();
+                                    if (adapterPos >= 0 && adapterPos < pondList.size()) {
+                                        pondList.remove(adapterPos);
+                                        notifyItemRemoved(adapterPos);
+                                    }
+                                    if (context instanceof PondDashboardActivity) {
+                                        runOnUiThread(() -> ((PondDashboardActivity) context).loadHistory(pond.getId()));
+                                    }
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    runOnUiThread(() -> Toast.makeText(context, "Error deleting pond: " + error, Toast.LENGTH_SHORT).show());
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            runOnUiThread(() -> Toast.makeText(context, "Error saving history: " + error, Toast.LENGTH_SHORT).show());
+                        }
+                    });
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    runOnUiThread(() -> Toast.makeText(context, "Error generating PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> Toast.makeText(context, "Error fetching pond report: " + error, Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+    private void runOnUiThread(Runnable r) {
+        if (context instanceof Activity) {
+            ((Activity) context).runOnUiThread(r);
+        }
     }
 
     @Override

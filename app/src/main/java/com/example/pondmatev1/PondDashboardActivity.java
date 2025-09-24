@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View; // ✅ for View.GONE
@@ -27,8 +28,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
-import java.io.OutputStream; // ✅ Needed for OutputStream
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -49,6 +51,10 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     String userType;
     private BarChart roiBarChart;
     private Map<String, String> dateRangeMap = new LinkedHashMap<>();
+    private RecyclerView historyRecyclerView;
+    private HistoryAdapter historyAdapter;
+    private ArrayList<HistoryModel> historyList;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +94,13 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         roiBarChart = findViewById(R.id.roiBarChart);
 
         loadPondsFromServer();
+
+        historyRecyclerView = findViewById(R.id.HistoryRecyclerView);
+        historyRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        historyList = new ArrayList<>();
+        historyAdapter = new HistoryAdapter(this, historyList);
+        historyRecyclerView.setAdapter(historyAdapter);
+
     }
 
     @Override
@@ -245,6 +258,110 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             return inputDate;
         }
     }
+
+    public void loadHistory(String pondId) {
+        new Thread(() -> {
+            try {
+                String urlStr = "https://pondmate.alwaysdata.net/getPondHistory.php?pond_id=" + pondId;
+                URL url = new URL(urlStr);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                Log.d("PondHistory", "Response: " + response);
+
+                JSONObject jsonResponse = new JSONObject(response.toString());
+                if (jsonResponse.optBoolean("success")) {
+                    JSONArray historyArray = jsonResponse.getJSONArray("history");
+
+                    ArrayList<HistoryModel> newHistory = new ArrayList<>();
+                    for (int i = 0; i < historyArray.length(); i++) {
+                        JSONObject obj = historyArray.getJSONObject(i);
+                        String action = obj.optString("action", "");
+                        String date = obj.optString("created_at", "");
+                        String pdfPath = obj.optString("pdf_path", "");
+                        newHistory.add(new HistoryModel(action, date, pdfPath));
+                    }
+
+                    runOnUiThread(() -> {
+                        historyList.clear();
+                        historyList.addAll(newHistory);
+                        historyAdapter.notifyDataSetChanged();
+                    });
+                } else {
+                    runOnUiThread(() ->
+                            Toast.makeText(PondDashboardActivity.this, "No history found", Toast.LENGTH_SHORT).show()
+                    );
+                }
+            } catch (Exception e) {
+                Log.e("PondHistory", "Error: " + e.getMessage(), e);
+                runOnUiThread(() ->
+                        Toast.makeText(PondDashboardActivity.this, "Error loading history", Toast.LENGTH_SHORT).show()
+                );
+            }
+        }).start();
+    }
+
+    private void fetchAndGeneratePDF(String pondId) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://yourdomain.com/getpondreport.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8");
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    response.append(line);
+                }
+                in.close();
+
+                JSONObject data = new JSONObject(response.toString());
+
+                if (data.optString("status").equals("success")) {
+                    File pdfFile = PondPDFGenerator.generatePDF(this, data, pondId);
+
+                    runOnUiThread(() -> {
+                        if (pdfFile != null) {
+                            Toast.makeText(this, "PDF Generated: " + pdfFile.getAbsolutePath(), Toast.LENGTH_LONG).show();
+                            // Open the PDF if you want
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            intent.setDataAndType(Uri.fromFile(pdfFile), "application/pdf");
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                            startActivity(intent);
+                        } else {
+                            Toast.makeText(this, "Failed to generate PDF", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } else {
+                    runOnUiThread(() ->
+                            Toast.makeText(this, "No data for this pond", Toast.LENGTH_SHORT).show()
+                    );
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() ->
+                        Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                );
+            }
+        }).start();
+    }
+
 
     private void saveROIsToServer() {
         List<Map<String, Object>> pondsToSend = new ArrayList<>();

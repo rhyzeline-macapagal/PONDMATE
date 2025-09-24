@@ -150,7 +150,7 @@ public class PondSyncManager {
             String LINE_FEED = "\r\n";
 
             try {
-                URL url = new URL("https://yourserver.com/savePondHistory.php");
+                URL url = new URL("https://pondmate.alwaysdata.net/savePondHistory.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setDoOutput(true);
                 conn.setRequestMethod("POST");
@@ -205,7 +205,115 @@ public class PondSyncManager {
         }).start();
     }
 
-    // --- Helper methods ---
+    public static void updatePondDetails(PondModel pond, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/updatePond.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                // ✅ Build the POST data
+                String postData =
+                        "pond_id=" + URLEncoder.encode(pond.getId(), "UTF-8") +
+                                "&name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
+                                "&breed=" + URLEncoder.encode(pond.getBreed(), "UTF-8") +
+                                "&fish_count=" + pond.getFishCount() +
+                                "&cost_per_fish=" + pond.getCostPerFish() +
+                                "&date_started=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
+                                "&date_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8");
+
+                // ✅ Send data
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(postData.getBytes());
+                    os.flush();
+                }
+
+                // ✅ Read response
+                int responseCode = conn.getResponseCode();
+                BufferedReader in = new BufferedReader(new InputStreamReader(
+                        responseCode >= 200 && responseCode < 300
+                                ? conn.getInputStream()
+                                : conn.getErrorStream()
+                ));
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    if (callback != null) callback.onSuccess(response.toString());
+                } else {
+                    if (callback != null) callback.onError("Error: " + responseCode + " → " + response);
+                }
+
+                conn.disconnect();
+            } catch (Exception e) {
+                if (callback != null) callback.onError("Exception: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    public static void deletePond(String pondId, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/deletePond.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8");
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(postData.getBytes());
+                    os.flush();
+                }
+
+                int responseCode = conn.getResponseCode();
+                BufferedReader in = new BufferedReader(new InputStreamReader(
+                        responseCode >= 200 && responseCode < 300
+                                ? conn.getInputStream()
+                                : conn.getErrorStream()
+                ));
+                String inputLine;
+                StringBuilder response = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                String cleanedResponse = response.toString().trim();
+                Log.d("DeletePondResponse", "Code: " + responseCode + " | Body: " + response);
+                Log.d("DeletePondResponse", "Body Cleaned: '" + cleanedResponse + "'");
+
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    if (cleanedResponse.equalsIgnoreCase("success")) {
+                        // ✅ Ensure callback runs on UI thread
+                        runOnUiThreadSafe(() -> callback.onSuccess("Pond deleted"));
+                    } else {
+                        runOnUiThreadSafe(() -> callback.onError("Delete failed → " + cleanedResponse));
+                    }
+                } else {
+                    runOnUiThreadSafe(() -> callback.onError("HTTP Error: " + responseCode + " → " + cleanedResponse));
+                }
+
+                conn.disconnect();
+            } catch (Exception e) {
+                runOnUiThreadSafe(() -> {
+                    if (callback != null) callback.onError("Exception: " + e.getMessage());
+                });
+            }
+        }).start();
+    }
+
+    private static void runOnUiThreadSafe(Runnable action) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).post(action);
+    }
+
     private static void writeFormField(DataOutputStream request, String name, String value, String boundary) throws IOException {
         String LINE_FEED = "\r\n";
         request.writeBytes("--" + boundary + LINE_FEED);
@@ -231,6 +339,41 @@ public class PondSyncManager {
         request.writeBytes(LINE_FEED);
     }
 
+    public static void fetchPondReport(String pondId, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/getpondreport.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8");
+                conn.getOutputStream().write(postData.getBytes());
+                conn.getOutputStream().flush();
+                conn.getOutputStream().close();
+
+                int responseCode = conn.getResponseCode();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        responseCode == 200 ? conn.getInputStream() : conn.getErrorStream()
+                ));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) response.append(line);
+                reader.close();
+
+                if (responseCode == 200) {
+                    JSONObject jsonResponse = new JSONObject(response.toString());
+                    runOnUiThreadSafe(() -> callback.onSuccess(jsonResponse));
+                } else {
+                    runOnUiThreadSafe(() -> callback.onError("Server returned: " + responseCode + " → " + response));
+                }
+
+            } catch (Exception e) {
+                runOnUiThreadSafe(() -> callback.onError("Error: " + e.getMessage()));
+            }
+        }).start();
+    }
 
     public static void uploadFeedingScheduleToServer(String pondName,
                                                      String schedOne,
@@ -291,43 +434,4 @@ public class PondSyncManager {
         void onError(String error);
     }
 
-    public static void updatePondDetails(PondModel pond, Callback callback) {
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://yourserver.com/updatePond.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-                String postData = "pond_id=" + URLEncoder.encode(pond.getId(), "UTF-8") +
-                        "&name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
-                        "&breed=" + URLEncoder.encode(pond.getBreed(), "UTF-8") +
-                        "&fish_count=" + pond.getFishCount() +
-                        "&cost_per_fish=" + pond.getCostPerFish() +
-                        "&date_started=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
-                        "&date_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8");
-
-                OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
-                os.flush();
-
-                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = br.readLine()) != null) response.append(line);
-
-                br.close();
-                conn.disconnect();
-
-                if (callback != null) {
-                    new Handler(Looper.getMainLooper()).post(() -> callback.onSuccess(response.toString()));
-                }
-            } catch (Exception e) {
-                if (callback != null) {
-                    new Handler(Looper.getMainLooper()).post(() -> callback.onError(e.getMessage()));
-                }
-            }
-        }).start();
-    }
 }
