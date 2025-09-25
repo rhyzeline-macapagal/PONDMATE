@@ -342,7 +342,7 @@ public class PondSyncManager {
     public static void fetchPondReport(String pondId, Callback callback) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://pondmate.alwaysdata.net/getpondreport.php");
+                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_report.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
