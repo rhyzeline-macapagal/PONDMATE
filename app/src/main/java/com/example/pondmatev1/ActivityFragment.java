@@ -27,8 +27,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import android.graphics.Color;
 
-
-public class  ActivityFragment extends Fragment {
+public class ActivityFragment extends Fragment {
 
     private MaterialCalendarView calendarView;
     private LinearLayout activitiesLayout;
@@ -97,7 +96,7 @@ public class  ActivityFragment extends Fragment {
         calendarView.setOnDateChangedListener((widget, date, selected) -> {
             String clickedDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(date.getDate());
             List<ActivityItem> items = activitiesByDate.get(clickedDate);
-            if (items != null) {
+            if (items != null && !items.isEmpty()) {
                 displayActivities(items);
             } else {
                 activitiesLayout.removeAllViews();
@@ -141,23 +140,22 @@ public class  ActivityFragment extends Fragment {
                         String name = obj.getString("activity_name");
                         String type = obj.getString("activity_type");
                         String date = obj.getString("scheduled_date");
-                        ActivityItem item = new ActivityItem(name, type, date);
 
+                        ActivityItem item = new ActivityItem(name, type, date);
                         allActivities.add(item);
 
-                        // Add to map for date grouping
+                        // Populate activitiesByDate
                         if (!activitiesByDate.containsKey(date)) {
                             activitiesByDate.put(date, new ArrayList<>());
                         }
                         activitiesByDate.get(date).add(item);
                     }
 
-                    // Add blue dots to calendar
+                    // Add dots and display today’s activities
                     requireActivity().runOnUiThread(() -> {
                         addDotsToCalendar();
-                        // Initially display today’s activities if available
-                        CalendarDay today = CalendarDay.today();
-                        String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(today.getDate());
+                        String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                .format(CalendarDay.today().getDate());
                         if (activitiesByDate.containsKey(todayStr)) {
                             displayActivities(activitiesByDate.get(todayStr));
                         } else {
@@ -194,29 +192,43 @@ public class  ActivityFragment extends Fragment {
         }
     }
 
-    private void displayActivities(List<ActivityItem> activities) {
+    private void displayActivities(List<ActivityItem> items) {
+        // Clear previous items
         activitiesLayout.removeAllViews();
-        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
 
-        for (ActivityItem item : activities) {
-            CheckBox cb = new CheckBox(getContext());
-            cb.setText(item.getName() + " (" + item.getScheduledDate() + ")");
-            cb.setTextColor(Color.BLACK);
-            String key = selectedPond.getId() + "_" + item.getScheduledDate() + "_" + item.getName();
-            cb.setChecked(prefs.getBoolean(key, false));
+        if (items == null || items.isEmpty()) {
+            TextView tv = new TextView(requireContext());
+            tv.setText("No activities on this date.");
+            activitiesLayout.addView(tv);
+            return;
+        }
 
-            cb.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putBoolean(key, isChecked);
-                editor.apply();
+        SharedPreferences prefs = requireContext().getSharedPreferences("ActivityPrefs", Context.MODE_PRIVATE);
+
+        for (ActivityItem item : items) {
+            CheckBox checkBox = new CheckBox(requireContext());
+            checkBox.setText(item.getName()); // display actual activity name
+            checkBox.setTextColor(Color.BLACK);
+
+            // Key format: pondId_date_activity
+            String pondId = selectedPond.getId();
+            String key = pondId + "_" + item.getScheduledDate() + "_" + item.getName();
+
+            boolean isChecked = prefs.getBoolean(key, false);
+            checkBox.setChecked(isChecked);
+
+            // Save state when toggled
+            checkBox.setOnCheckedChangeListener((buttonView, isChecked1) -> {
+                prefs.edit().putBoolean(key, isChecked1).apply();
             });
 
-            activitiesLayout.addView(cb);
+            // Add to layout
+            activitiesLayout.addView(checkBox);
         }
     }
 
-    // --- Supporting classes inside the fragment ---
 
+    // --- Supporting classes ---
     public static class PondModel {
         private String id, name, breed, dateStarted, dateHarvest;
         private int fishCount;
@@ -244,32 +256,29 @@ public class  ActivityFragment extends Fragment {
 
     public static class ActivityItem {
         private final String name, type, scheduledDate;
+
         public ActivityItem(String name, String type, String scheduledDate) {
             this.name = name;
             this.type = type;
             this.scheduledDate = scheduledDate;
         }
+
         public String getName() { return name; }
         public String getType() { return type; }
         public String getScheduledDate() { return scheduledDate; }
     }
 
-    // --- Decorator class for blue dot ---
+    // Decorator for blue dot
     private static class DotDecorator implements DayViewDecorator {
         private final CalendarDay day;
-
-        DotDecorator(CalendarDay day) {
-            this.day = day;
-        }
+        DotDecorator(CalendarDay day) { this.day = day; }
 
         @Override
-        public boolean shouldDecorate(CalendarDay day) {
-            return this.day.equals(day);
-        }
+        public boolean shouldDecorate(CalendarDay day) { return this.day.equals(day); }
 
         @Override
         public void decorate(DayViewFacade view) {
-            view.addSpan(new com.prolificinteractive.materialcalendarview.spans.DotSpan(10, 0xFF2196F3)); // Blue dot
+            view.addSpan(new com.prolificinteractive.materialcalendarview.spans.DotSpan(10, 0xFF2196F3));
         }
     }
 }
