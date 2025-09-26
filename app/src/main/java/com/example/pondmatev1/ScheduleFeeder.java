@@ -111,9 +111,6 @@ public class ScheduleFeeder extends Fragment {
             tvFishCount.setText(String.valueOf(fishCount));
 
 
-
-            // =================== Backend Fetch ===================
-
             PondSyncManager.fetchPondSchedule(pondNameLocal, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object result) {

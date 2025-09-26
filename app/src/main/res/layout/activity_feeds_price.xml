@@ -5,6 +5,25 @@
     android:orientation="vertical"
     android:background="#F9F9F9">
 
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/btnClose"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:text="✖"
+            android:textSize="18sp"
+            android:textColor="#666666"
+            android:layout_alignParentEnd="true"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"/>
+    </RelativeLayout>
+
     <!-- Page Title -->
     <TextView
         android:id="@+id/titleFeeds"
@@ -18,68 +37,90 @@
         android:background="#2196F3"
         android:textColor="@android:color/white" />
 
-    <!-- Subtitle / Description -->
+    <!-- Subtitle -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="12dp"
-        android:text="Below are the current feed prices per breed and feed type. Tap 'Edit' to update."
+        android:text="Below are the current feed prices per breed and feed type. Tap 'Edit' to update the prices."
         android:textSize="14sp"
         android:textColor="#444"
         android:gravity="center"/>
 
-    <!-- Table Scroll -->
-    <ScrollView
+    <!-- Horizontal + Vertical Scroll -->
+    <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="8dp">
+        android:fillViewport="true">
 
-        <TableLayout
-            android:id="@+id/tableFeeds"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:stretchColumns="0,1,2,3,4"
-            android:background="@android:color/white"
-            android:padding="8dp"
-            android:elevation="2dp">
+        <ScrollView
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:padding="8dp">
 
-            <!-- Header -->
-            <TableRow
-                android:background="#EEEEEE"
-                android:padding="8dp">
+            <TableLayout
+                android:id="@+id/tableFeeds"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:stretchColumns="*"
+                android:background="@android:color/white"
+                android:divider="@android:color/darker_gray"
+                android:showDividers="middle"
+                android:padding="4dp"
+                android:elevation="2dp">
 
-                <TextView
-                    android:text="Breed"
-                    android:padding="4dp"
-                    android:textStyle="bold"
-                    android:textColor="#000" />
+                <!-- Header -->
+                <TableRow
+                    android:background="#E0E0E0"
+                    android:padding="8dp">
 
-                <TextView
-                    android:text="Feed Type"
-                    android:padding="4dp"
-                    android:textStyle="bold"
-                    android:textColor="#000" />
+                    <TextView
+                        android:text="Action"
+                        android:layout_margin="4dp"
 
-                <TextView
-                    android:text="Price/kg"
-                    android:padding="4dp"
-                    android:textStyle="bold"
-                    android:textColor="#000" />
+                        android:padding="6dp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:textColor="#000" />
 
-                <TextView
-                    android:text="Date Updated"
-                    android:padding="4dp"
-                    android:textStyle="bold"
-                    android:textColor="#000" />
+                    <TextView
+                        android:text="Breed"
+                        android:layout_margin="4dp"
 
-                <TextView
-                    android:text="Action"
-                    android:padding="4dp"
-                    android:textStyle="bold"
-                    android:textColor="#000" />
-            </TableRow>
+                        android:padding="6dp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:textColor="#000" />
 
-            <!-- Dynamic rows will be inserted via Java -->
-        </TableLayout>
-    </ScrollView>
+                    <TextView
+                        android:text="Feed Type"
+                        android:layout_margin="4dp"
+
+                        android:padding="6dp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:textColor="#000" />
+
+                    <TextView
+                        android:text="Price/kg"
+                        android:layout_margin="4dp"
+
+                        android:padding="6dp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:textColor="#000" />
+
+                    <TextView
+                        android:text="Date Updated"
+                        android:layout_margin="4dp"
+                        
+                        android:padding="6dp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:textColor="#000" />
+                </TableRow>
+            </TableLayout>
+
+        </ScrollView>
+    </HorizontalScrollView>
 </LinearLayout>

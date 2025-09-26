@@ -90,7 +90,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             // Feeds Prices button
             ImageButton btnFeedsPrice = dialogView.findViewById(R.id.btnFeedsPrice);
             btnFeedsPrice.setOnClickListener(v1 -> {
-                startActivity(new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class));
+                startActivity(new Intent(PondDashboardActivity.this, FeedsPriceActivity.class));
                 dialog.dismiss();
             });
 

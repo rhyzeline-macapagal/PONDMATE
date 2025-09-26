@@ -1,4 +1,5 @@
 package com.example.pondmatev1;
+
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -59,9 +60,9 @@ public class PondSyncManager {
                 if (callback != null) {
                     new Handler(Looper.getMainLooper()).post(() -> {
                         if ("success".equalsIgnoreCase(status)) {
-                            callback.onSuccess(response); // <-- send full JSON string
+                            callback.onSuccess(response); // send full JSON
                         } else {
-                            callback.onError(message);;
+                            callback.onError(message);
                         }
                     });
                 }
@@ -74,9 +75,6 @@ public class PondSyncManager {
         }).start();
     }
 
-
-
-
     public static void uploadMaintenanceToServer(String pond, String description, double cost, Callback callback) {
         new Thread(() -> {
             try {
@@ -85,7 +83,6 @@ public class PondSyncManager {
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
 
-                // Send pond_name + maintenance details
                 Log.d("UPLOAD_MAINT", "Posting pond=" + pond + ", desc=" + description + ", amount=" + cost);
                 String postData = "name=" + URLEncoder.encode(pond, "UTF-8") +
                         "&description=" + URLEncoder.encode(description, "UTF-8") +
@@ -158,22 +155,18 @@ public class PondSyncManager {
 
                 DataOutputStream request = new DataOutputStream(conn.getOutputStream());
 
-                // --- Add text fields ---
                 writeFormField(request, "pond_id", pond.getId(), boundary);
                 writeFormField(request, "name", pond.getName(), boundary);
                 writeFormField(request, "action", action, boundary);
 
-                // ✅ Send existing path if no file is provided
                 if (pdfFile == null) {
                     writeFormField(request, "pdf_path", pond.getPdfPath() != null ? pond.getPdfPath() : "", boundary);
                 }
 
-                // --- Add file if exists ---
                 if (pdfFile != null && pdfFile.exists()) {
                     writeFileField(request, "pdf_file", pdfFile, boundary);
                 }
 
-                // End multipart
                 request.writeBytes("--" + boundary + "--" + LINE_FEED);
                 request.flush();
                 request.close();
@@ -215,7 +208,6 @@ public class PondSyncManager {
                 conn.setDoInput(true);
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-                // ✅ Build the POST data
                 String postData =
                         "pond_id=" + URLEncoder.encode(pond.getId(), "UTF-8") +
                                 "&name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
@@ -225,13 +217,11 @@ public class PondSyncManager {
                                 "&date_started=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
                                 "&date_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8");
 
-                // ✅ Send data
                 try (OutputStream os = conn.getOutputStream()) {
                     os.write(postData.getBytes());
                     os.flush();
                 }
 
-                // ✅ Read response
                 int responseCode = conn.getResponseCode();
                 BufferedReader in = new BufferedReader(new InputStreamReader(
                         responseCode >= 200 && responseCode < 300
@@ -275,24 +265,20 @@ public class PondSyncManager {
 
                 int responseCode = conn.getResponseCode();
                 BufferedReader in = new BufferedReader(new InputStreamReader(
-                        responseCode >= 200 && responseCode < 300
-                                ? conn.getInputStream()
-                                : conn.getErrorStream()
+                        responseCode >= 200 ? conn.getInputStream() : conn.getErrorStream()
                 ));
-                String inputLine;
                 StringBuilder response = new StringBuilder();
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
+                String line;
+                while ((line = in.readLine()) != null) {
+                    response.append(line);
                 }
                 in.close();
 
                 String cleanedResponse = response.toString().trim();
                 Log.d("DeletePondResponse", "Code: " + responseCode + " | Body: " + response);
-                Log.d("DeletePondResponse", "Body Cleaned: '" + cleanedResponse + "'");
 
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     if (cleanedResponse.equalsIgnoreCase("success")) {
-                        // ✅ Ensure callback runs on UI thread
                         runOnUiThreadSafe(() -> callback.onSuccess("Pond deleted"));
                     } else {
                         runOnUiThreadSafe(() -> callback.onError("Delete failed → " + cleanedResponse));
@@ -308,35 +294,6 @@ public class PondSyncManager {
                 });
             }
         }).start();
-    }
-
-    private static void runOnUiThreadSafe(Runnable action) {
-        new android.os.Handler(android.os.Looper.getMainLooper()).post(action);
-    }
-
-    private static void writeFormField(DataOutputStream request, String name, String value, String boundary) throws IOException {
-        String LINE_FEED = "\r\n";
-        request.writeBytes("--" + boundary + LINE_FEED);
-        request.writeBytes("Content-Disposition: form-data; name=\"" + name + "\"" + LINE_FEED);
-        request.writeBytes(LINE_FEED);
-        request.writeBytes(value + LINE_FEED);
-    }
-
-    private static void writeFileField(DataOutputStream request, String fieldName, File file, String boundary) throws IOException {
-        String LINE_FEED = "\r\n";
-        request.writeBytes("--" + boundary + LINE_FEED);
-        request.writeBytes("Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\"" + file.getName() + "\"" + LINE_FEED);
-        request.writeBytes("Content-Type: application/pdf" + LINE_FEED);
-        request.writeBytes(LINE_FEED);
-
-        FileInputStream inputStream = new FileInputStream(file);
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = inputStream.read(buffer)) != -1) {
-            request.write(buffer, 0, bytesRead);
-        }
-        inputStream.close();
-        request.writeBytes(LINE_FEED);
     }
 
     public static void fetchPondReport(String pondId, Callback callback) {
@@ -380,35 +337,34 @@ public class PondSyncManager {
                                                      String schedTwo,
                                                      String schedThree,
                                                      double feedAmount,
+                                                     float fishWeight,
                                                      Callback callback) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://pondmate.alwaysdata.net/save_feeding_schedule.php"); // your PHP file
+                URL url = new URL("https://pondmate.alwaysdata.net/save_feeding_schedule.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
 
-                // Debug log
                 Log.d("UPLOAD_FEED", "Posting pond=" + pondName +
                         ", sched1=" + schedOne +
                         ", sched2=" + schedTwo +
                         ", sched3=" + schedThree +
-                        ", amount=" + feedAmount);
+                        ", amount=" + feedAmount +
+                        ", fish_weight=" + fishWeight);
 
-                // Build POST data
                 String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
                         "&sched_one=" + URLEncoder.encode(schedOne, "UTF-8") +
                         "&sched_two=" + URLEncoder.encode(schedTwo != null ? schedTwo : "", "UTF-8") +
                         "&sched_three=" + URLEncoder.encode(schedThree != null ? schedThree : "", "UTF-8") +
-                        "&feed_amount=" + feedAmount;
+                        "&feed_amount=" + feedAmount +
+                        "&fish_weight=" + fishWeight;
 
-                // Send to server
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush();
                 os.close();
 
-                // Handle response
                 int responseCode = conn.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -427,11 +383,164 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void fetchPondSchedule(String pondName, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_schedule.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
 
-    // Callback interface for async results
+                String postData = "name=" + URLEncoder.encode(pondName, "UTF-8");
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+
+                callback.onSuccess(result.toString());
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    public static void updateFeedPrice(String id, String newPrice, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/update_feed_price.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData = "id=" + URLEncoder.encode(id, "UTF-8") +
+                        "&price_per_kg=" + URLEncoder.encode(newPrice, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+
+                callback.onSuccess(result.toString());
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    // Callback interface
     public interface Callback {
         void onSuccess(Object result);
         void onError(String error);
     }
 
+    private static void runOnUiThreadSafe(Runnable action) {
+        new Handler(Looper.getMainLooper()).post(action);
+    }
+
+    private static void writeFormField(DataOutputStream request, String name, String value, String boundary) throws IOException {
+        String LINE_FEED = "\r\n";
+        request.writeBytes("--" + boundary + LINE_FEED);
+        request.writeBytes("Content-Disposition: form-data; name=\"" + name + "\"" + LINE_FEED);
+        request.writeBytes(LINE_FEED);
+        request.writeBytes(value + LINE_FEED);
+    }
+
+    private static void writeFileField(DataOutputStream request, String fieldName, File file, String boundary) throws IOException {
+        String LINE_FEED = "\r\n";
+        request.writeBytes("--" + boundary + LINE_FEED);
+        request.writeBytes("Content-Disposition: form-data; name=\"" + fieldName + "\"; filename=\"" + file.getName() + "\"" + LINE_FEED);
+        request.writeBytes("Content-Type: application/pdf" + LINE_FEED);
+        request.writeBytes(LINE_FEED);
+
+        FileInputStream inputStream = new FileInputStream(file);
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            request.write(buffer, 0, bytesRead);
+        }
+        inputStream.close();
+        request.writeBytes(LINE_FEED);
+    }
+
+    public static void fetchFeeds(Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_feeds.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST"); // POST (safe even if no params)
+                conn.setDoOutput(true);
+
+                // In case future params are needed, send empty string now
+                OutputStream os = conn.getOutputStream();
+                os.write("".getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+
+                callback.onSuccess(result.toString());
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    // 🔹 Update feed price
+    public static void updateFeedPrice(int feedId, double newPrice, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/update_feeds.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                // Prepare POST data
+                String postData = "id=" + URLEncoder.encode(String.valueOf(feedId), "UTF-8") +
+                        "&price_per_kg=" + URLEncoder.encode(String.valueOf(newPrice), "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+
+                callback.onSuccess(result.toString());
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
 }

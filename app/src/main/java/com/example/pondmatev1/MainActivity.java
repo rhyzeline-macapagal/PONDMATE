@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
             // Feeds Prices button
             ImageButton btnFeedsPrice = dialogView.findViewById(R.id.btnFeedsPrice);
             btnFeedsPrice.setOnClickListener(v1 -> {
-                startActivity(new Intent(MainActivity.this, PondDashboardActivity.class));
+                startActivity(new Intent(MainActivity.this, FeedsPriceActivity.class));
                 dialog.dismiss();
             });
 
