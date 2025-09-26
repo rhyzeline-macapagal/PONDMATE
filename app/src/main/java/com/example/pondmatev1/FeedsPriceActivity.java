@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.Gravity;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -12,6 +13,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
 import org.json.JSONArray;
@@ -25,6 +27,8 @@ public class FeedsPriceActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+
         setContentView(R.layout.activity_feeds_price);
 
         tableFeeds = findViewById(R.id.tableFeeds);
@@ -66,37 +70,37 @@ public class FeedsPriceActivity extends AppCompatActivity {
                             String price = feed.getString("price_per_kg");
                             String updated = feed.getString("updated_at");
 
+                            // TableRow
                             TableRow row = new TableRow(FeedsPriceActivity.this);
-                            row.setPadding(4, 4, 4, 4);
+                            row.setPadding(0, 0, 0, 0);
 
-                            // Alternate row background (zebra style)
-                            if (i % 2 == 0) {
-                                row.setBackgroundColor(0xFFF9F9F9); // light gray
-                            } else {
-                                row.setBackgroundColor(0xFFFFFFFF); // white
-                            }
+// Common cell height (e.g., 60dp)
+                            int cellHeight = (int) (56 * getResources().getDisplayMetrics().density);
 
-                            // Action (Edit icon button)
+// Action (Edit icon button)
                             ImageButton btnEdit = new ImageButton(FeedsPriceActivity.this);
                             btnEdit.setImageResource(android.R.drawable.ic_menu_edit);
-                            btnEdit.setBackgroundColor(0x00000000); // transparent background
-                            btnEdit.setPadding(12, 8, 12, 8);
-                            btnEdit.setBackgroundResource(R.drawable.cell_border);
-                            TableRow.LayoutParams params = new TableRow.LayoutParams(
-                                    TableRow.LayoutParams.WRAP_CONTENT,
-                                    TableRow.LayoutParams.WRAP_CONTENT
+                            btnEdit.setScaleType(ImageButton.ScaleType.CENTER_INSIDE);
+                            btnEdit.setAdjustViewBounds(true);
+
+// ✅ Force same size as text cells
+                            TableRow.LayoutParams paramsBtn = new TableRow.LayoutParams(
+                                    (int) (60 * getResources().getDisplayMetrics().density), // width
+                                    cellHeight // height
                             );
-                            btnEdit.setLayoutParams(params);
+                            paramsBtn.gravity = Gravity.CENTER;
+                            btnEdit.setLayoutParams(paramsBtn);
+
+// Remove default background (so only your border shows)
                             row.addView(btnEdit);
 
-
-                            // Breed
+// Breed
                             TextView tvBreed = new TextView(FeedsPriceActivity.this);
                             tvBreed.setText(breed);
                             tvBreed.setPadding(12, 8, 12, 8);
                             tvBreed.setMinWidth(100);
-                            tvBreed.setBackgroundResource(R.drawable.cell_border); // ✅ add border
-                            tvBreed.setTextAlignment(TextView.TEXT_ALIGNMENT_CENTER);
+                            tvBreed.setGravity(Gravity.CENTER);
+                            tvBreed.setHeight(cellHeight); // ✅ match row height
                             row.addView(tvBreed);
 
 // Feed type
@@ -104,8 +108,8 @@ public class FeedsPriceActivity extends AppCompatActivity {
                             tvType.setText(feedType);
                             tvType.setPadding(12, 8, 12, 8);
                             tvType.setMinWidth(80);
-                            tvType.setBackgroundResource(R.drawable.cell_border); // ✅ add border
-                            tvType.setTextAlignment(TextView.TEXT_ALIGNMENT_CENTER);
+                            tvType.setGravity(Gravity.CENTER);
+                            tvType.setHeight(cellHeight); // ✅ match row height
                             row.addView(tvType);
 
 // Price
@@ -114,8 +118,8 @@ public class FeedsPriceActivity extends AppCompatActivity {
                             tvPrice.setText("₱" + String.format("%.2f", priceVal));
                             tvPrice.setPadding(12, 8, 12, 8);
                             tvPrice.setMinWidth(80);
-                            tvPrice.setBackgroundResource(R.drawable.cell_border); // ✅ add border
-                            tvPrice.setTextAlignment(TextView.TEXT_ALIGNMENT_CENTER);
+                            tvPrice.setGravity(Gravity.CENTER);
+                            tvPrice.setHeight(cellHeight); // ✅ match row height
                             row.addView(tvPrice);
 
 // Date updated
@@ -123,10 +127,16 @@ public class FeedsPriceActivity extends AppCompatActivity {
                             tvUpdated.setText(updated);
                             tvUpdated.setPadding(12, 8, 12, 8);
                             tvUpdated.setMinWidth(150);
-                            tvUpdated.setBackgroundResource(R.drawable.cell_border); // ✅ add border
-
+                            tvUpdated.setGravity(Gravity.CENTER);
+                            tvUpdated.setHeight(cellHeight); // ✅ match row height
                             row.addView(tvUpdated);
 
+
+                            tvBreed.setBackgroundResource(R.drawable.cell_borders);
+                            tvType.setBackgroundResource(R.drawable.cell_borders);
+                            tvPrice.setBackgroundResource(R.drawable.cell_borders);
+                            tvUpdated.setBackgroundResource(R.drawable.cell_borders);
+                            btnEdit.setBackgroundResource(R.drawable.cell_borders);
 
 
 
