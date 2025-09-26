@@ -3,6 +3,8 @@ package com.example.pondmatev1;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.*;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -97,7 +99,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 new androidx.appcompat.app.AlertDialog.Builder(context)
                         .setTitle("Stop Pond")
                         .setMessage("Choose what you want to do with this pond:")
-                        .setPositiveButton("Reset Pond Details", (dialog, which) -> resetPond(holder, pond))
+                        .setPositiveButton("Reuse Pond", (dialog, which) -> reusePond(holder, pond))
                         .setNegativeButton("Delete Pond", (dialog, which) -> deletePond(holder, pond))
                         .setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss())
                         .show();
@@ -122,17 +124,20 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         });
     }
 
-    private void resetPond(ViewHolder holder, PondModel pond) {
-        ResetPondDialogFragment resetDialog = new ResetPondDialogFragment();
-        resetDialog.setPond(pond);
-        resetDialog.setOnPondResetListener(updatedPond -> {
+    private void reusePond(ViewHolder holder, PondModel pond) {
+        ReusePondDialog reuseDialog = new ReusePondDialog();
+        reuseDialog.setPond(pond); // pass existing pond
+        reuseDialog.setOnPondReusedListener(updatedPond -> {
+            // Update pond details first
             PondSyncManager.updatePondDetails(updatedPond, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object result) {
+                    // Preserve existing PDF if any
                     File existingPDF = (updatedPond.getPdfPath() != null && !updatedPond.getPdfPath().isEmpty())
                             ? new File(updatedPond.getPdfPath()) : null;
 
-                    PondSyncManager.savePondHistoryWithPDF(updatedPond, "RESET", existingPDF, new PondSyncManager.Callback() {
+                    // Save history with action = "REUSED"
+                    PondSyncManager.savePondHistoryWithPDF(updatedPond, "REUSED", existingPDF, new PondSyncManager.Callback() {
                         @Override
                         public void onSuccess(Object result) {
                             int adapterPos = holder.getAdapterPosition();
@@ -140,10 +145,11 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                                 pondList.set(adapterPos, updatedPond);
                                 notifyItemChanged(adapterPos);
                             }
-                            runOnUiThread(() -> Toast.makeText(context, "Pond reset successfully!", Toast.LENGTH_SHORT).show());
+                            new Handler(Looper.getMainLooper()).post(() ->
+                                    Toast.makeText(context, "Pond reused successfully!", Toast.LENGTH_SHORT).show()
+                            );
                         }
-
-                        @Override
+                            @Override
                         public void onError(String error) {
                             runOnUiThread(() -> Toast.makeText(context, "History save failed: " + error, Toast.LENGTH_LONG).show());
                         }
@@ -156,8 +162,9 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 }
             });
         });
-        resetDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ResetPondDialog");
+        reuseDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ReusePondDialog");
     }
+
 
     private void deletePond(ViewHolder holder, PondModel pond) {
         PondSyncManager.fetchPondReport(pond.getId(), new PondSyncManager.Callback() {
