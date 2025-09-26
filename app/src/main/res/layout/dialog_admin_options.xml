@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/dialog_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:background="@drawable/rounded_dialog_bg">
+
+    <!-- Close Button -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="2dp">
+
+        <TextView
+            android:id="@+id/btnClose"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:text="✖"
+            android:textSize="16sp"
+            android:textColor="#666666"
+            android:layout_alignParentEnd="true"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"/>
+    </RelativeLayout>
+
+    <!-- Dialog Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Admin Controls"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Button Row with Labels -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp">
+
+        <!-- Caretaker Dashboard -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_margin="8dp">
+
+            <ImageButton
+                android:id="@+id/btnCaretaker"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/circle_button_background"
+                android:src="@drawable/ic_caretaker"
+                android:contentDescription="Caretaker Dashboard"
+                app:tint="@android:color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Caretaker"
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginTop="4dp"/>
+        </LinearLayout>
+
+        <!-- Feeds Prices -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_margin="8dp">
+
+            <ImageButton
+                android:id="@+id/btnFeedsPrice"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/circle_button_background"
+                android:src="@drawable/ic_feeds"
+                android:contentDescription="Feeds Prices"
+                app:tint="@android:color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Feeds Prices"
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginTop="4dp"/>
+        </LinearLayout>
+
+        <!-- Pond History -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_margin="8dp">
+
+            <ImageButton
+                android:id="@+id/btnPondHistory"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/circle_button_background"
+                android:src="@drawable/ic_history"
+                android:contentDescription="Pond History"
+                app:tint="@android:color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pond History"
+                android:textSize="14sp"
+                android:textColor="#333333"
+                android:layout_marginTop="4dp"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

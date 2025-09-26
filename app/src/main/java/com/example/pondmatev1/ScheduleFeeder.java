@@ -9,6 +9,8 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.TypedValue;
@@ -46,15 +48,15 @@ import okhttp3.Response;
 import java.io.IOException;
 import okhttp3.MediaType;
 import okhttp3.RequestBody;
+
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
-
-
 public class ScheduleFeeder extends Fragment {
 
-    private EditText Fweight, feedqttycont;
+
     private Button selectDate, selectTime, Createbtn, selectTime1, selectTime2;
-    private TextView dateFS, timeFS, fishqty, timeFS1, timeFS2;
+    private TextView dateFS, timeFS, fishqty, timeFS1, timeFS2, feedqttycont, Fweight;
     private TableLayout SummaryT;
     private boolean isCreating = true;
     private PondSharedViewModel pondSharedViewModel;
@@ -69,6 +71,9 @@ public class ScheduleFeeder extends Fragment {
     private static final String KEY_DYNAMIC_TIMES = "dynamic_times";
     private String pondName = "";
 
+    private View layoutContent, layoutEmptyState;
+    private Button btnAddSchedule;
+
     private static class ScheduleRow {
         String date;
         String time;
@@ -77,377 +82,160 @@ public class ScheduleFeeder extends Fragment {
         long millisUntil;
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.schedule_feeder, container, false);
 
-        SharedPreferences pref = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-        String pondJson = pref.getString("selected_pond", null);
+        // UI Elements
+        Createbtn = view.findViewById(R.id.btnEditSchedule);
+        timeFS = view.findViewById(R.id.tvFirstFeeding);
+        timeFS1 = view.findViewById(R.id.tvSecondFeeding);
+        timeFS2 = view.findViewById(R.id.tvThirdFeeding);
+        feedqttycont = view.findViewById(R.id.tvFeedQty);
+        Fweight = view.findViewById(R.id.tvFeedPrice);
+
+        TextView tvFishCount = view.findViewById(R.id.tvFishCount);
+        TextView tvFishWeight = view.findViewById(R.id.tvFishWeight);
+        TextView tvFeedType = view.findViewById(R.id.tvFeedType);
+
+        // Get selected pond from SharedPreferences
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
 
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
-            pondName = pond.getName();
-        }
-
-        // Initialize views
-        dateFS = view.findViewById(R.id.dateoffeedingschedule);
-        timeFS = view.findViewById(R.id.timeoffeeding3);
-        selectDate = view.findViewById(R.id.btnselectdate);
-        selectTime = view.findViewById(R.id.btnselecttimes);
-        Createbtn = view.findViewById(R.id.createbtn);
-        SummaryT= view.findViewById(R.id.summaryTable);
-        feedqttycont = view.findViewById(R.id.feedquantity);
-        Fweight = view.findViewById(R.id.weight);
-        fishqty = view.findViewById(R.id.tvsfishcount);
-        checkbox = view.findViewById(R.id.checkBoxDefault);
-        timeFS1 = view.findViewById(R.id.timeoffeeding1);
-        timeFS2 = view.findViewById(R.id.timeoffeeding2);
-        selectTime1 = view.findViewById(R.id.btnselecttime1);
-        selectTime2 = view.findViewById(R.id.btnselecttime2);
-
-        pondSharedViewModel = new ViewModelProvider(requireActivity()).get(PondSharedViewModel.class);
-        pondSharedViewModel.getFishCount().observe(getViewLifecycleOwner(), count -> {
-            computeFeedQuantityIfReady();
-            fishqty.setText(String.valueOf(count));
-        });
-
-        if (pondSharedViewModel.getFishCount().getValue() != null) {
-            computeFeedQuantityIfReady();
-            fishqty.setText(String.valueOf(pondSharedViewModel.getFishCount().getValue()));
-        }
-
-        feedqttycont.setFocusable(false);
-        feedqttycont.setClickable(false);
-        feedqttycont.setCursorVisible(false);
-        feedqttycont.setKeyListener(null);
-
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        suppressCheckboxListener = true;
-        checkbox.setEnabled(false);
-
-        boolean hasDefaults = prefs.getBoolean(KEY_REMEMBER, false);
-        checkbox.setChecked(hasDefaults);
-        suppressCheckboxListener = false;
-
-        if (hasDefaults) {
-            timeFS.setText(prefs.getString(KEY_TIME_MAIN, ""));
-            timeFS1.setText(prefs.getString(KEY_TIME_1, ""));
-            timeFS2.setText(prefs.getString(KEY_TIME_2, ""));
-            Set<String> savedDynamicTimes = prefs.getStringSet(KEY_DYNAMIC_TIMES, null);
-
-            selectDate.setEnabled(false);
-            selectTime1.setEnabled(false);
-            selectTime2.setEnabled(false);
-            selectTime.setEnabled(false);
-
-            feedqttycont.setEnabled(false);
-            Fweight.setEnabled(false);
-        }
-
-        Fweight.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            @Override public void afterTextChanged(Editable s) {
-                computeFeedQuantityIfReady();
-            }
-        });
-
-        checkbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isCreating) return;
-            if (suppressCheckboxListener) return;
-
-            SharedPreferences inprefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-            if (isChecked) {
-                String defMain = inprefs.getString(KEY_TIME_MAIN, "");
-                String def1 = inprefs.getString(KEY_TIME_1, "");
-                String def2 = inprefs.getString(KEY_TIME_2, "");
-
-                if (timeFS.getText().toString().isEmpty() && !defMain.isEmpty()) timeFS.setText(defMain);
-                if (timeFS1.getText().toString().isEmpty() && !def1.isEmpty()) timeFS1.setText(def1);
-                if (timeFS2.getText().toString().isEmpty() && !def2.isEmpty()) timeFS2.setText(def2);
-            }
-        });
-
-        // Date & Time pickers
-        selectDate.setOnClickListener(v -> showDatePicker());
-        selectTime.setOnClickListener(v -> showTimePicker(timeFS));
-        selectTime1.setOnClickListener(v -> showTimePicker(timeFS1));
-        selectTime2.setOnClickListener(v -> showTimePicker(timeFS2));
-
-        // Create / Save button
-        Createbtn.setOnClickListener(v -> handleCreateSave());
-        Createbtn.setOnClickListener(v -> {
-            ScheduleFeederDialog dialog = new ScheduleFeederDialog();
-            dialog.show(getParentFragmentManager(), "ScheduleFeederDialog");
-        });
-
-        selectDate.setEnabled(false);
-        selectTime.setEnabled(false);
-        feedqttycont.setEnabled(false);
-        Fweight.setEnabled(false);
-        checkbox.setEnabled(false);
-
-        return view;
-    }
-    private void uploadFeedingTimesToESP(String main, String t1, String t2) {
-        OkHttpClient client = new OkHttpClient();
-
-        // Your Adafruit credentials
-
-        String feedKey = "schedule"; // your Adafruit feed key
-        String username = getString(R.string.adafruit_username);
-        String aioKey = getString(R.string.adafruit_aio_key);
+            String pondNameLocal = pond.getName();
+            int fishCount = pond.getFishCount();
+            tvFishCount.setText(String.valueOf(fishCount));
 
 
-        // ✅ Now includes pond name
-        String value = pondName + "|" + main + "," + t1 + "," + t2;
 
-        try {
-            JSONObject json = new JSONObject();
-            json.put("value", value);
+            // =================== Backend Fetch ===================
 
-            RequestBody body = RequestBody.create(json.toString(),
-                    MediaType.parse("application/json; charset=utf-8"));
+            PondSyncManager.fetchPondSchedule(pondNameLocal, new PondSyncManager.Callback() {
+                @Override
+                public void onSuccess(Object result) {
+                    String response = (String) result; // cast to String
 
-            String url = "https://io.adafruit.com/api/v2/" + username + "/feeds/" + feedKey + "/data";
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        try {
+                            JSONObject json = new JSONObject(response);
 
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("X-AIO-Key", aioKey)
-                    .post(body)
-                    .build();
+                            if ("success".equals(json.getString("status"))) {
 
-            client.newCall(request).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) {
-                    e.printStackTrace();
-                    requireActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Failed to post to Adafruit: " + e.getMessage(), Toast.LENGTH_LONG).show());
-                }
+                                JSONArray schedulesArray = json.optJSONArray("schedules");
+                                if (schedulesArray != null && schedulesArray.length() > 0) {
+                                    JSONObject scheduleObj = schedulesArray.getJSONObject(0);
 
-                @Override public void onResponse(Call call, Response response) throws IOException {
-                    final String bodyStr = (response.body()!=null) ? response.body().string() : "";
-                    requireActivity().runOnUiThread(() -> {
-                        if (response.isSuccessful()) {
-                            Toast.makeText(getContext(), "Schedule posted to Adafruit with pond name!", Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(getContext(), "Adafruit error: " + response.code() + " " + bodyStr, Toast.LENGTH_LONG).show();
+                                    String schedOne = scheduleObj.optString("sched_one", "");
+                                    String schedTwo = scheduleObj.optString("sched_two", "");
+                                    String schedThree = scheduleObj.optString("sched_three", "");
+                                    String feedQty = scheduleObj.optString("feed_amount", "0.0") + " kg";
+                                    String feedType = scheduleObj.optString("feeder_type", "Starter");
+                                    String feedPrice = "₱" + scheduleObj.optString("feed_price", "0.00");
+                                    String fishWeight = scheduleObj.optString("fish_weight", "0.00") + " g";
+
+
+                                    tvFishWeight.setText(fishWeight);
+                                    feedqttycont.setText(feedQty);
+                                    tvFeedType.setText(feedType);
+                                    Fweight.setText(feedPrice);
+
+                                    if (timeFS != null) timeFS.setText(formatTime(schedOne));
+                                    if (timeFS1 != null) timeFS1.setText(formatTime(schedTwo));
+                                    if (timeFS2 != null) timeFS2.setText(formatTime(schedThree));
+
+                                    // Populate table
+//                                    populateScheduleTable(schedOne, schedTwo, schedThree, feedQty);
+                                }
+
+                            } else {
+                                Toast.makeText(getContext(),
+                                        "Error: " + json.optString("message", "Unknown error"),
+                                        Toast.LENGTH_SHORT).show();
+                            }
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Toast.makeText(getContext(),
+                                    "Parse error: " + e.getMessage(),
+                                    Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
+
+                @Override
+                public void onError(String error) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "Failed to fetch schedule: " + error, Toast.LENGTH_SHORT).show());
+                }
             });
-        } catch (JSONException ex) {
-            ex.printStackTrace();
-            Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
 
 
-
-    // ----------------- Date & Time Pickers -----------------
-    private void showDatePicker() {
-        Calendar now = Calendar.getInstance();
-        DatePickerDialog datePickerDialog = new DatePickerDialog(
-                getContext(),
-                (view1, year, month, dayOfMonth) -> {
-                    Calendar selected = Calendar.getInstance();
-                    selected.set(year, month, dayOfMonth);
-
-                    if (selected.before(Calendar.getInstance())) {
-                        Toast.makeText(getContext(), "Cannot select a past date.", Toast.LENGTH_SHORT).show();
-                    } else {
-                        @SuppressLint("SimpleDateFormat")
-                        SimpleDateFormat displayFormat =
-                                new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
-                        dateFS.setText(displayFormat.format(selected.getTime()));
-                    }
-                },
-                now.get(Calendar.YEAR),
-                now.get(Calendar.MONTH),
-                now.get(Calendar.DAY_OF_MONTH)
-        );
-
-        datePickerDialog.getDatePicker().setMinDate(now.getTimeInMillis());
-        try { datePickerDialog.getDatePicker().setCalendarViewShown(false); datePickerDialog.getDatePicker().setSpinnersShown(true); } catch (Exception ignored) {}
-        datePickerDialog.show();
-    }
-
-    private void showTimePicker(TextView targetTime) {
-        String selectedDateStr = dateFS.getText().toString();
-        if (selectedDateStr.isEmpty()) {
-            Toast.makeText(getContext(), "Please select a date first.", Toast.LENGTH_SHORT).show();
-            return;
         }
 
-        Calendar now = Calendar.getInstance();
-        int hour = now.get(Calendar.HOUR_OF_DAY);
-        int minute = now.get(Calendar.MINUTE);
+        // Create button listener
+        Createbtn.setOnClickListener(v -> {
+            ScheduleFeederDialog dialog = new ScheduleFeederDialog();
+            dialog.show(getChildFragmentManager(), "ScheduleFeederDialog");
+        });
 
-        TimePickerDialog timePickerDialog = new TimePickerDialog(getContext(),
-                (view12, selectedHour, selectedMinute) -> {
-                    try {
-                        @SuppressLint("SimpleDateFormat")
-                        SimpleDateFormat parser = new SimpleDateFormat("MMM. dd, yyyy HH:mm", Locale.getDefault());
-                        Calendar selectedTime = Calendar.getInstance();
-                        selectedTime.setTime(parser.parse(selectedDateStr + " " + selectedHour + ":" + selectedMinute));
-
-                        if (selectedTime.before(now)) {
-                            Toast.makeText(getContext(), "Cannot select a past time.", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Calendar displayCal = Calendar.getInstance();
-                            displayCal.set(Calendar.HOUR_OF_DAY, selectedHour);
-                            displayCal.set(Calendar.MINUTE, selectedMinute);
-                            @SuppressLint("SimpleDateFormat")
-                            SimpleDateFormat displayFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault());
-                            targetTime.setText(displayFormat.format(displayCal.getTime()));
-                        }
-                    } catch (Exception e) {
-                        Toast.makeText(getContext(), "Invalid date or time.", Toast.LENGTH_SHORT).show();
-                    }
-                },
-                hour, minute, false
-        );
-        timePickerDialog.show();
-    }
-
-    // ----------------- Create / Save -----------------
-    private void handleCreateSave() {
-        if (isCreating) {
-            selectDate.setEnabled(true);
-            selectTime.setEnabled(true);
-            selectTime1.setEnabled(true);
-            selectTime2.setEnabled(true);
-            Fweight.setEnabled(true);
-            feedqttycont.setEnabled(false);
-            checkbox.setEnabled(true);
-            computeFeedQuantityIfReady();
-            Createbtn.setText("Save");
-            isCreating = false;
-        } else {
-            saveAndUploadSchedule();
-        }
-    }
-
-    private void saveAndUploadSchedule() {
-        String staticDate = dateFS.getText().toString();
-        String staticTime = timeFS.getText().toString();
-        String time1 = timeFS1.getText().toString().trim();
-        String time2 = timeFS2.getText().toString().trim();
-        String weight = Fweight.getText().toString().trim();
-
-
-        String feedQuantityStr = feedqttycont.getText().toString().trim();
-        String cleanedFeedQtyStr = feedQuantityStr.replaceAll("[^\\d.]", "");
-        float feedAmount;
-        try { feedAmount = Float.parseFloat(cleanedFeedQtyStr); } catch (NumberFormatException e) { feedAmount = 0.0f; }
-        String feedQuantity = String.format(Locale.getDefault(), "%.2f kg", feedAmount);
-
-        if (weight.isEmpty() || staticDate.isEmpty() || time1.isEmpty() || time2.isEmpty() || staticTime.isEmpty()) {
-            Toast.makeText(getContext(), "Please fill in all fields.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        float finalFeedAmount = feedAmount;
-        new AlertDialog.Builder(getContext())
-                .setTitle("Confirm Feeding Schedule")
-                .setMessage("Do you really want to save and upload this feeding schedule?")
-                .setPositiveButton("Yes", (dialog, which) -> {
-                    uploadFeedingTimesToESP(staticTime, time1, time2);
-                    addTableRow(staticDate, time1, feedQuantity, getStatus(staticDate, time1));
-                    addTableRow(staticDate, time2, feedQuantity, getStatus(staticDate, time2));
-                    addTableRow(staticDate, staticTime, feedQuantity, getStatus(staticDate, staticTime));
-
-                    Createbtn.setText("Create");
-                    isCreating = true;
-
-                    Toast.makeText(getContext(), "Schedule saved locally and sent to ESP", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("No", (dialog, which) -> Toast.makeText(getContext(), "Schedule not saved", Toast.LENGTH_SHORT).show())
-                .show();
+        return view;
     }
 
 
 
-    // ----------------- Table Rendering -----------------
-    private final List<ScheduleRow> tableRows = new ArrayList<>();
-    private void addTableRow(String date, String time, String feedQty, String status) {
-        ScheduleRow row = new ScheduleRow();
-        row.date = date;
-        row.time = time;
-        row.feedQty = feedQty;
-        row.status = status;
 
+    // ==================== Helper Methods ====================
+    private String formatTime(String time) {
+        if (time == null || time.isEmpty()) return "-";
         try {
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM. dd, yyyy hh:mm a", Locale.getDefault());
-            Date scheduledDate = sdf.parse(date + " " + time);
-            row.millisUntil = (scheduledDate != null) ? scheduledDate.getTime() - System.currentTimeMillis() : Long.MAX_VALUE;
-        } catch (ParseException e) { row.millisUntil = Long.MAX_VALUE; }
-
-        tableRows.add(row);
-        sortAndRenderTable();
-    }
-
-    private void sortAndRenderTable() {
-        tableRows.sort((a, b) -> Long.compare(a.millisUntil, b.millisUntil));
-        SummaryT.removeViews(1, SummaryT.getChildCount() - 1);
-
-        for (ScheduleRow r : tableRows) {
-            TableRow rowView = new TableRow(getContext());
-            rowView.addView(createCell(r.date));
-            rowView.addView(createCell(r.time));
-            rowView.addView(createCell(r.feedQty));
-            rowView.addView(createCell(r.status));
-            SummaryT.addView(rowView);
+            SimpleDateFormat sdf24 = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+            Date date = sdf24.parse(time);
+            SimpleDateFormat sdf12 = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+            return sdf12.format(date);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return time;
         }
     }
 
-    private TextView createCell(String text) {
-        TextView tv = new TextView(getContext());
-        tv.setText(text);
-        tv.setPadding(8, 8, 8, 8);
-        tv.setGravity(Gravity.CENTER);
-        tv.setTextColor(Color.parseColor("#4A4947"));
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        tv.setTypeface(Typeface.SANS_SERIF);
-        return tv;
-    }
+    private void populateScheduleTable(String schedOne, String schedTwo, String schedThree, String feedAmount) {
 
-    private String getStatus(String dateStr, String timeStr) {
-        if (dateStr == null || dateStr.isEmpty() || timeStr == null || timeStr.isEmpty()) return "Incomplete";
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("MMM. dd, yyyy hh:mm a", Locale.getDefault());
-            Date scheduledDate = sdf.parse(dateStr + " " + timeStr);
-            if (scheduledDate == null) return "Invalid";
 
-            long diffMillis = scheduledDate.getTime() - System.currentTimeMillis();
-            if (diffMillis < 0) return "Past due";
-
-            long totalMinutes = diffMillis / (60 * 1000);
-            long hours = totalMinutes / 60;
-            long minutes = totalMinutes % 60;
-
-            return (hours > 0) ? hours + "hr" + (hours > 1 ? "s" : "") + ", " + minutes + "mn" + (minutes != 1 ? "s" : "") + " left"
-                    : minutes + "mn" + (minutes != 1 ? "s" : "") + " left";
-        } catch (ParseException e) { return "Invalid"; }
-    }
-
-    private void computeFeedQuantityIfReady() {
-        String weightStr = Fweight.getText().toString().trim();
-        Integer fishCount = pondSharedViewModel.getFishCount().getValue();
-
-        if (weightStr.isEmpty() || fishCount == null || fishCount == 0) {
-            feedqttycont.setText("--");
-            return;
+        // Header row
+        TableRow header = new TableRow(getContext());
+        header.setBackgroundColor(Color.parseColor("#CCCCCC"));
+        String[] headers = {"Date", "Time", "Feed Qty", "Status"};
+        for (String h : headers) {
+            TextView tv = new TextView(getContext());
+            tv.setText(h);
+            tv.setTypeface(Typeface.DEFAULT_BOLD);
+            tv.setGravity(Gravity.CENTER);
+            tv.setPadding(8, 8, 8, 8);
+            header.addView(tv);
         }
+//        SummaryT.addView(header);
+//
+        // Today date
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
-        try {
-            float fishWeight = Float.parseFloat(weightStr);
-            float feedPercentage = 0.04f;
-            float computedFeedQty = feedPercentage * fishWeight * fishCount;
-            float computedKg = computedFeedQty / 1000f;
-            feedqttycont.setText(String.format(Locale.getDefault(), "%.2f kg", computedKg));
-        } catch (NumberFormatException e) {
-            feedqttycont.setText("--");
+        // Add each feeding as a row
+        String[] times = {schedOne, schedTwo, schedThree};
+        for (String t : times) {
+            if (t == null || t.isEmpty()) continue;
+            TableRow row = new TableRow(getContext());
+            String[] cols = {today, formatTime(t), feedAmount, "Pending"};
+            for (String c : cols) {
+                TextView tv = new TextView(getContext());
+                tv.setText(c);
+                tv.setGravity(Gravity.CENTER);
+                tv.setPadding(8, 8, 8, 8);
+                row.addView(tv);
+            }
+            SummaryT.addView(row);
         }
     }
 }

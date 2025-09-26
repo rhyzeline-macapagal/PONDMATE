@@ -1,5 +1,6 @@
 package com.example.pondmatev1;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -8,7 +9,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View; // ✅ for View.GONE
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
@@ -65,10 +68,43 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
         ImageView adminIcon = findViewById(R.id.adminIcon);
         adminIcon.setOnClickListener(v -> {
-            Intent intent = new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class);
-            startActivity(intent);
-            overridePendingTransition(R.anim.drop_in, R.anim.fade_out);
+            // Inflate the custom layout
+            View dialogView = getLayoutInflater().inflate(R.layout.dialog_admin_options, null);
+
+            AlertDialog dialog = new AlertDialog.Builder(PondDashboardActivity.this, R.style.TransparentDialog) // optional style
+                    .setView(dialogView)
+                    .create();
+
+            // Close button (the ✖ on top-right)
+            TextView btnClose = dialogView.findViewById(R.id.btnClose);
+            btnClose.setOnClickListener(v1 -> dialog.dismiss());
+
+            // Caretaker Dashboard button
+            ImageButton btnCaretaker = dialogView.findViewById(R.id.btnCaretaker);
+            btnCaretaker.setOnClickListener(v1 -> {
+                startActivity(new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class));
+                overridePendingTransition(R.anim.drop_in, R.anim.fade_out);
+                dialog.dismiss();
+            });
+
+            // Feeds Prices button
+            ImageButton btnFeedsPrice = dialogView.findViewById(R.id.btnFeedsPrice);
+            btnFeedsPrice.setOnClickListener(v1 -> {
+                startActivity(new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class));
+                dialog.dismiss();
+            });
+
+            // Pond History button
+            ImageButton btnPondHistory = dialogView.findViewById(R.id.btnPondHistory);
+            btnPondHistory.setOnClickListener(v1 -> {
+                startActivity(new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class));
+                dialog.dismiss();
+            });
+
+            // Show dialog
+            dialog.show();
         });
+
         if (!"owner".equalsIgnoreCase(userType)) {
             adminIcon.setVisibility(View.GONE); // ✅ Fixed
         }

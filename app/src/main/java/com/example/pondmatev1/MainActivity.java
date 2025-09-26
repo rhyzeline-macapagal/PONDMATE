@@ -1,5 +1,6 @@
 package com.example.pondmatev1;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -53,7 +54,13 @@ public class MainActivity extends AppCompatActivity {
         });
 
         ImageButton backBtn = findViewById(R.id.backToDashboardBtn);
-        backBtn.setOnClickListener(v -> onBackPressed());
+        backBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, PondDashboardActivity.class);
+            // optional: if you don’t want to stack multiple dashboard screens
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish(); // close the current activity so it doesn’t stay in back stack
+        });
 
 
         ImageView adminIcon = findViewById(R.id.adminIcon);
@@ -70,8 +77,41 @@ public class MainActivity extends AppCompatActivity {
         });
 
         adminIcon.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, CaretakerDashboardActivity.class);
-            startActivity(intent);
+            // Inflate the custom layout
+            View dialogView = getLayoutInflater().inflate(R.layout.dialog_admin_options, null);
+
+            AlertDialog dialog = new AlertDialog.Builder(MainActivity.this, R.style.TransparentDialog) // optional style
+                    .setView(dialogView)
+                    .create();
+
+            // Close button (the ✖ on top-right)
+            TextView btnClose = dialogView.findViewById(R.id.btnClose);
+            btnClose.setOnClickListener(v1 -> dialog.dismiss());
+
+            // Caretaker Dashboard button
+            ImageButton btnCaretaker = dialogView.findViewById(R.id.btnCaretaker);
+            btnCaretaker.setOnClickListener(v1 -> {
+                startActivity(new Intent(MainActivity.this, CaretakerDashboardActivity.class));
+                overridePendingTransition(R.anim.drop_in, R.anim.fade_out);
+                dialog.dismiss();
+            });
+
+            // Feeds Prices button
+            ImageButton btnFeedsPrice = dialogView.findViewById(R.id.btnFeedsPrice);
+            btnFeedsPrice.setOnClickListener(v1 -> {
+                startActivity(new Intent(MainActivity.this, PondDashboardActivity.class));
+                dialog.dismiss();
+            });
+
+            // Pond History button
+            ImageButton btnPondHistory = dialogView.findViewById(R.id.btnPondHistory);
+            btnPondHistory.setOnClickListener(v1 -> {
+                startActivity(new Intent(MainActivity.this, PondDashboardActivity.class));
+                dialog.dismiss();
+            });
+
+            // Show dialog
+            dialog.show();
         });
 
         bottomNavigation = findViewById(R.id.bottomNavigation);
@@ -84,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
 
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.con, new PondInfoFragment())
+                .addToBackStack(null)
                 .commit();
 
         bottomNavigation.setOnClickMenuListener(model -> {
@@ -107,18 +148,21 @@ public class MainActivity extends AppCompatActivity {
 
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.con, fragment)
+                            .addToBackStack(null)
                             .commit();
                     break;
 
                 case 3:
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.con, new FeederFragment())
+                            .addToBackStack(null)
                             .commit();
                     break;
 
                 case 4:
                     getSupportFragmentManager().beginTransaction()
                             .replace(R.id.con, new ActivityFragment())
+                            .addToBackStack(null)
                             .commit();
                     break;
             }

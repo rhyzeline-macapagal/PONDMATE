@@ -75,6 +75,16 @@
         <item name="android:textColor">@android:color/black</item>
     </style>
 
+    <style name="SpinnerDatePicker" parent="Theme.MaterialComponents.Light.Dialog">
+        <item name="android:datePickerStyle">@style/Widget.DatePicker.Spinner</item>
+    </style>
+
+    <style name="Widget.DatePicker.Spinner" parent="@android:style/Widget.DeviceDefault.DatePicker">
+        <item name="android:datePickerMode">spinner</item>
+        <item name="android:calendarViewShown">false</item>
+    </style>
+
+
 
 
 </resources>

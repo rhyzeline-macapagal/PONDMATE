@@ -458,9 +458,9 @@ public class ProductionCostFragment extends Fragment {
             if (feedLogs != null && feedLogs.length() > 0) {
                 for (int i = 0; i < feedLogs.length(); i++) {
                     JSONObject f = feedLogs.getJSONObject(i);
-                    feedsTable.addCell(f.optString("sched_one", "-"));
-                    feedsTable.addCell(f.optString("sched_two", "-"));
-                    feedsTable.addCell(f.optString("sched_three", "-"));
+                    feedsTable.addCell(formatTime(f.optString("sched_one", "-")));
+                    feedsTable.addCell(formatTime(f.optString("sched_two", "-")));
+                    feedsTable.addCell(formatTime(f.optString("sched_three", "-")));
                     feedsTable.addCell(f.optString("feeder_type", "-"));
                     feedsTable.addCell(f.optString("feed_amount", "0"));
                 }
@@ -518,6 +518,19 @@ public class ProductionCostFragment extends Fragment {
             canvas.stroke();
         }
     }
+
+    private String formatTime(String time24) {
+        try {
+            SimpleDateFormat inputFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()); // server format
+            SimpleDateFormat outputFormat = new SimpleDateFormat("hh:mm a", Locale.getDefault()); // 12hr format
+            Date date = inputFormat.parse(time24);
+            return outputFormat.format(date);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return time24; // fallback to original if parsing fails
+        }
+    }
+
 
     private void previewPDF(File pdfFile) {
         if (pdfFile == null || !pdfFile.exists()) {
@@ -679,6 +692,7 @@ public class ProductionCostFragment extends Fragment {
     }
 
     private void showAddMaintenanceDialog() {
+
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_maintenance, null);
         builder.setView(dialogView);
@@ -741,6 +755,7 @@ public class ProductionCostFragment extends Fragment {
                                     Toast.makeText(requireContext(),
                                             "Maintenance added for " + pondName + ": " + description + " ₱" + amount,
                                             Toast.LENGTH_SHORT).show();
+                                    loadMaintenanceTotal();
                                 });
                             }
 
@@ -751,6 +766,7 @@ public class ProductionCostFragment extends Fragment {
                                             "Error uploading maintenance: " + error,
                                             Toast.LENGTH_SHORT).show();
                                 });
+
                             }
                         });
 
@@ -763,10 +779,13 @@ public class ProductionCostFragment extends Fragment {
         dialog.show();
     }
 
+
+
     /**
      * Uploads PDF via multipart and writes the pond_history record (server should save file and pdf_path).
      * We POST pond_id, name, action and pdf_file.
      */
+
     private void uploadPdfAndSaveHistory(String pondId, String pondName, File pdfFile) {
         new Thread(() -> {
             try {
