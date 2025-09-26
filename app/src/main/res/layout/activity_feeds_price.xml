@@ -3,11 +3,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:fitsSystemWindows="true"
     android:background="#F9F9F9">
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingEnd="20dp"
         android:layout_marginBottom="8dp">
 
         <TextView
@@ -15,7 +17,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:text="✖"
-            android:textSize="18sp"
+            android:textSize="28sp"
             android:textColor="#666666"
             android:layout_alignParentEnd="true"
             android:gravity="center"
@@ -63,62 +65,57 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:stretchColumns="*"
-                android:background="@android:color/white"
-                android:divider="@android:color/darker_gray"
-                android:showDividers="middle"
-                android:padding="4dp"
-                android:elevation="2dp">
+                android:background="@drawable/table_background"
+            android:padding="4dp"
+            android:elevation="4dp">
 
-                <!-- Header -->
+
+            <!-- Header -->
                 <TableRow
-                    android:background="#E0E0E0"
-                    android:padding="8dp">
+
+                    android:padding="4dp">
 
                     <TextView
                         android:text="Action"
-                        android:layout_margin="4dp"
-
-                        android:padding="6dp"
-                        android:textStyle="bold"
+                        android:padding="8dp"
                         android:gravity="center"
-                        android:textColor="#000" />
+                        android:background="@drawable/cell_bg"
+                        android:textStyle="bold"
+                        android:textColor="#000"/>
 
                     <TextView
                         android:text="Breed"
-                        android:layout_margin="4dp"
-
-                        android:padding="6dp"
-                        android:textStyle="bold"
+                        android:padding="8dp"
                         android:gravity="center"
-                        android:textColor="#000" />
+                        android:background="@drawable/cell_bg"
+                        android:textStyle="bold"
+                        android:textColor="#000"/>
 
                     <TextView
                         android:text="Feed Type"
-                        android:layout_margin="4dp"
-
-                        android:padding="6dp"
-                        android:textStyle="bold"
+                        android:padding="8dp"
                         android:gravity="center"
-                        android:textColor="#000" />
+                        android:background="@drawable/cell_bg"
+                        android:textStyle="bold"
+                        android:textColor="#000"/>
 
                     <TextView
                         android:text="Price/kg"
-                        android:layout_margin="4dp"
-
-                        android:padding="6dp"
-                        android:textStyle="bold"
+                        android:padding="8dp"
                         android:gravity="center"
-                        android:textColor="#000" />
+                        android:background="@drawable/cell_bg"
+                        android:textStyle="bold"
+                        android:textColor="#000"/>
 
                     <TextView
-                        android:text="Date Updated"
-                        android:layout_margin="4dp"
-                        
-                        android:padding="6dp"
-                        android:textStyle="bold"
+                        android:text="Updated"
+                        android:padding="8dp"
                         android:gravity="center"
-                        android:textColor="#000" />
+                        android:background="@drawable/cell_bg"
+                        android:textStyle="bold"
+                        android:textColor="#000"/>
                 </TableRow>
+
             </TableLayout>
 
         </ScrollView>

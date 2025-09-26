@@ -172,10 +172,10 @@ public class AddPondDialogFragment extends DialogFragment {
 
             switch (selectedBreed) {
                     case "Tilapia":
-                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 60);
+                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 120);
                         break;
                     case "Bangus":
-                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 90);
+                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 120);
                         break;
                     case "Alimango":
                         harvestCalendar.add(Calendar.DAY_OF_YEAR, 270);
