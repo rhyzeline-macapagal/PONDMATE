@@ -38,6 +38,23 @@ public class PondModel {
         this.estimatedROI = estimatedROI;
     }
 
+    public PondModel(String id, String name, String breed, int fishCount, double costPerFish,
+                     String dateStarted, String dateHarvest, String imagePath,
+                     String extraData, String pdfPath) {
+        this.id = id;
+        this.name = name;
+        this.breed = breed;
+        this.fishCount = fishCount;
+        this.costPerFish = costPerFish;
+        this.dateStarted = dateStarted;
+        this.dateHarvest = dateHarvest;
+        this.imagePath = imagePath;
+        this.extraData = extraData;
+        this.pdfPath = pdfPath;
+        this.actualROI = 0f;
+        this.estimatedROI = 0f;
+    }
+
     public PondModel(String mode) {
         this.mode = mode;
     }

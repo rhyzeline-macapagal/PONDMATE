@@ -413,6 +413,60 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static String reusePond(String pondId,
+                                   String name,
+                                   String breed,
+                                   int fishCount,
+                                   double costPerFish,
+                                   String dateStarted,
+                                   String dateHarvest,
+                                   String pdfPath,
+                                   String action) {
+
+        try {
+            URL url = new URL("https://pondmate.alwaysdata.net/reuse_pond.php");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+            // Build the POST data string
+            String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8") +
+                    "&name=" + URLEncoder.encode(name, "UTF-8") +
+                    "&breed=" + URLEncoder.encode(breed != null ? breed : "", "UTF-8") +
+                    "&fish_count=" + URLEncoder.encode(String.valueOf(fishCount), "UTF-8") +
+                    "&cost_per_fish=" + URLEncoder.encode(String.valueOf(costPerFish), "UTF-8") +
+                    "&date_started=" + URLEncoder.encode(dateStarted != null ? dateStarted : "", "UTF-8") +
+                    "&date_harvest=" + URLEncoder.encode(dateHarvest != null ? dateHarvest : "", "UTF-8") +
+                    "&pdf_path=" + URLEncoder.encode(pdfPath != null ? pdfPath : "", "UTF-8") +
+                    "&action=" + URLEncoder.encode(action != null ? action : "Reused", "UTF-8");
+
+            // Write POST data
+            OutputStream os = conn.getOutputStream();
+            os.write(postData.getBytes("UTF-8"));
+            os.flush();
+            os.close();
+
+            // Read the response
+            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) {
+                response.append(line);
+            }
+            br.close();
+
+            return response.toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}";
+        }
+    }
+
+
+
     public static void updateFeedPrice(String id, String newPrice, Callback callback) {
         new Thread(() -> {
             try {
