@@ -29,6 +29,9 @@ import android.graphics.Color;
 
 public class ActivityFragment extends Fragment {
 
+    private ProgressBar progressBar;
+
+
     private MaterialCalendarView calendarView;
     private LinearLayout activitiesLayout;
     private Spinner calendarToggleSpinner;
@@ -45,6 +48,7 @@ public class ActivityFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_activity, container, false);
+        progressBar = view.findViewById(R.id.progressBar);
 
         calendarView = view.findViewById(R.id.calendarView);
         activitiesLayout = view.findViewById(R.id.activitiesLayout);
@@ -61,6 +65,8 @@ public class ActivityFragment extends Fragment {
         }
 
         return view;
+
+
     }
 
     private void loadSelectedPond() {
@@ -108,12 +114,18 @@ public class ActivityFragment extends Fragment {
     }
 
     private void fetchActivities(String pondId) {
+        // Show spinner
+        requireActivity().runOnUiThread(() -> progressBar.setVisibility(View.VISIBLE));
+
         new Thread(() -> {
+            HttpURLConnection conn = null;
             try {
                 String urlStr = GET_POND_DATES_URL + "?pond_id=" + pondId;
                 URL url = new URL(urlStr);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
+                conn.setConnectTimeout(5000); // 5 sec connect timeout
+                conn.setReadTimeout(5000);    // 5 sec read timeout
                 conn.connect();
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -122,60 +134,101 @@ public class ActivityFragment extends Fragment {
                 while ((line = reader.readLine()) != null) sb.append(line);
                 reader.close();
 
-                String jsonString = sb.toString();
+                String jsonString = sb.toString().trim();
                 Log.d(TAG, "JSON Response: " + jsonString);
 
-                JSONObject response = new JSONObject(jsonString);
-                boolean success = response.optBoolean("success", false);
+                // ✅ Check for empty or invalid response
+                if (jsonString.isEmpty() || !jsonString.startsWith("{")) {
+                    requireActivity().runOnUiThread(() -> {
+                        progressBar.setVisibility(View.GONE);
+                        Toast.makeText(getContext(), "Invalid server response", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
+                }
 
-                if (success) {
-                    JSONArray data = response.getJSONArray("data");
-                    List<ActivityItem> allActivities = new ArrayList<>();
+                try {
+                    JSONObject response = new JSONObject(jsonString);
+                    boolean success = response.optBoolean("success", false);
 
-                    // Clear map
-                    activitiesByDate.clear();
-
-                    for (int i = 0; i < data.length(); i++) {
-                        JSONObject obj = data.getJSONObject(i);
-                        String name = obj.getString("activity_name");
-                        String type = obj.getString("activity_type");
-                        String date = obj.getString("scheduled_date");
-
-                        ActivityItem item = new ActivityItem(name, type, date);
-                        allActivities.add(item);
-
-                        // Populate activitiesByDate
-                        if (!activitiesByDate.containsKey(date)) {
-                            activitiesByDate.put(date, new ArrayList<>());
+                    if (success) {
+                        JSONArray data = response.optJSONArray("data");
+                        if (data == null || data.length() == 0) {
+                            requireActivity().runOnUiThread(() -> {
+                                activitiesLayout.removeAllViews();
+                                TextView tv = new TextView(getContext());
+                                tv.setText("No activities available for this pond.");
+                                activitiesLayout.addView(tv);
+                                progressBar.setVisibility(View.GONE);
+                            });
+                            return;
                         }
-                        activitiesByDate.get(date).add(item);
+
+                        List<ActivityItem> allActivities = new ArrayList<>();
+                        activitiesByDate.clear(); // reset map for new pond
+
+                        for (int i = 0; i < data.length(); i++) {
+                            JSONObject obj = data.getJSONObject(i);
+                            String name = obj.optString("activity_name", "Unnamed");
+                            String type = obj.optString("activity_type", "Unknown");
+                            String date = obj.optString("scheduled_date", "");
+
+                            ActivityItem item = new ActivityItem(name, type, date);
+                            allActivities.add(item);
+
+                            // Populate activitiesByDate
+                            if (!activitiesByDate.containsKey(date)) {
+                                activitiesByDate.put(date, new ArrayList<>());
+                            }
+                            activitiesByDate.get(date).add(item);
+                        }
+
+                        // ✅ Update UI safely
+                        requireActivity().runOnUiThread(() -> {
+                            addDotsToCalendar();
+                            String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                                    .format(CalendarDay.today().getDate());
+                            if (activitiesByDate.containsKey(todayStr)) {
+                                displayActivities(activitiesByDate.get(todayStr));
+                            } else {
+                                activitiesLayout.removeAllViews();
+                                TextView tv = new TextView(getContext());
+                                tv.setText("No activities today.");
+                                activitiesLayout.addView(tv);
+                            }
+                            progressBar.setVisibility(View.GONE); // hide after success
+                        });
+
+                    } else {
+                        String error = response.optString("error", "Unknown error");
+                        requireActivity().runOnUiThread(() -> {
+                            progressBar.setVisibility(View.GONE);
+                            Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show();
+                        });
                     }
 
-                    // Add dots and display today’s activities
+                } catch (Exception e) {
+                    e.printStackTrace();
                     requireActivity().runOnUiThread(() -> {
-                        addDotsToCalendar();
-                        String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                .format(CalendarDay.today().getDate());
-                        if (activitiesByDate.containsKey(todayStr)) {
-                            displayActivities(activitiesByDate.get(todayStr));
-                        } else {
-                            activitiesLayout.removeAllViews();
-                        }
+                        progressBar.setVisibility(View.GONE);
+                        Toast.makeText(getContext(), "Error parsing server response", Toast.LENGTH_SHORT).show();
                     });
-
-                } else {
-                    String error = response.optString("error", "Unknown error");
-                    requireActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show());
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Error fetching activities", Toast.LENGTH_SHORT).show());
+                requireActivity().runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    Toast.makeText(getContext(), "Error fetching activities", Toast.LENGTH_SHORT).show();
+                });
+            } finally {
+                if (conn != null) {
+                    conn.disconnect(); // ✅ prevent resource leaks
+                }
             }
         }).start();
     }
+
+
 
     private void addDotsToCalendar() {
         calendarView.removeDecorators();
@@ -204,6 +257,7 @@ public class ActivityFragment extends Fragment {
         }
 
         SharedPreferences prefs = requireContext().getSharedPreferences("ActivityPrefs", Context.MODE_PRIVATE);
+        NotificationHandler handler = new NotificationHandler(requireContext(), null); // we don’t need the icon here
 
         for (ActivityItem item : items) {
             CheckBox checkBox = new CheckBox(requireContext());
@@ -217,15 +271,42 @@ public class ActivityFragment extends Fragment {
             boolean isChecked = prefs.getBoolean(key, false);
             checkBox.setChecked(isChecked);
 
-            // Save state when toggled
+            // Save state + send notification when toggled
             checkBox.setOnCheckedChangeListener((buttonView, isChecked1) -> {
                 prefs.edit().putBoolean(key, isChecked1).apply();
+
+                // Always build notification entry for NotificationActivity
+                String pondName = selectedPond.getName();
+                String activityTitle = item.getName();
+                String date = item.getScheduledDate(); // use scheduled date from DB
+                String notifEntry = pondName + "|" + activityTitle + "|" + date;
+
+                SharedPreferences notifPrefs = requireContext().getSharedPreferences("notifications", Context.MODE_PRIVATE);
+                Set<String> notifications = new HashSet<>(notifPrefs.getStringSet("notif_list", new HashSet<>()));
+
+                notifications.add(notifEntry);
+                notifPrefs.edit().putStringSet("notif_list", notifications).apply();
+
+                // System notification
+                if (isChecked1) {
+                    handler.sendNotification(
+                            "Activity Completed",
+                            "You marked \"" + activityTitle + "\" as done for " + date
+                    );
+                } else {
+                    handler.sendNotification(
+                            "Activity Pending",
+                            "\"" + activityTitle + "\" is pending again for " + date
+                    );
+                }
             });
 
             // Add to layout
             activitiesLayout.addView(checkBox);
         }
     }
+
+
 
 
     // --- Supporting classes ---

@@ -1,10 +1,13 @@
 package com.example.pondmatev1;
 
 import android.app.AlertDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -76,6 +79,28 @@ public class MainActivity extends AppCompatActivity {
             dialog.show(getSupportFragmentManager(), "UserProfileDialog");
         });
 
+        ImageView notificationIcon = findViewById(R.id.notificationIcon);
+        notificationIcon.bringToFront();
+
+        notificationIcon.setOnClickListener(v -> {
+            SharedPreferences prefs = getSharedPreferences("POND_PREF", MODE_PRIVATE);
+            String pondJson = prefs.getString("selected_pond", null);
+
+            Intent intent = new Intent(this, NotificationActivity.class);
+
+            if (pondJson != null) {
+                intent.putExtra("pond_json", pondJson);
+            } else {
+                intent.putExtra("pond_json", ""); // or send a flag like "NO_POND"
+            }
+
+            startActivity(intent);
+        });
+
+
+
+
+
         adminIcon.setOnClickListener(v -> {
             // Inflate the custom layout
             View dialogView = getLayoutInflater().inflate(R.layout.dialog_admin_options, null);
@@ -113,6 +138,8 @@ public class MainActivity extends AppCompatActivity {
             // Show dialog
             dialog.show();
         });
+
+
 
         bottomNavigation = findViewById(R.id.bottomNavigation);
         bottomNavigation.add(new NafisBottomNavigation.Model(1, R.drawable.home1));
@@ -172,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
         // ✅ If pond was passed via Intent
         if (getIntent() != null && getIntent().hasExtra("pond_id")) {
             PondModel pond = new PondModel(
+
                     getIntent().getStringExtra("pond_id"),
                     getIntent().getStringExtra("pond_name"),
                     getIntent().getStringExtra("breed"),
@@ -218,4 +246,18 @@ public class MainActivity extends AppCompatActivity {
         }
         return false;
     }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "PondMateChannel";
+            String description = "Notifications for pending pond activities";
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel channel = new NotificationChannel("POND_CHANNEL_ID", name, importance);
+            channel.setDescription(description);
+
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
+
 }
