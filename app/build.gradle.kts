@@ -67,7 +67,7 @@ dependencies {
     implementation("com.prolificinteractive:material-calendarview:1.4.3")
     implementation ("androidx.recyclerview:recyclerview:1.3.2")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
-    implementation ("androidx.work:work-runtime:2.8.1")
+    implementation ("androidx.work:work-runtime:2.7.1")
 
 
 

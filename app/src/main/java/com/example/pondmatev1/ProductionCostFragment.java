@@ -34,13 +34,17 @@ import java.util.Locale;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.FileProvider;
+
 import androidx.fragment.app.Fragment;
 
-import com.github.barteksc.pdfviewer.PDFView;
+
 import com.google.gson.Gson;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Element;
+import com.itextpdf.text.Chunk;
+
+import com.itextpdf.text.Font;
+import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.PdfContentByte;
@@ -291,7 +295,7 @@ public class ProductionCostFragment extends Fragment {
 
                 if (!pondName.isEmpty()) {
                     saveComparisonROI(pondName, roiPercent);
-                    notifyChart();
+                   notifyChart();
                 }
             }
         });
@@ -323,14 +327,13 @@ public class ProductionCostFragment extends Fragment {
      * It writes the file to cacheDir and returns the File.
      */
     private File generatePDF(JSONObject data, String pondId) {
-        // Build stable filename: prefer pondId; fallback to sanitized pond name + timestamp
+        // Build stable filename
         String baseName;
         if (pondId != null && !pondId.isEmpty()) {
             baseName = "pond_report_" + pondId + ".pdf";
         } else {
             JSONObject pondObj = data.optJSONObject("pond");
             String pname = (pondObj != null) ? pondObj.optString("name", "unknown") : "unknown";
-            // sanitize name to use in filename
             pname = pname.replaceAll("[^a-zA-Z0-9_\\-]", "_");
             baseName = "pond_report_" + pname + ".pdf";
         }
@@ -339,21 +342,23 @@ public class ProductionCostFragment extends Fragment {
         Log.d("PDF_DEBUG", "Generating PDF at: " + pdfFile.getAbsolutePath());
 
         try (FileOutputStream outputStream = new FileOutputStream(pdfFile)) {
-            Document document = new Document();
+            // ✅ Add margins so the page isn’t endless white
+            Document document = new Document(PageSize.A4, 50, 50, 50, 50);
             PdfWriter writer = PdfWriter.getInstance(document, outputStream);
+
+            // ✅ Add footer + border with page numbers
             writer.setPageEvent(new BorderPageEvent());
+
             document.open();
 
-            // --- content (same as before) ---
-            document.add(new Paragraph("PRODUCTION REPORT"));
+            // --- Title Page (Page 1) ---
+            document.add(new Paragraph("PRODUCTION REPORT", new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD)));
             String dateCreated = new SimpleDateFormat("MMMM d, yyyy hh:mm a", Locale.getDefault())
                     .format(new Date());
             document.add(new Paragraph("Report Generated: " + dateCreated));
-
             document.add(new Paragraph("-------------------------------------------------------------------------------\n"));
 
             JSONObject pond = data.optJSONObject("pond");
-
             String pondName = pond != null ? pond.optString("name", "N/A") : "N/A";
             String breed = pond != null ? pond.optString("breed", "N/A") : "N/A";
             String startRaw = pond != null ? pond.optString("date_started", "N/A") : "N/A";
@@ -371,7 +376,6 @@ public class ProductionCostFragment extends Fragment {
             document.add(new Paragraph("\n"));
             PdfPTable ftable = new PdfPTable(4);
             ftable.setWidthPercentage(100);
-
             ftable.addCell(headerCell("Quantity"));
             ftable.addCell(headerCell("Unit"));
             ftable.addCell(headerCell("Cost per Unit"));
@@ -440,11 +444,16 @@ public class ProductionCostFragment extends Fragment {
                 stable.addCell("No data"); stable.addCell("-"); stable.addCell("-"); stable.addCell("-"); stable.addCell("-");
             }
             document.add(stable);
+
+// ✅ FORCE Feeds section to always start on Page 2
+            document.newPage();
+
+// --- Feeds Logs Table ---
+            Paragraph feedsHeader = new Paragraph("Feeds Logs", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD));
+            feedsHeader.setSpacingBefore(20); // add space at top
+            document.add(feedsHeader);
             document.add(new Paragraph("\n"));
 
-            // --- Feeds Logs Table ---
-            document.add(new Paragraph("Feeds Logs"));
-            document.add(new Paragraph("\n"));
             PdfPTable feedsTable = new PdfPTable(5);
             feedsTable.setWidthPercentage(100);
             feedsTable.addCell(headerCell("Sched 1"));
@@ -468,6 +477,7 @@ public class ProductionCostFragment extends Fragment {
                 feedsTable.addCell("No data"); feedsTable.addCell("-"); feedsTable.addCell("-"); feedsTable.addCell("-"); feedsTable.addCell("-");
             }
             document.add(feedsTable);
+
             document.add(new Paragraph("\n"));
 
             feeds = data.optJSONObject("feeds");
@@ -479,7 +489,6 @@ public class ProductionCostFragment extends Fragment {
             document.add(new Paragraph("Maintenance Total: ₱" + (maintenance != null ? String.format("%.2f", maintenance.optDouble("total_maintenance", 0)) : "0.00")));
             document.add(new Paragraph("Salary Total: ₱" + (salary != null ? String.format("%.2f", salary.optDouble("total_salary", 0)) : "0.00")));
 
-
             // --- ROI Section ---
             document.add(new Paragraph("\nROI"));
             document.add(new Paragraph("Total Cost: ₱" + (roi != null ? String.format("%.2f", roi.optDouble("total_cost", 0)) : "0.00")));
@@ -489,7 +498,6 @@ public class ProductionCostFragment extends Fragment {
             document.add(new Paragraph("\n\n--- End of Report ---"));
 
             document.close();
-
             Log.d("PDF_DEBUG", "PDF generated successfully. Size: " + pdfFile.length());
 
         } catch (Exception e) {
@@ -499,6 +507,7 @@ public class ProductionCostFragment extends Fragment {
 
         return pdfFile;
     }
+
 
     class BorderPageEvent extends PdfPageEventHelper {
         @Override

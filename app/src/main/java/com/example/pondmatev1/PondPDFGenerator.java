@@ -6,6 +6,7 @@ import android.util.Log;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
@@ -150,39 +151,86 @@ public class PondPDFGenerator {
                 stable.addCell("-");
             }
             document.add(stable);
+
+// Feeds Logs Page
+            document.newPage();
+            Paragraph feedsTitle = new Paragraph("Feeds Logs", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD));
+            feedsTitle.setAlignment(Element.ALIGN_CENTER);
+            document.add(feedsTitle);
             document.add(new Paragraph("\n"));
 
-            // Feeds logs
-            document.add(new Paragraph("Feeds Logs"));
-            document.add(new Paragraph("\n"));
-            PdfPTable feedsTable = new PdfPTable(5);
+// Create table with 12 columns
+            PdfPTable feedsTable = new PdfPTable(12);
             feedsTable.setWidthPercentage(100);
-            feedsTable.addCell(headerCell("Sched 1"));
-            feedsTable.addCell(headerCell("Sched 2"));
-            feedsTable.addCell(headerCell("Sched 3"));
-            feedsTable.addCell(headerCell("Feeder Type"));
-            feedsTable.addCell(headerCell("Feed Amount"));
+            feedsTable.setWidths(new float[]{2, 3, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 2, 2});
 
+// First row
+            PdfPCell dateCell = headerCell("Date");
+            dateCell.setRowspan(2);
+            feedsTable.addCell(dateCell);
+
+            PdfPCell typeCell = headerCell("Feed Type");
+            typeCell.setRowspan(2);
+            feedsTable.addCell(typeCell);
+
+            PdfPCell kiloHeader = headerCell("Kilograms of feeds per feeding time");
+            kiloHeader.setColspan(8);
+            feedsTable.addCell(kiloHeader);
+
+            PdfPCell adgCell = headerCell("ADG (g)\nAverage Daily Growth");
+            adgCell.setRowspan(2);
+            feedsTable.addCell(adgCell);
+
+// Second row (sub-headers under "Kilograms...")
+            feedsTable.addCell(headerCell("kg"));
+            feedsTable.addCell(headerCell("time"));
+            feedsTable.addCell(headerCell("kg"));
+            feedsTable.addCell(headerCell("time"));
+            feedsTable.addCell(headerCell("kg"));
+            feedsTable.addCell(headerCell("time"));
+            feedsTable.addCell(headerCell("kg"));
+            feedsTable.addCell(headerCell("time"));
+
+// Add "Total kg" (still part of sub-header row)
+            feedsTable.addCell(headerCell("Total kg"));
+
+// Now add data rows (20 rows minimum)
             JSONObject feeds = data.optJSONObject("feeds");
             JSONArray feedLogs = feeds != null ? feeds.optJSONArray("logs") : null;
+
+            int maxRows = 20;
             if (feedLogs != null && feedLogs.length() > 0) {
-                for (int i = 0; i < feedLogs.length(); i++) {
-                    JSONObject f = feedLogs.getJSONObject(i);
-                    feedsTable.addCell(f.optString("sched_one", "-"));
-                    feedsTable.addCell(f.optString("sched_two", "-"));
-                    feedsTable.addCell(f.optString("sched_three", "-"));
-                    feedsTable.addCell(f.optString("feeder_type", "-"));
-                    feedsTable.addCell(f.optString("feed_amount", "0"));
+                for (int i = 0; i < maxRows; i++) {
+                    if (i < feedLogs.length()) {
+                        JSONObject f = feedLogs.getJSONObject(i);
+
+                        feedsTable.addCell(f.optString("date", "-"));
+                        feedsTable.addCell(f.optString("feeder_type", "-"));
+
+                        feedsTable.addCell(f.optString("sched_one", "-")); feedsTable.addCell("-");
+                        feedsTable.addCell(f.optString("sched_two", "-")); feedsTable.addCell("-");
+                        feedsTable.addCell(f.optString("sched_three", "-")); feedsTable.addCell("-");
+                        feedsTable.addCell("-"); feedsTable.addCell("-");
+
+                        feedsTable.addCell(f.optString("feed_amount", "0"));
+                        feedsTable.addCell("-");
+                    } else {
+                        for (int c = 0; c < 12; c++) {
+                            feedsTable.addCell(" ");
+                        }
+                    }
                 }
             } else {
-                feedsTable.addCell("No data");
-                feedsTable.addCell("-");
-                feedsTable.addCell("-");
-                feedsTable.addCell("-");
-                feedsTable.addCell("-");
+                for (int r = 0; r < maxRows; r++) {
+                    for (int c = 0; c < 12; c++) {
+                        feedsTable.addCell(" ");
+                    }
+                }
             }
+
             document.add(feedsTable);
             document.add(new Paragraph("\n"));
+
 
             // Totals and ROI
             feeds = data.optJSONObject("feeds");
