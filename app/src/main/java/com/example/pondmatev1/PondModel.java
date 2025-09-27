@@ -1,5 +1,8 @@
 package com.example.pondmatev1;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PondModel {
     private String id;
     private String name;
@@ -14,6 +17,10 @@ public class PondModel {
     private float actualROI;
     private float estimatedROI;
     private String pdfPath;
+
+    private List<ActivityItem> activities = new ArrayList<>();
+
+
 
     // Full constructor
     public PondModel(String id, String name, String breed, int fishCount, double costPerFish,
@@ -91,4 +98,14 @@ public class PondModel {
 
     public String getPdfPath() { return pdfPath; }
     public void setPdfPath(String pdfPath) { this.pdfPath = pdfPath; }
+
+    public List<ActivityItem> getActivities() {
+        return activities;
+    }
+
+    public void setActivities(List<ActivityItem> activities) {
+        this.activities = activities;
+    }
+
+
 }

@@ -4,8 +4,10 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View; // ✅ for View.GONE
@@ -19,6 +21,9 @@ import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -45,9 +50,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import androidx.work.*;
 
 
 public class PondDashboardActivity extends AppCompatActivity implements ROIChartUpdater {
+
+    private static final int REQUEST_NOTIFICATION_PERMISSION = 1001;
 
     RecyclerView pondRecyclerView;
     PondAdapter pondAdapter;
@@ -67,6 +76,15 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         setContentView(R.layout.activity_pond_dashboard);
 
         userType = new SessionManager(this).getUsertype();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
+            }
+        }
+
+
 
         ImageView adminIcon = findViewById(R.id.adminIcon);
         adminIcon.setOnClickListener(v -> {
@@ -118,6 +136,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             dialog.show(getSupportFragmentManager(), "UserProfileDialog");
         });
 
+        ImageView notificationIcon = findViewById(R.id.notificationIcon); notificationIcon.setOnClickListener(v ->
+        { Toast.makeText(this, "Notification clicked!", Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(this, NotificationActivity.class)); });
+
+
+
         pondRecyclerView = findViewById(R.id.pondRecyclerView);
         int spacing = getResources().getDimensionPixelSize(R.dimen.pond_card_spacing);
         pondRecyclerView.addItemDecoration(new SpacingItemDecoration(spacing));
@@ -139,6 +163,18 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         historyAdapter = new HistoryAdapter(this, historyList);
         historyRecyclerView.setAdapter(historyAdapter);
 
+        PeriodicWorkRequest pendingActivityWork =
+                new PeriodicWorkRequest.Builder(PendingActivityWorker.class, 24, TimeUnit.HOURS)
+                        .build();
+
+// Enqueue unique to avoid duplicates
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "PendingActivityWorker",
+                ExistingPeriodicWorkPolicy.KEEP, // Keep the existing one if already enqueued
+                pendingActivityWork
+        );
+
+
     }
 
     @Override
@@ -153,6 +189,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     }
 
     private void loadPondsFromServer() {
+        // Show ADD_BUTTON immediately for owners
         runOnUiThread(() -> {
             pondList.clear();
             if ("owner".equalsIgnoreCase(userType)) {
@@ -163,6 +200,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
         new Thread(() -> {
             try {
+                // Fetch ponds from server
                 URL url = new URL("https://pondmate.alwaysdata.net/get_ponds.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
@@ -176,6 +214,10 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 JSONArray pondsArray = new JSONArray(response.toString());
                 ArrayList<PondModel> newPonds = new ArrayList<>();
                 if ("owner".equalsIgnoreCase(userType)) newPonds.add(new PondModel("ADD_BUTTON"));
+
+                // Load existing ActivityPrefs to preserve checked states
+                SharedPreferences activityPrefs = getSharedPreferences("ActivityPrefs", MODE_PRIVATE);
+                SharedPreferences.Editor editor = activityPrefs.edit();
 
                 for (int i = 0; i < pondsArray.length(); i++) {
                     JSONObject pond = pondsArray.getJSONObject(i);
@@ -192,10 +234,29 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     float actualROI = (float) pond.optDouble("actual_roi", 0);
                     float estimatedROI = (float) pond.optDouble("estimated_roi", 0);
 
-                    newPonds.add(new PondModel(id, name, breed, fishCount, costPerFish,
-                            dateStarted, dateHarvest, imagePath, actualROI, estimatedROI));
+                    PondModel pondModel = new PondModel(id, name, breed, fishCount, costPerFish,
+                            dateStarted, dateHarvest, imagePath, actualROI, estimatedROI);
+
+                    // Fetch activities for this pond from ActivityPrefs
+                    Map<String, ?> allPrefs = activityPrefs.getAll();
+                    List<ActivityItem> pondActivities = new ArrayList<>();
+                    for (String key : allPrefs.keySet()) {
+                        // Key format: pondId_date_activityName
+                        if (key.startsWith(id + "_")) {
+                            String[] parts = key.split("_", 3);
+                            if (parts.length == 3) {
+                                String scheduledDate = parts[1];
+                                String activityName = parts[2];
+                                pondActivities.add(new ActivityItem(activityName, "Unknown", scheduledDate));
+                            }
+                        }
+                    }
+                    pondModel.setActivities(pondActivities);
+
+                    newPonds.add(pondModel);
                 }
 
+                // Update UI
                 runOnUiThread(() -> {
                     pondList.clear();
                     pondList.addAll(newPonds);
@@ -208,6 +269,9 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             }
         }).start();
     }
+
+
+
 
     private void renderChartData() {
         Map<String, float[]> roiMap = new LinkedHashMap<>();
