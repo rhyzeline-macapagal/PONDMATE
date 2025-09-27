@@ -157,9 +157,18 @@ public class PondSyncManager {
 
                 writeFormField(request, "pond_id", pond.getId(), boundary);
                 writeFormField(request, "name", pond.getName(), boundary);
-                writeFormField(request, "action", action != null ? action : "", boundary);
+                writeFormField(request, "action", action != null ? action : "REUSED", boundary);
                 writeFormField(request, "pdf_path", pdfFile != null ? pdfFile.getAbsolutePath() : (pond.getPdfPath() != null ? pond.getPdfPath() : ""), boundary);
 
+                String pdfPathToSend = "";
+                if (pdfFile != null && pdfFile.exists()) {
+                    pdfPathToSend = "uploads/" + pdfFile.getName(); // store relative path
+                } else if (pond.getPdfPath() != null && !pond.getPdfPath().isEmpty()) {
+                    pdfPathToSend = pond.getPdfPath();
+                }
+                writeFormField(request, "pdf_path", pdfPathToSend, boundary);
+
+                // Upload PDF file if exists
                 if (pdfFile != null && pdfFile.exists()) {
                     writeFileField(request, "pdf_file", pdfFile, boundary);
                 }
@@ -182,6 +191,9 @@ public class PondSyncManager {
                 reader.close();
 
                 if (responseCode == 200) {
+                    if (!pdfPathToSend.isEmpty()) {
+                        pond.setPdfPath(pdfPathToSend);
+                    }
                     callback.onSuccess(response.toString());
                 } else {
                     callback.onError("HTTP Error: " + responseCode + " → " + response);

@@ -325,6 +325,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                         String action = obj.optString("action", "");
                         String date = obj.optString("created_at", "");
                         String pdfPath = obj.optString("pdf_path", "");
+                        Log.d("HistoryDebug", "Action=" + action + ", PDF=" + pdfPath);
                         newHistory.add(new HistoryModel(action, date, pdfPath));
                     }
 

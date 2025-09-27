@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -148,32 +149,53 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                                 File generatedPDF = PondPDFGenerator.generatePDF(context, pondReport, "REUSED");
                                 if (generatedPDF == null) throw new Exception("PDF generation failed");
 
-                                // Update pond model
-                                updatedPond.setPdfPath(generatedPDF.getAbsolutePath());
+                                // Update pond model locally
                                 updatedPond.setExtraData("REUSED"); // set action column
 
                                 // Step 4: Save history with PDF
                                 PondSyncManager.savePondHistoryWithPDF(updatedPond, "REUSED", generatedPDF, new PondSyncManager.Callback() {
                                     @Override
                                     public void onSuccess(Object result) {
-                                        // Step 5: Update RecyclerView in place
-                                        int adapterPos = holder.getAdapterPosition();
-                                        if (adapterPos >= 0 && adapterPos < pondList.size()) {
-                                            pondList.set(adapterPos, updatedPond);
-                                            notifyItemChanged(adapterPos);
-                                        }
+                                        new Handler(Looper.getMainLooper()).post(() -> {
+                                            try {
+                                                JSONObject response = new JSONObject(result.toString());
+                                                if (response.optString("status").equals("success")) {
+                                                    // Use server PDF path
+                                                    String serverPdfPath = response.optString("pdf_path");
+                                                    if (!serverPdfPath.isEmpty()) {
+                                                        updatedPond.setPdfPath(serverPdfPath);
+                                                    }
 
-                                        runOnUiThread(() ->
-                                                com.google.android.material.snackbar.Snackbar.make(
-                                                        holder.itemView,
-                                                        "Pond reused successfully!",
-                                                        com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
-                                                ).show()
-                                        );
+                                                    int adapterPos = holder.getAdapterPosition();
+                                                    if (adapterPos >= 0 && adapterPos < pondList.size()) {
+                                                        pondList.set(adapterPos, updatedPond);
+                                                        notifyItemChanged(adapterPos);
+                                                    }
+
+                                                    com.google.android.material.snackbar.Snackbar.make(
+                                                            holder.itemView,
+                                                            "Pond reused successfully!",
+                                                            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                                                    ).show();
+
+                                                    if (context instanceof PondDashboardActivity) {
+                                                        ((PondDashboardActivity) context).loadHistory(updatedPond.getId());
+                                                    }
+                                                } else {
+                                                    String message = response.optString("message", "Unknown error");
+                                                    Toast.makeText(context, "Save failed: " + message, Toast.LENGTH_SHORT).show();
+                                                }
+                                            } catch (JSONException e) {
+                                                e.printStackTrace();
+                                                Toast.makeText(context, "Invalid server response", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
                                     }
-
                                     @Override
                                     public void onError(String error) {
+                                        new Handler(Looper.getMainLooper()).post(() ->
+                                                Toast.makeText(context, "Error saving history: " + error, Toast.LENGTH_SHORT).show()
+                                        );
                                     }
                                 });
 
