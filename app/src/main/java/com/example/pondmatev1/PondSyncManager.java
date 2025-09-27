@@ -157,11 +157,8 @@ public class PondSyncManager {
 
                 writeFormField(request, "pond_id", pond.getId(), boundary);
                 writeFormField(request, "name", pond.getName(), boundary);
-                writeFormField(request, "action", action, boundary);
-
-                if (pdfFile == null) {
-                    writeFormField(request, "pdf_path", pond.getPdfPath() != null ? pond.getPdfPath() : "", boundary);
-                }
+                writeFormField(request, "action", action != null ? action : "", boundary);
+                writeFormField(request, "pdf_path", pdfFile != null ? pdfFile.getAbsolutePath() : (pond.getPdfPath() != null ? pond.getPdfPath() : ""), boundary);
 
                 if (pdfFile != null && pdfFile.exists()) {
                     writeFileField(request, "pdf_file", pdfFile, boundary);

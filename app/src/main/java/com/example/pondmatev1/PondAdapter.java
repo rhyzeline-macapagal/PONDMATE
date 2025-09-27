@@ -127,41 +127,53 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     private void reusePond(ViewHolder holder, PondModel pond) {
         ReusePondDialog reuseDialog = new ReusePondDialog();
         reuseDialog.setPond(pond);
-        reuseDialog.setOnPondReusedListener(updatedPond -> {
 
-            // Step 1: Update pond details
+        reuseDialog.setOnPondReusedListener(updatedPond -> {
+            // Keep original pond ID and name
+            updatedPond.setId(pond.getId());
+            updatedPond.setName(pond.getName());
+
+            // Step 1: Update pond details in database
             PondSyncManager.updatePondDetails(updatedPond, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object result) {
-
+                    // Step 2: Fetch current pond report
                     PondSyncManager.fetchPondReport(updatedPond.getId(), new PondSyncManager.Callback() {
                         @Override
                         public void onSuccess(Object result) {
                             try {
                                 JSONObject pondReport = (JSONObject) result;
-                                // Step 3: Generate PDF for reused pond
+
+                                // Step 3: Generate PDF
                                 File generatedPDF = PondPDFGenerator.generatePDF(context, pondReport, "REUSED");
                                 if (generatedPDF == null) throw new Exception("PDF generation failed");
 
-                                // Step 4: Save history with generated PDF
+                                // Update pond model
+                                updatedPond.setPdfPath(generatedPDF.getAbsolutePath());
+                                updatedPond.setExtraData("REUSED"); // set action column
+
+                                // Step 4: Save history with PDF
                                 PondSyncManager.savePondHistoryWithPDF(updatedPond, "REUSED", generatedPDF, new PondSyncManager.Callback() {
                                     @Override
                                     public void onSuccess(Object result) {
+                                        // Step 5: Update RecyclerView in place
                                         int adapterPos = holder.getAdapterPosition();
                                         if (adapterPos >= 0 && adapterPos < pondList.size()) {
                                             pondList.set(adapterPos, updatedPond);
                                             notifyItemChanged(adapterPos);
                                         }
-                                        new Handler(Looper.getMainLooper()).post(() ->
-                                                Toast.makeText(context, "Pond reused successfully!", Toast.LENGTH_SHORT).show()
+
+                                        runOnUiThread(() ->
+                                                com.google.android.material.snackbar.Snackbar.make(
+                                                        holder.itemView,
+                                                        "Pond reused successfully!",
+                                                        com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+                                                ).show()
                                         );
                                     }
 
                                     @Override
                                     public void onError(String error) {
-                                        new Handler(Looper.getMainLooper()).post(() ->
-                                                Toast.makeText(context, "History save failed: " + error, Toast.LENGTH_LONG).show()
-                                        );
                                     }
                                 });
 
