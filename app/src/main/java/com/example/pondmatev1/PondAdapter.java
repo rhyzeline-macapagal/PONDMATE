@@ -126,45 +126,73 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
 
     private void reusePond(ViewHolder holder, PondModel pond) {
         ReusePondDialog reuseDialog = new ReusePondDialog();
-        reuseDialog.setPond(pond); // pass existing pond
+        reuseDialog.setPond(pond);
         reuseDialog.setOnPondReusedListener(updatedPond -> {
-            // Update pond details first
+
+            // Step 1: Update pond details
             PondSyncManager.updatePondDetails(updatedPond, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object result) {
-                    // Preserve existing PDF if any
-                    File existingPDF = (updatedPond.getPdfPath() != null && !updatedPond.getPdfPath().isEmpty())
-                            ? new File(updatedPond.getPdfPath()) : null;
 
-                    // Save history with action = "REUSED"
-                    PondSyncManager.savePondHistoryWithPDF(updatedPond, "REUSED", existingPDF, new PondSyncManager.Callback() {
+                    PondSyncManager.fetchPondReport(updatedPond.getId(), new PondSyncManager.Callback() {
                         @Override
                         public void onSuccess(Object result) {
-                            int adapterPos = holder.getAdapterPosition();
-                            if (adapterPos >= 0 && adapterPos < pondList.size()) {
-                                pondList.set(adapterPos, updatedPond);
-                                notifyItemChanged(adapterPos);
+                            try {
+                                JSONObject pondReport = (JSONObject) result;
+                                // Step 3: Generate PDF for reused pond
+                                File generatedPDF = PondPDFGenerator.generatePDF(context, pondReport, "REUSED");
+                                if (generatedPDF == null) throw new Exception("PDF generation failed");
+
+                                // Step 4: Save history with generated PDF
+                                PondSyncManager.savePondHistoryWithPDF(updatedPond, "REUSED", generatedPDF, new PondSyncManager.Callback() {
+                                    @Override
+                                    public void onSuccess(Object result) {
+                                        int adapterPos = holder.getAdapterPosition();
+                                        if (adapterPos >= 0 && adapterPos < pondList.size()) {
+                                            pondList.set(adapterPos, updatedPond);
+                                            notifyItemChanged(adapterPos);
+                                        }
+                                        new Handler(Looper.getMainLooper()).post(() ->
+                                                Toast.makeText(context, "Pond reused successfully!", Toast.LENGTH_SHORT).show()
+                                        );
+                                    }
+
+                                    @Override
+                                    public void onError(String error) {
+                                        new Handler(Looper.getMainLooper()).post(() ->
+                                                Toast.makeText(context, "History save failed: " + error, Toast.LENGTH_LONG).show()
+                                        );
+                                    }
+                                });
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                new Handler(Looper.getMainLooper()).post(() ->
+                                        Toast.makeText(context, "Error generating PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                                );
                             }
-                            new Handler(Looper.getMainLooper()).post(() ->
-                                    Toast.makeText(context, "Pond reused successfully!", Toast.LENGTH_SHORT).show()
-                            );
                         }
-                            @Override
+
+                        @Override
                         public void onError(String error) {
-                            runOnUiThread(() -> Toast.makeText(context, "History save failed: " + error, Toast.LENGTH_LONG).show());
+                            new Handler(Looper.getMainLooper()).post(() ->
+                                    Toast.makeText(context, "Error fetching pond report: " + error, Toast.LENGTH_SHORT).show()
+                            );
                         }
                     });
                 }
 
                 @Override
                 public void onError(String error) {
-                    runOnUiThread(() -> Toast.makeText(context, "Update failed: " + error, Toast.LENGTH_SHORT).show());
+                    new Handler(Looper.getMainLooper()).post(() ->
+                            Toast.makeText(context, "Update failed: " + error, Toast.LENGTH_SHORT).show()
+                    );
                 }
             });
         });
+
         reuseDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ReusePondDialog");
     }
-
 
     private void deletePond(ViewHolder holder, PondModel pond) {
         PondSyncManager.fetchPondReport(pond.getId(), new PondSyncManager.Callback() {
