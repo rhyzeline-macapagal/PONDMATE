@@ -28,7 +28,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.row_history, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.row_history, parent, false);
         return new ViewHolder(view);
     }
 
@@ -36,6 +36,8 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         HistoryModel history = historyList.get(position);
 
+
+        holder.tvHistoryName.setText(history.getPondName());
         holder.tvHistoryAction.setText(history.getAction());
         holder.tvHistoryDate.setText(history.getDate());
 
@@ -43,11 +45,11 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
             holder.btnViewPdf.setVisibility(View.VISIBLE);
             holder.btnViewPdf.setOnClickListener(v -> {
                 try {
-                    // Build absolute URL to PDF (adjust BASE_URL to match your backend)
+                    // 🔹 Ensure pdf_path in DB is relative (e.g. "reports/pond1234.pdf")
                     String pdfUrl = "https://pondmate.alwaysdata.net/" + history.getPdfPath();
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.setDataAndType(Uri.parse(pdfUrl), "application/pdf");
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     context.startActivity(intent);
                 } catch (Exception e) {
                     Toast.makeText(context, "Unable to open PDF", Toast.LENGTH_SHORT).show();
@@ -64,11 +66,12 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvHistoryAction, tvHistoryDate;
+        TextView tvHistoryName, tvHistoryAction, tvHistoryDate;
         Button btnViewPdf;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            tvHistoryName = itemView.findViewById(R.id.tvHistoryName);
             tvHistoryAction = itemView.findViewById(R.id.tvHistoryAction);
             tvHistoryDate = itemView.findViewById(R.id.tvHistoryDate);
             btnViewPdf = itemView.findViewById(R.id.btnViewPdf);

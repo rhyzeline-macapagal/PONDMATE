@@ -14,13 +14,20 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- Action (e.g., Created, Deleted, Updated) -->
+        <TextView
+            android:id="@+id/tvHistoryName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pond Name"
+            android:textColor="#001C4F"
+            android:textStyle="bold"
+            android:textSize="20sp" />
+
         <TextView
             android:id="@+id/tvHistoryAction"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Deleted Pond"
-            android:textColor="#001C4F"
             android:textStyle="bold"
             android:textSize="16sp" />
 
@@ -44,7 +51,6 @@
             android:text="View PDF"
             android:textColor="#FFFFFF"
             android:textSize="14sp" />
-
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>

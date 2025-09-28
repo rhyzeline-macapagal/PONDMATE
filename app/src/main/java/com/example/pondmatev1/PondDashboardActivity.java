@@ -59,9 +59,7 @@ import androidx.work.*;
 
 public class PondDashboardActivity extends AppCompatActivity implements ROIChartUpdater {
 
-
     private static final int REQUEST_NOTIFICATION_PERMISSION = 1001;
-
     RecyclerView pondRecyclerView;
     PondAdapter pondAdapter;
     ArrayList<PondModel> pondList;
@@ -70,8 +68,8 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     private Map<String, String> dateRangeMap = new LinkedHashMap<>();
     private RecyclerView historyRecyclerView;
     private HistoryAdapter historyAdapter;
-    private ArrayList<HistoryModel> historyList;
-
+    private ArrayList<HistoryModel> historyList = new ArrayList<>();
+    private static final String BASE_URL = "http://pondmate.alwaysdata.net/getPondHistory.php";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,8 +85,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
             }
         }
-
-
 
         ImageView adminIcon = findViewById(R.id.adminIcon);
         adminIcon.setOnClickListener(v -> {
@@ -145,7 +141,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             startActivity(new Intent(this, NotificationActivity.class)); });
 
 
-
         pondRecyclerView = findViewById(R.id.pondRecyclerView);
         int spacing = getResources().getDimensionPixelSize(R.dimen.pond_card_spacing);
         pondRecyclerView.addItemDecoration(new SpacingItemDecoration(spacing));
@@ -187,6 +182,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     protected void onResume() {
         super.onResume();
         loadPondsFromServer();
+        loadAllHistory();
     }
 
     @Override
@@ -283,9 +279,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             }
         }).start();
     }
-
-
-
 
     private void renderChartData() {
         Map<String, float[]> roiMap = new LinkedHashMap<>();
@@ -400,10 +393,13 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     ArrayList<HistoryModel> newHistory = new ArrayList<>();
                     for (int i = 0; i < historyArray.length(); i++) {
                         JSONObject obj = historyArray.getJSONObject(i);
+
+                        String historypondId = obj.optString("pond_id", "");
+                        String pondName = obj.optString("name", "");
                         String action = obj.optString("action", "");
                         String date = obj.optString("created_at", "");
                         String pdfPath = obj.optString("pdf_path", "");
-                        newHistory.add(new HistoryModel(action, date, pdfPath));
+                        newHistory.add(new HistoryModel(historypondId, pondName, action, date, pdfPath));
                     }
 
                     runOnUiThread(() -> {
@@ -425,58 +421,60 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         }).start();
     }
 
-    private void fetchAndGeneratePDF(String pondId) {
+    public void loadAllHistory() {
+        fetchHistory("https://pondmate.alwaysdata.net/getPondHistory.php");
+    }
+
+    private void fetchHistory(String urlStr) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://yourdomain.com/getpondreport.php");
+                URL url = new URL(urlStr);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
+                conn.setRequestMethod("GET");
 
-                String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8");
-                OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
-                os.flush();
-                os.close();
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder response = new StringBuilder();
                 String line;
-                while ((line = in.readLine()) != null) {
+                while ((line = reader.readLine()) != null) {
                     response.append(line);
                 }
-                in.close();
+                reader.close();
 
-                JSONObject data = new JSONObject(response.toString());
+                JSONObject jsonResponse = new JSONObject(response.toString());
+                if (jsonResponse.optBoolean("success")) {
+                    JSONArray historyArray = jsonResponse.getJSONArray("history");
 
-                if (data.optString("status").equals("success")) {
-                    File pdfFile = PondPDFGenerator.generatePDF(this, data, pondId);
+                    ArrayList<HistoryModel> newHistory = new ArrayList<>();
+                    for (int i = 0; i < historyArray.length(); i++) {
+                        JSONObject obj = historyArray.getJSONObject(i);
+
+                        String historypondId = obj.optString("pond_id", "");
+                        String pondName = obj.optString("name", "");
+                        String action = obj.optString("action", "");
+                        String date = obj.optString("created_at", "");
+                        String pdfPath = obj.optString("pdf_path", "");
+                        newHistory.add(new HistoryModel(historypondId, pondName, action, date, pdfPath));
+                    }
 
                     runOnUiThread(() -> {
-                        if (pdfFile != null) {
-                            Toast.makeText(this, "PDF Generated: " + pdfFile.getAbsolutePath(), Toast.LENGTH_LONG).show();
-                            // Open the PDF if you want
-                            Intent intent = new Intent(Intent.ACTION_VIEW);
-                            intent.setDataAndType(Uri.fromFile(pdfFile), "application/pdf");
-                            intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                            startActivity(intent);
-                        } else {
-                            Toast.makeText(this, "Failed to generate PDF", Toast.LENGTH_SHORT).show();
-                        }
+                        historyList.clear();
+                        historyList.addAll(newHistory);
+                        historyAdapter.notifyDataSetChanged();
                     });
                 } else {
                     runOnUiThread(() ->
-                            Toast.makeText(this, "No data for this pond", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(PondDashboardActivity.this, "No history found", Toast.LENGTH_SHORT).show()
                     );
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("PondHistory", "Error: " + e.getMessage(), e);
                 runOnUiThread(() ->
-                        Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                        Toast.makeText(PondDashboardActivity.this, "Error loading history", Toast.LENGTH_SHORT).show()
                 );
             }
         }).start();
     }
+
 
 
     private void saveROIsToServer() {
@@ -520,6 +518,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             }
         }).start();
     }
+
     private void schedulePendingActivityNotifications() {
         for (PondModel pond : pondList) {
             if ("ADD_BUTTON".equals(pond.getMode())) continue; // skip the ADD button
@@ -597,10 +596,4 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             }
         }
     }
-
-
-
-
-
-
 }
