@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.ImageButton;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.ItemTouchHelper;
@@ -13,7 +14,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -44,7 +44,7 @@ public class NotificationActivity extends AppCompatActivity {
 
         loadNotifications();
 
-        // Swipe to delete
+        // Swipe to delete (items only, not headers)
         ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0,
                 ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
@@ -52,6 +52,15 @@ public class NotificationActivity extends AppCompatActivity {
                                   RecyclerView.ViewHolder viewHolder,
                                   RecyclerView.ViewHolder target) {
                 return false;
+            }
+
+            @Override
+            public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
+                // 🚫 disable swipe if header
+                if (viewHolder.getItemViewType() == NotificationAdapter.TYPE_HEADER) {
+                    return 0;
+                }
+                return super.getSwipeDirs(recyclerView, viewHolder);
             }
 
             @Override

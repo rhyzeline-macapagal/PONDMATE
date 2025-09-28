@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -19,6 +20,18 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
+import androidx.work.Data;
+
+
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
 
 import com.google.gson.Gson;
 
@@ -229,19 +242,31 @@ public class ScheduleFeederDialog extends DialogFragment {
                                                     + time1Final + ", " + time2Final + ", " + time3Final;
                                             handler.sendNotification("Feeding Schedule", notifMessage);
 
-                                            // ✅ Schedule alarms
                                             try {
                                                 String[] time1Parts = time1Final.split(":");
                                                 String[] time2Parts = time2Final.split(":");
                                                 String[] time3Parts = time3Final.split(":");
 
-                                                scheduleFeedingAlarm(pondFinal, Integer.parseInt(time1Parts[0]), Integer.parseInt(time1Parts[1]), "Feeding 1");
-                                                scheduleFeedingAlarm(pondFinal, Integer.parseInt(time2Parts[0]), Integer.parseInt(time2Parts[1]), "Feeding 2");
-                                                scheduleFeedingAlarm(pondFinal, Integer.parseInt(time3Parts[0]), Integer.parseInt(time3Parts[1]), "Feeding 3");
+                                                scheduleSingleFeedingNotification(pondFinal,
+                                                        Integer.parseInt(time1Parts[0]),
+                                                        Integer.parseInt(time1Parts[1]),
+                                                        "Feeding 1");
+
+                                                scheduleSingleFeedingNotification(pondFinal,
+                                                        Integer.parseInt(time2Parts[0]),
+                                                        Integer.parseInt(time2Parts[1]),
+                                                        "Feeding 2");
+
+                                                scheduleSingleFeedingNotification(pondFinal,
+                                                        Integer.parseInt(time3Parts[0]),
+                                                        Integer.parseInt(time3Parts[1]),
+                                                        "Feeding 3");
+
 
                                             } catch (Exception e) {
                                                 e.printStackTrace();
                                             }
+
 
                                             ScheduleFeederDialog.this.dismiss();
                                         });
@@ -259,7 +284,7 @@ public class ScheduleFeederDialog extends DialogFragment {
                     );
 
                     // ✅ Upload also to Adafruit/ESP
-                    
+
                     uploadFeedingTimesToAdafruit(pondFinal, time1Final, time2Final, time3Final, feedAmountFinal);
 
                 })
@@ -269,49 +294,37 @@ public class ScheduleFeederDialog extends DialogFragment {
     }
 
 
-    // 🔒 Private helper to schedule alarms
-    private void scheduleFeedingAlarm(String pondName, int hour, int minute, String feedingLabel) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.HOUR_OF_DAY, hour);
-        calendar.set(Calendar.MINUTE, minute);
-        calendar.set(Calendar.SECOND, 0);
+    // ✅ Schedule single feeding notifications
+    private void scheduleSingleFeedingNotification(String pondName, int hour, int minute, String feedingLabel) {
+        Calendar now = Calendar.getInstance();
+        Calendar feedTime = Calendar.getInstance();
+        feedTime.set(Calendar.HOUR_OF_DAY, hour);
+        feedTime.set(Calendar.MINUTE, minute);
+        feedTime.set(Calendar.SECOND, 0);
 
         // If time already passed today, schedule for tomorrow
-        if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
-            calendar.add(Calendar.DAY_OF_YEAR, 1);
+        if (feedTime.getTimeInMillis() <= now.getTimeInMillis()) {
+            feedTime.add(Calendar.DAY_OF_MONTH, 1);
         }
 
-        Intent intent = new Intent(requireContext(), FeedingReminderReceiver.class);
-        intent.putExtra("pond_name", pondName);
-        intent.putExtra("feeding_label", feedingLabel);
-        intent.putExtra("hour", hour);      // <- important for reschedule
-        intent.putExtra("minute", minute);  // <- important for reschedule
+        long delay = feedTime.getTimeInMillis() - now.getTimeInMillis();
 
-        // stable unique requestCode for this pond+label+time
-        int requestCode = (pondName + feedingLabel + hour + minute).hashCode();
+        Data inputData = new Data.Builder()
+                .putString("pondName", pondName)
+                .putString("feedingLabel", feedingLabel)
+                .build();
 
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                requireContext(),
-                requestCode,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
+        androidx.work.OneTimeWorkRequest feedingWork =
+                new androidx.work.OneTimeWorkRequest.Builder(FeedingNotificationWorker.class)
+                        .setInitialDelay(delay, java.util.concurrent.TimeUnit.MILLISECONDS)
+                        .setInputData(inputData)
+                        .build();
 
-        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
-        if (alarmManager != null) {
-            alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    calendar.getTimeInMillis(),
-                    pendingIntent
-            );
-            android.util.Log.d("ScheduleFeeder", "Alarm scheduled -> " + feedingLabel + " for pond=" + pondName
-                    + " at " + String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
-                    + " millis=" + calendar.getTimeInMillis()
-                    + " reqCode=" + requestCode);
-        } else {
-            android.util.Log.e("ScheduleFeeder", "AlarmManager is null");
-        }
+        androidx.work.WorkManager.getInstance(requireContext()).enqueue(feedingWork);
     }
+
+
+
 
 
     private void uploadFeedingTimesToAdafruit(String pondName, String t1, String t2, String t3, float feedAmountKg) {

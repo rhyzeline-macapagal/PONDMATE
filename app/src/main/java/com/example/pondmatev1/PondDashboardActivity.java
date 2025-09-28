@@ -59,6 +59,7 @@ import androidx.work.*;
 
 public class PondDashboardActivity extends AppCompatActivity implements ROIChartUpdater {
 
+
     private static final int REQUEST_NOTIFICATION_PERMISSION = 1001;
 
     RecyclerView pondRecyclerView;
@@ -269,6 +270,13 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     renderChartData();
 
                 });
+
+                // ✅ Schedule notifications for each pond
+                schedulePendingActivityNotifications();
+
+                for (PondModel pond : pondList) {
+                    scheduleFeedingNotifications(pond);
+                }
 
             } catch (Exception e) {
                 Log.e("LOAD_PONDS", "Error: " + e.getMessage(), e);
@@ -512,6 +520,86 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             }
         }).start();
     }
+    private void schedulePendingActivityNotifications() {
+        for (PondModel pond : pondList) {
+            if ("ADD_BUTTON".equals(pond.getMode())) continue; // skip the ADD button
+
+            int pondId = Integer.parseInt(pond.getId()); // make sure id is numeric
+            String pondName = pond.getName();
+
+            List<ActivityItem> activities = pond.getActivities();
+            if (activities == null || activities.isEmpty()) continue;
+
+            // Convert to String array
+            String[] activitiesArray = new String[activities.size()];
+            for (int i = 0; i < activities.size(); i++) {
+                activitiesArray[i] = activities.get(i).getName(); // ✅ use getName() instead
+            }
+
+            Data inputData = new Data.Builder()
+                    .putInt("pondId", pondId)
+                    .putString("pondName", pondName)
+                    .putStringArray("activities", activitiesArray)
+                    .build();
+
+            PeriodicWorkRequest workRequest = new PeriodicWorkRequest.Builder(
+                    PendingActivityWorker.class, 24, TimeUnit.HOURS
+            )
+                    .setInputData(inputData)
+                    .build();
+
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                    "PendingActivityWorker_" + pondId,
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    workRequest
+            );
+        }
+    }
+
+    private void scheduleFeedingNotifications(PondModel pond) {
+        if ("ADD_BUTTON".equals(pond.getMode())) return;
+
+        String pondName = pond.getName();
+        List<ActivityItem> activities = pond.getActivities();
+        if (activities == null || activities.isEmpty()) return;
+
+        Calendar now = Calendar.getInstance();
+
+        for (ActivityItem activity : activities) {
+            if (!"Feeding".equalsIgnoreCase(activity.getType())) continue;
+
+            // Parse scheduledDate (format: yyyy-MM-dd HH:mm)
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US);
+                Calendar feedTime = Calendar.getInstance();
+                feedTime.setTime(sdf.parse(activity.getScheduledDate()));
+
+                // Skip if time already passed
+                if (feedTime.getTimeInMillis() <= now.getTimeInMillis()) continue;
+
+                long delay = feedTime.getTimeInMillis() - now.getTimeInMillis();
+
+                Data inputData = new Data.Builder()
+                        .putString("pondName", pondName)
+                        .putString("feedingLabel", activity.getName())
+                        .build();
+
+                androidx.work.OneTimeWorkRequest feedingWork =
+                        new androidx.work.OneTimeWorkRequest.Builder(FeedingNotificationWorker.class)
+                                .setInitialDelay(delay, java.util.concurrent.TimeUnit.MILLISECONDS)
+                                .setInputData(inputData)
+                                .build();
+
+                androidx.work.WorkManager.getInstance(this).enqueue(feedingWork);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+
 
 
 
