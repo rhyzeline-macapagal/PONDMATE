@@ -347,6 +347,7 @@ public class PondSyncManager {
                                                      String schedThree,
                                                      double feedAmount,
                                                      float fishWeight,
+                                                     float feedPrice,
                                                      Callback callback) {
         new Thread(() -> {
             try {
@@ -360,14 +361,16 @@ public class PondSyncManager {
                         ", sched2=" + schedTwo +
                         ", sched3=" + schedThree +
                         ", amount=" + feedAmount +
-                        ", fish_weight=" + fishWeight);
+                        ", fish_weight=" + fishWeight +
+                        ", feed_price=" + feedPrice);
 
                 String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
                         "&sched_one=" + URLEncoder.encode(schedOne, "UTF-8") +
                         "&sched_two=" + URLEncoder.encode(schedTwo != null ? schedTwo : "", "UTF-8") +
                         "&sched_three=" + URLEncoder.encode(schedThree != null ? schedThree : "", "UTF-8") +
                         "&feed_amount=" + feedAmount +
-                        "&fish_weight=" + fishWeight;
+                        "&fish_weight=" + fishWeight +
+                        "&feed_price=" + feedPrice;
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
@@ -474,41 +477,6 @@ public class PondSyncManager {
         }
     }
 
-
-
-    public static void updateFeedPrice(String id, String newPrice, Callback callback) {
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/update_feed_price.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-
-                String postData = "id=" + URLEncoder.encode(id, "UTF-8") +
-                        "&price_per_kg=" + URLEncoder.encode(newPrice, "UTF-8");
-
-                OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
-                os.flush();
-                os.close();
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder result = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    result.append(line);
-                }
-                reader.close();
-
-                callback.onSuccess(result.toString());
-
-            } catch (Exception e) {
-                callback.onError(e.getMessage());
-            }
-        }).start();
-    }
-
-    // Callback interface
     public interface Callback {
         void onSuccess(Object result);
         void onError(String error);

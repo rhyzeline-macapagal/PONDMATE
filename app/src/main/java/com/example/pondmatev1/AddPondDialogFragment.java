@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -22,12 +23,24 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
+import com.google.gson.Gson;
+
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public class AddPondDialogFragment extends DialogFragment {
 
@@ -48,7 +61,7 @@ public class AddPondDialogFragment extends DialogFragment {
     private final int DEFAULT_FEEDING3 = 15 * 60;  // 3:00 PM
 
     // TextViews for feeding times
-    private TextView timeoffeeding1, timeoffeeding2, timeoffeeding3, feedQuantityView;
+    private TextView timeoffeeding1, timeoffeeding2, timeoffeeding3, feedQuantityView, feedPriceView, feedPriceDayView;
 
 
     // Store selected times
@@ -90,10 +103,14 @@ public class AddPondDialogFragment extends DialogFragment {
         btnCaptureImage = view.findViewById(R.id.btnCaptureImage);
         feedQuantityView = view.findViewById(R.id.tvFeedQuantity);
         weightInput = view.findViewById(R.id.etFishWeight);
+        feedPriceView = view.findViewById(R.id.feedprice);
+        feedPriceDayView = view.findViewById(R.id.feedpriceday);
 
         timeoffeeding1 = view.findViewById(R.id.timeoffeeding1);
         timeoffeeding2 = view.findViewById(R.id.timeoffeeding2);
         timeoffeeding3 = view.findViewById(R.id.timeoffeeding3);
+
+
 
         setDefaultFeedingTimes();
 
@@ -192,6 +209,7 @@ public class AddPondDialogFragment extends DialogFragment {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 updateHarvestDate.run();
+                computeFeedQuantity();
 
                 String selectedBreed = spinnerBreed.getSelectedItem().toString();
                 if (breedCosts.containsKey(selectedBreed)) {
@@ -322,9 +340,11 @@ public class AddPondDialogFragment extends DialogFragment {
                                     }
                                     pond.setImagePath(serverImagePath);
 
+
                                     if (listener != null) listener.onPondAdded(pond);
 
                                     Toast.makeText(getContext(), "Pond and fingerlings cost added successfully!", Toast.LENGTH_SHORT).show();
+                                    confirmAndSaveSchedule(name);
                                     dismiss();
 
                                 } catch (Exception e) {
@@ -361,6 +381,8 @@ public class AddPondDialogFragment extends DialogFragment {
         }
     }
 
+
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -371,29 +393,266 @@ public class AddPondDialogFragment extends DialogFragment {
             ivPondImage.setImageBitmap(capturedImageBitmap);
         }
     }
-    private void computeFeedQuantity() {
-        String weightStr = weightInput.getText().toString().trim(); // or use weight input if separate
-        String fishCountStr = etFishCount.getText().toString().trim();
 
-        if (weightStr.isEmpty() || fishCountStr.isEmpty()) {
-            feedQuantityView.setText("--");
+    private void confirmAndSaveSchedule(String pondName) {
+        pondName = etPondName.getText().toString().trim();
+        if (pondName.isEmpty()) {
+            Toast.makeText(getContext(), "Pond name is empty!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (formattedTime1.isEmpty() || formattedTime2.isEmpty() || formattedTime3.isEmpty()) {
+            Toast.makeText(getContext(), "Please set all feeding times", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+
+        String fishCountStr = etFishCount.getText().toString().trim();
+        if (fishCountStr.isEmpty()) {
+            Toast.makeText(getContext(), "Please enter fish count", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
-            int fishCount = Integer.parseInt(fishCountStr);   // ✅ number of fish
-            float fishWeight = Float.parseFloat(weightStr);   // in grams
-            float feedPercentage = 0.03f;                     // 3%
-            float totalFeed = feedPercentage * fishWeight * fishCount; // grams
-            float totalKg = totalFeed / 1000f;
+            fishCount = Integer.parseInt(fishCountStr); // ⚠️ set the class field
+        } catch (NumberFormatException e) {
+            Toast.makeText(getContext(), "Invalid fish count", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
+
+        String weightStr = weightInput.getText().toString().trim();
+        if (weightStr.isEmpty()) {
+            Toast.makeText(getContext(), "Please enter fish weight", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        float fishWeight = Float.parseFloat(weightStr);
+        float feedPercentage = 0.03f;
+        float computedFeedQty = feedPercentage * fishWeight * fishCount;
+        float computedKg = computedFeedQty / 1000f;
+        float finalFeedAmount = computedKg;
+
+        String feedPriceText = feedPriceView.getText().toString().replace("₱", "").trim();
+        double feedPrice = 0.0;
+        try {
+            if (feedPriceText.contains("(")) {
+                feedPriceText = feedPriceText.split("\\(")[0].trim();
+            }
+            feedPrice = Double.parseDouble(feedPriceText);
+        } catch (NumberFormatException e) {
+            feedPrice = 0.0;
+        }
+
+        // Upload to your backend server
+        PondSyncManager.uploadFeedingScheduleToServer(
+                pondName, formattedTime1, formattedTime2, formattedTime3,
+                finalFeedAmount, fishWeight, (float) feedPrice,
+                new PondSyncManager.Callback() {
+                    @Override
+                    public void onSuccess(Object result) {
+                        if (isAdded()) {
+                            requireActivity().runOnUiThread(() ->
+                                    Toast.makeText(getContext(), "Uploaded to server: " + result, Toast.LENGTH_SHORT).show());
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (isAdded()) {
+                            requireActivity().runOnUiThread(() ->
+                                    Toast.makeText(getContext(), "Upload failed: " + error, Toast.LENGTH_SHORT).show());
+                        }
+                    }
+                }
+        );
+
+        // ✅ Upload also to Adafruit/ESP
+        uploadFeedingTimesToAdafruit(pondName, formattedTime1, formattedTime2, formattedTime3, finalFeedAmount);
+
+        Toast.makeText(getContext(), "Schedule saved!", Toast.LENGTH_SHORT).show();
+        AddPondDialogFragment.this.dismiss();
+    }
+
+
+
+    private void uploadFeedingTimesToAdafruit(String pondName, String t1, String t2, String t3, float feedAmountKg) {
+        OkHttpClient client = new OkHttpClient();
+
+        String feedKey = "schedule"; // your Adafruit feed key
+        String username = getString(R.string.adafruit_username);
+        String aioKey = getString(R.string.adafruit_aio_key);
+
+        // Convert kg → grams (1 kg = 1000 g)
+        int feedAmountGrams = Math.round(feedAmountKg * 1000);
+
+// Divide by 10 for the value to send
+        int reducedGrams = feedAmountGrams / 10;
+
+// Value format: PondName|time1,time2,time3|feedAmountGrams
+        String value = pondName + "|" + t1 + "," + t2 + "," + t3 + "|" + reducedGrams + "g";
+
+        try {
+            JSONObject json = new JSONObject();
+            json.put("value", value);
+
+            RequestBody body = RequestBody.create(json.toString(),
+                    MediaType.parse("application/json; charset=utf-8"));
+
+            String url = "https://io.adafruit.com/api/v2/" + username + "/feeds/" + feedKey + "/data";
+
+            // 🔥 Log what you’re about to send
+            android.util.Log.d("ScheduleFeeder", "Posting to Adafruit: " + value);
+            android.util.Log.d("ScheduleFeeder", "URL: " + url);
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("X-AIO-Key", aioKey)
+                    .post(body)
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override public void onFailure(Call call, IOException e) {
+                    android.util.Log.e("ScheduleFeeder", "Adafruit request failed", e);
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Failed to post to Adafruit: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    }
+                }
+
+                @Override public void onResponse(Call call, Response response) throws IOException {
+                    final String bodyStr = (response.body()!=null) ? response.body().string() : "";
+                    android.util.Log.d("ScheduleFeeder", "Adafruit response code: " + response.code());
+                    android.util.Log.d("ScheduleFeeder", "Adafruit response body: " + bodyStr);
+
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "Response: " + response.code(), Toast.LENGTH_LONG).show();
+                        });
+                    }
+                }
+            });
+        } catch (JSONException ex) {
+            android.util.Log.e("ScheduleFeeder", "JSON error", ex);
+            Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void computeFeedQuantity() {
+        String weightStr = weightInput.getText().toString().trim();
+        String fishCountStr = etFishCount.getText().toString().trim();
+
+        if (weightStr.isEmpty() || fishCountStr.isEmpty()) {
+            feedQuantityView.setText("--");
+            feedPriceView.setText("--");
+            return;
+        }
+
+        try {
+            int fishCount = Integer.parseInt(fishCountStr);
+            float fishWeight = Float.parseFloat(weightStr);
+            float feedPercentage = 0.03f; // starter = 3%
+
+            // daily feed in grams
+            float totalFeed = feedPercentage * fishWeight * fishCount;
+
+            // how many feeding cycles are set
+            int cycleCount = 0;
+            if (feeding1Minutes != null) cycleCount++;
+            if (feeding2Minutes != null) cycleCount++;
+            if (feeding3Minutes != null) cycleCount++;
+
+            // per cycle
+            float perCycleFeed = (cycleCount > 0) ? totalFeed / cycleCount : 0;
+            float perCycleKg = perCycleFeed / 1000f;
+
+            // update feed quantity
             feedQuantityView.setText(String.format(Locale.getDefault(),
-                    "%.2f kg (%.0f g)", totalKg, totalFeed));
+                    "%.2f kg (%.0f g)", perCycleKg, perCycleFeed));
+
+            // compute price separately
+            computeFeedsPrice(perCycleKg);
 
         } catch (NumberFormatException e) {
             feedQuantityView.setText("--");
+            feedPriceView.setText("--");
         }
     }
+
+
+    private void computeFeedsPrice(float perCycleKg) {
+        String selectedBreed = spinnerBreed.getSelectedItem().toString().toLowerCase();
+
+        PondSyncManager.fetchFeeds(new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object result) {
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(result.toString());
+
+                    if (!json.getString("status").equals("success")) {
+                        if (isAdded()) {
+                            requireActivity().runOnUiThread(() -> {
+                                feedPriceView.setText("Error: " + json.optString("message"));
+                                feedPriceDayView.setText("--"); // reset
+                            });
+                        }
+                        return;
+                    }
+
+                    org.json.JSONArray arr = json.getJSONArray("feeds");
+                    double starterPrice = 0;
+
+                    for (int i = 0; i < arr.length(); i++) {
+                        org.json.JSONObject obj = arr.getJSONObject(i);
+                        String breed = obj.getString("breed");
+                        String type = obj.getString("feed_type");
+                        double price = obj.getDouble("price_per_kg");
+
+                        if (breed.equalsIgnoreCase(selectedBreed) && type.equalsIgnoreCase("starter")) {
+                            starterPrice = price;
+                            break;
+                        }
+                    }
+
+                    double perCycleCost = perCycleKg * starterPrice;
+                    double perDayCost = perCycleCost * 3; // ✅ Multiply by 3 feedings
+                    double finalStarterPrice = starterPrice;
+
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() -> {
+                            feedPriceView.setText(String.format(Locale.getDefault(),
+                                    "₱%.2f (Starter ₱%.2f/kg)",
+                                    perCycleCost, finalStarterPrice));
+
+                            feedPriceDayView.setText(String.format(Locale.getDefault(),
+                                    "₱%.2f", perDayCost));
+                        });
+                    }
+
+                } catch (Exception e) {
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() -> {
+                            feedPriceView.setText("Error parsing feeds");
+                            feedPriceDayView.setText("--");
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+                        feedPriceView.setText("Error: " + error);
+                        feedPriceDayView.setText("--");
+                    });
+                }
+            }
+        });
+    }
+
+
+
+
 
     private void showTimePickerDialog(TextView targetTextView, int feedingNumber) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_timepicker, null);

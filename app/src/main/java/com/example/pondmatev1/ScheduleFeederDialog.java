@@ -42,6 +42,7 @@ public class ScheduleFeederDialog extends DialogFragment {
     // Store selected times
     private Integer feeding1Minutes = null;
     private Integer feeding2Minutes = null;
+    private float feedPrice = 0.00F;
     private Integer feeding3Minutes = null;
 
     private String formattedTime1 = "";
@@ -203,7 +204,7 @@ public class ScheduleFeederDialog extends DialogFragment {
                     // Upload to your backend server
                     PondSyncManager.uploadFeedingScheduleToServer(
                             pondName, formattedTime1, formattedTime2, formattedTime3,
-                            finalFeedAmount, fishWeight,
+                            finalFeedAmount, fishWeight, (float) feedPrice,
                             new PondSyncManager.Callback() {
                                 @Override
                                 public void onSuccess(Object result) {

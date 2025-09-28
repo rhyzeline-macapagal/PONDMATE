@@ -296,7 +296,32 @@
                         android:textColorHint="#888888"
                         android:textStyle="bold"
                         android:textSize="14sp" />
+
+                    <!-- New Feed Price Section -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Feed Price"
+                        android:textColor="#01082D"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/feedprice"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:background="@drawable/textbox_background"
+                        android:gravity="center"
+                        android:hint="₱0.00"
+                        android:textColor="#01082D"
+                        android:textColorHint="#888888"
+                        android:textStyle="bold"
+                        android:textSize="14sp" />
+
                 </LinearLayout>
+
 
 
                 <!-- Divider -->
