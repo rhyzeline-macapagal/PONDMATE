@@ -73,6 +73,11 @@
 
         <activity android:name=".NotificationActivity"
             android:exported="true" />
+        <receiver
+            android:name=".FeedingReminderReceiver"
+            android:exported="true" />
+
+
 
     </application>
 

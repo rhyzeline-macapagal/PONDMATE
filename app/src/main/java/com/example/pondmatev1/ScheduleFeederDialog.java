@@ -1,9 +1,12 @@
 package com.example.pondmatev1;
 
+import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
@@ -201,18 +204,50 @@ public class ScheduleFeederDialog extends DialogFragment {
                     float computedKg = computedFeedQty / 1000f;
                     float finalFeedAmount = computedKg;
 
+                    // ✅ Make variables final for callback
+                    final String pondFinal = pondName;
+                    final String time1Final = formattedTime1;
+                    final String time2Final = formattedTime2;
+                    final String time3Final = formattedTime3;
+                    final float fishWeightFinal = fishWeight;
+                    final float feedAmountFinal = finalFeedAmount;
+
                     // Upload to your backend server
                     PondSyncManager.uploadFeedingScheduleToServer(
-                            pondName, formattedTime1, formattedTime2, formattedTime3,
-                            finalFeedAmount, fishWeight, (float) feedPrice,
+                            pondFinal, time1Final, time2Final, time3Final,
+                            feedAmountFinal, fishWeightFinal, (float) feedPrice,
                             new PondSyncManager.Callback() {
                                 @Override
                                 public void onSuccess(Object result) {
                                     if (isAdded()) {
-                                        requireActivity().runOnUiThread(() ->
-                                                Toast.makeText(getContext(), "Uploaded to server: " + result, Toast.LENGTH_SHORT).show());
+                                        requireActivity().runOnUiThread(() -> {
+                                            Toast.makeText(getContext(), "Uploaded to server: " + result, Toast.LENGTH_SHORT).show();
+
+                                            // ✅ Immediate notification
+                                            NotificationHandler handler = new NotificationHandler(getContext());
+                                            String notifMessage = pondFinal + " - Scheduled feeding at "
+                                                    + time1Final + ", " + time2Final + ", " + time3Final;
+                                            handler.sendNotification("Feeding Schedule", notifMessage);
+
+                                            // ✅ Schedule alarms
+                                            try {
+                                                String[] time1Parts = time1Final.split(":");
+                                                String[] time2Parts = time2Final.split(":");
+                                                String[] time3Parts = time3Final.split(":");
+
+                                                scheduleFeedingAlarm(pondFinal, Integer.parseInt(time1Parts[0]), Integer.parseInt(time1Parts[1]), "Feeding 1");
+                                                scheduleFeedingAlarm(pondFinal, Integer.parseInt(time2Parts[0]), Integer.parseInt(time2Parts[1]), "Feeding 2");
+                                                scheduleFeedingAlarm(pondFinal, Integer.parseInt(time3Parts[0]), Integer.parseInt(time3Parts[1]), "Feeding 3");
+
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+
+                                            ScheduleFeederDialog.this.dismiss();
+                                        });
                                     }
                                 }
+
                                 @Override
                                 public void onError(String error) {
                                     if (isAdded()) {
@@ -224,16 +259,60 @@ public class ScheduleFeederDialog extends DialogFragment {
                     );
 
                     // ✅ Upload also to Adafruit/ESP
-                    uploadFeedingTimesToAdafruit(pondName, formattedTime1, formattedTime2, formattedTime3, finalFeedAmount);
-
-                    Toast.makeText(getContext(), "Schedule saved locally", Toast.LENGTH_SHORT).show();
-                    ScheduleFeederDialog.this.dismiss();
+                    
+                    uploadFeedingTimesToAdafruit(pondFinal, time1Final, time2Final, time3Final, feedAmountFinal);
 
                 })
                 .setNegativeButton("No", (dialog, which) ->
                         Toast.makeText(getContext(), "Schedule not saved", Toast.LENGTH_SHORT).show())
                 .show();
     }
+
+
+    // 🔒 Private helper to schedule alarms
+    private void scheduleFeedingAlarm(String pondName, int hour, int minute, String feedingLabel) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
+        calendar.set(Calendar.SECOND, 0);
+
+        // If time already passed today, schedule for tomorrow
+        if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
+        Intent intent = new Intent(requireContext(), FeedingReminderReceiver.class);
+        intent.putExtra("pond_name", pondName);
+        intent.putExtra("feeding_label", feedingLabel);
+        intent.putExtra("hour", hour);      // <- important for reschedule
+        intent.putExtra("minute", minute);  // <- important for reschedule
+
+        // stable unique requestCode for this pond+label+time
+        int requestCode = (pondName + feedingLabel + hour + minute).hashCode();
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                requireContext(),
+                requestCode,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        AlarmManager alarmManager = (AlarmManager) requireContext().getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.getTimeInMillis(),
+                    pendingIntent
+            );
+            android.util.Log.d("ScheduleFeeder", "Alarm scheduled -> " + feedingLabel + " for pond=" + pondName
+                    + " at " + String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+                    + " millis=" + calendar.getTimeInMillis()
+                    + " reqCode=" + requestCode);
+        } else {
+            android.util.Log.e("ScheduleFeeder", "AlarmManager is null");
+        }
+    }
+
 
     private void uploadFeedingTimesToAdafruit(String pondName, String t1, String t2, String t3, float feedAmountKg) {
         OkHttpClient client = new OkHttpClient();
@@ -242,13 +321,9 @@ public class ScheduleFeederDialog extends DialogFragment {
         String username = getString(R.string.adafruit_username);
         String aioKey = getString(R.string.adafruit_aio_key);
 
-        // Convert kg → grams (1 kg = 1000 g)
         int feedAmountGrams = Math.round(feedAmountKg * 1000);
-
-// Divide by 10 for the value to send
         int reducedGrams = feedAmountGrams / 10;
 
-// Value format: PondName|time1,time2,time3|feedAmountGrams
         String value = pondName + "|" + t1 + "," + t2 + "," + t3 + "|" + reducedGrams + "g";
 
         try {
@@ -260,7 +335,6 @@ public class ScheduleFeederDialog extends DialogFragment {
 
             String url = "https://io.adafruit.com/api/v2/" + username + "/feeds/" + feedKey + "/data";
 
-            // 🔥 Log what you’re about to send
             android.util.Log.d("ScheduleFeeder", "Posting to Adafruit: " + value);
             android.util.Log.d("ScheduleFeeder", "URL: " + url);
 

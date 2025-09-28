@@ -15,9 +15,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 public class NotificationActivity extends AppCompatActivity {
@@ -41,7 +45,8 @@ public class NotificationActivity extends AppCompatActivity {
         loadNotifications();
 
         // Swipe to delete
-        ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+        ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0,
+                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
             public boolean onMove(RecyclerView recyclerView,
                                   RecyclerView.ViewHolder viewHolder,
@@ -56,7 +61,7 @@ public class NotificationActivity extends AppCompatActivity {
                 notifList.remove(position);
                 adapter.notifyItemRemoved(position);
 
-                // remove from SharedPreferences
+                // Remove from SharedPreferences
                 SharedPreferences prefs = getSharedPreferences("notifications", MODE_PRIVATE);
                 Set<String> notifications = new HashSet<>(prefs.getStringSet("notif_list", new HashSet<>()));
                 notifications.remove(removed.toString());
@@ -71,15 +76,44 @@ public class NotificationActivity extends AppCompatActivity {
         Set<String> notifications = prefs.getStringSet("notif_list", new HashSet<>());
 
         ArrayList<NotificationModel> allNotifications = new ArrayList<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
+
         for (String notif : notifications) {
-            String[] parts = notif.split("\\|");
-            if (parts.length == 3) {
-                allNotifications.add(new NotificationModel(parts[0], parts[1], parts[2]));
+            // Calendar activity format: PondName|ActivityName|Date
+            if (notif.contains("|")) {
+                String[] parts = notif.split("\\|");
+                if (parts.length == 3) {
+                    String pondName = parts[0];
+                    String title = parts[1];
+                    String date = parts[2];
+                    allNotifications.add(new NotificationModel(pondName, title, date));
+                    continue;
+                }
+            }
+
+            // Otherwise, parse Title - Message (Date)
+            int dateStart = notif.lastIndexOf('(');
+            int dateEnd = notif.lastIndexOf(')');
+            if (dateStart != -1 && dateEnd != -1) {
+                String titleAndMessage = notif.substring(0, dateStart - 1);
+                String dateStr = notif.substring(dateStart + 1, dateEnd);
+                String[] parts = titleAndMessage.split(" - ", 2);
+                String title = parts.length > 0 ? parts[0] : "";
+                String pondName = parts.length > 1 ? parts[1] : "";
+                allNotifications.add(new NotificationModel(pondName, title, dateStr));
             }
         }
 
         // Sort by date descending
-        Collections.sort(allNotifications, (a, b) -> b.date.compareTo(a.date));
+        Collections.sort(allNotifications, (a, b) -> {
+            try {
+                Date d1 = sdf.parse(a.date);
+                Date d2 = sdf.parse(b.date);
+                return d2.compareTo(d1);
+            } catch (ParseException e) {
+                return b.date.compareTo(a.date);
+            }
+        });
 
         notifList = new ArrayList<>();
         boolean firstNewAdded = false;
@@ -89,7 +123,7 @@ public class NotificationActivity extends AppCompatActivity {
             if (!firstNewAdded) {
                 notifList.add(new NotificationModel("HEADER", "New Notifications", ""));
                 firstNewAdded = true;
-            } else if (i == 3) { // example: after 3 new items, insert earlier
+            } else if (i == 3) {
                 notifList.add(new NotificationModel("HEADER", "Earlier Notifications", ""));
             }
             notifList.add(n);
@@ -115,7 +149,7 @@ public class NotificationActivity extends AppCompatActivity {
 
         @Override
         public String toString() {
-            return pondName + "|" + title + "|" + date;
+            return title + " - " + pondName + " (" + date + ")";
         }
     }
 
@@ -178,6 +212,7 @@ public class NotificationActivity extends AppCompatActivity {
 
         class HeaderViewHolder extends RecyclerView.ViewHolder {
             TextView headerText;
+
             HeaderViewHolder(View itemView) {
                 super(itemView);
                 headerText = itemView.findViewById(R.id.tvSectionHeader);
@@ -186,6 +221,7 @@ public class NotificationActivity extends AppCompatActivity {
 
         class ItemViewHolder extends RecyclerView.ViewHolder {
             TextView tvPondName, tvTitle, tvDate;
+
             ItemViewHolder(View itemView) {
                 super(itemView);
                 tvPondName = itemView.findViewById(R.id.tvNotificationPondName);
