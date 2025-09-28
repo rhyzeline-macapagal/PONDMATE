@@ -614,7 +614,7 @@ public class AddPondDialogFragment extends DialogFragment {
                     }
 
                     double perCycleCost = perCycleKg * starterPrice;
-                    double perDayCost = perCycleCost * 3; // ✅ Multiply by 3 feedings
+                    double perDayCost = perCycleCost * 3;
                     double finalStarterPrice = starterPrice;
 
                     if (isAdded()) {

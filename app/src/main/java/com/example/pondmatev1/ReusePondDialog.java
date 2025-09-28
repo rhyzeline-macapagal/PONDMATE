@@ -21,7 +21,7 @@ import java.util.Locale;
 
 public class ReusePondDialog extends DialogFragment {
 
-    private TextView tvPondName, tvDateHarvest, dateStarted, feedQuantityView;
+    private TextView tvPondName, tvDateHarvest, dateStarted, feedQuantityView, feedPriceView, feedPriceDayView ;
     private EditText etFishCount, etCostPerFish, weightInput;
     private Spinner spinnerBreed;
     private Button btnSave;
@@ -43,8 +43,7 @@ public class ReusePondDialog extends DialogFragment {
         this.existingPond = pond;
     }
 
-    public interface OnPondReusedListener {
-        void onPondReused(PondModel updatedPond);
+    public interface OnPondReusedListener { void onPondReused(PondModel updatedPond);
     }
 
     private OnPondReusedListener listener;
@@ -75,6 +74,8 @@ public class ReusePondDialog extends DialogFragment {
         TextView closeDialog = view.findViewById(R.id.btnClose);
         feedQuantityView = view.findViewById(R.id.tvFeedQuantity);
         weightInput = view.findViewById(R.id.etFishWeight);
+        feedPriceView = view.findViewById(R.id.feedprice);
+        feedPriceDayView = view.findViewById(R.id.feedpriceday);
 
         timeoffeeding1 = view.findViewById(R.id.timeoffeeding1);
         timeoffeeding2 = view.findViewById(R.id.timeoffeeding2);
@@ -128,6 +129,7 @@ public class ReusePondDialog extends DialogFragment {
                 if (breedCosts.containsKey(spinnerBreed.getSelectedItem().toString())) {
                     etCostPerFish.setText("₱" + breedCosts.get(spinnerBreed.getSelectedItem().toString()));
                 }
+                computeFeedQuantity();
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
@@ -201,21 +203,102 @@ public class ReusePondDialog extends DialogFragment {
 
         if (weightStr.isEmpty() || fishCountStr.isEmpty()) {
             feedQuantityView.setText("--");
+            feedPriceView.setText("--");
+            feedPriceDayView.setText("--");
             return;
         }
 
         try {
             int fishCount = Integer.parseInt(fishCountStr);
             float fishWeight = Float.parseFloat(weightStr);
+
             float feedPercentage = 0.03f;
             float totalFeed = feedPercentage * fishWeight * fishCount;
-            float totalKg = totalFeed / 1000f;
+
+
+            int cycleCount = 3; // how many times you feed in a day
+            float perCycleFeed = (cycleCount > 0) ? totalFeed / cycleCount : 0; // grams/cycle
+            float perCycleKg = perCycleFeed / 1000f; // convert to kg
 
             feedQuantityView.setText(String.format(Locale.getDefault(),
-                    "%.2f kg (%.0f g)", totalKg, totalFeed));
+                    "%.2f kg (%.0f g)", perCycleKg, totalFeed));
+
+            computeFeedsPrice(perCycleKg);
+
         } catch (NumberFormatException e) {
             feedQuantityView.setText("--");
+            feedPriceView.setText("--");
+            feedPriceDayView.setText("--");
         }
+    }
+
+    private void computeFeedsPrice(float perCycleKg) {
+        String selectedBreed = spinnerBreed.getSelectedItem().toString().toLowerCase();
+
+        PondSyncManager.fetchFeeds(new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object result) {
+                try {
+                    org.json.JSONObject json = new org.json.JSONObject(result.toString());
+
+                    if (!json.getString("status").equals("success")) {
+                        if (isAdded()) {
+                            requireActivity().runOnUiThread(() -> {
+                                feedPriceView.setText("Error: " + json.optString("message"));
+                                feedPriceDayView.setText("--");
+                            });
+                        }
+                        return;
+                    }
+
+                    org.json.JSONArray arr = json.getJSONArray("feeds");
+                    double starterPrice = 0;
+
+                    for (int i = 0; i < arr.length(); i++) {
+                        org.json.JSONObject obj = arr.getJSONObject(i);
+                        String breed = obj.getString("breed");
+                        String type = obj.getString("feed_type");
+                        double price = obj.getDouble("price_per_kg");
+
+                        if (breed.equalsIgnoreCase(selectedBreed) && type.equalsIgnoreCase("starter")) {
+                            starterPrice = price;
+                            break;
+                        }
+                    }
+
+                    double perCycleCost = perCycleKg * starterPrice;
+                    double perDayCost = perCycleCost * 3;
+                    double finalStarterPrice = starterPrice;
+
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() -> {
+                            feedPriceView.setText(String.format(Locale.getDefault(),
+                                    "₱%.2f (Starter ₱%.2f/kg)", perCycleCost, finalStarterPrice));
+                            feedPriceDayView.setText(String.format(Locale.getDefault(),
+                                    "₱%.2f", perDayCost));
+                        });
+                    }
+
+                } catch (Exception e) {
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() -> {
+                            feedPriceView.setText("Error parsing data");
+                            feedPriceDayView.setText("--");
+                        });
+                    }
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+                        feedPriceView.setText("Error: " + error);
+                        feedPriceDayView.setText("--");
+                    });
+                }
+            }
+        });
     }
 
     private void showTimePickerDialog(TextView targetTextView, int feedingNumber) {

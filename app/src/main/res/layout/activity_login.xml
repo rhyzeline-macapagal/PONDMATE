@@ -166,22 +166,6 @@
                         android:layout_width="0dp"
                         android:layout_height="1dp"
                         android:layout_weight="1" />
-
-                    <TextView
-                        android:id="@+id/forgotPassword"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:fontFamily="sans-serif"
-                        android:gravity="end"
-                        android:minHeight="48dp"
-                        android:padding="8dp"
-                        android:text="Forgot Password?"
-                        android:textColor="#00448D"
-                        android:textSize="16sp" />
                 </LinearLayout>
 
                 <!-- Login Button -->

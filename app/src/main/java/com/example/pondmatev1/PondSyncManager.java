@@ -516,10 +516,9 @@ public class PondSyncManager {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/get_feeds.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST"); // POST (safe even if no params)
+                conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
 
-                // In case future params are needed, send empty string now
                 OutputStream os = conn.getOutputStream();
                 os.write("".getBytes());
                 os.flush();

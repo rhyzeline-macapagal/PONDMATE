@@ -16,13 +16,13 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.view.animation.RotateAnimation;
 import android.widget.*;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -38,13 +38,16 @@ public class login extends AppCompatActivity {
 
     AlertDialog loadingDialog;
 
+    private static final String PREFS_NAME = "PondMatePrefs";
+    private static final String KEY_POND_HISTORY = "pond_history";
+    private static final String HISTORY_URL = "https://pondmate.alwaysdata.net/getPondHistory.php";
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         SessionManager session = new SessionManager(this);
-
 
         if (session.getUsername() != null && !session.getUsername().isEmpty()) {
             Intent intent = new Intent(this, PondDashboardActivity.class);
@@ -120,17 +123,14 @@ public class login extends AppCompatActivity {
     private void showLoadingDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         LayoutInflater inflater = getLayoutInflater();
-        View dialogView = inflater.inflate(R.layout.dialog_loading, null); // your custom layout
+        View dialogView = inflater.inflate(R.layout.dialog_loading, null);
 
-        ImageView fishLoader = dialogView.findViewById(R.id.fishLoader); // <-- make sure this id exists in dialog_loading.xml
+        ImageView fishLoader = dialogView.findViewById(R.id.fishLoader);
         TextView loadingText = dialogView.findViewById(R.id.loadingText);
-
-        // Change the text dynamically
         loadingText.setText("Logging in...");
 
-        // Apply animation
         Animation rotate = AnimationUtils.loadAnimation(this, R.anim.rotate);
-        if (fishLoader != null) {   // <-- prevent null crash
+        if (fishLoader != null) {
             fishLoader.startAnimation(rotate);
         }
 
@@ -141,13 +141,11 @@ public class login extends AppCompatActivity {
         loadingDialog.show();
     }
 
-
     private void hideLoadingDialog() {
         if (loadingDialog != null && loadingDialog.isShowing()) {
             loadingDialog.dismiss();
         }
     }
-
 
     private void loginOnline(String username, String password) {
         showLoadingDialog();
@@ -201,6 +199,9 @@ public class login extends AppCompatActivity {
                                 clearPreferences();
                             }
 
+                            // Fetch and cache pond_history after successful login
+                            fetchAndCachePondHistory();
+
                             startActivity(new Intent(this, PondDashboardActivity.class));
                             overridePendingTransition(R.anim.zoom_in, R.anim.fade_out);
                             finish();
@@ -226,6 +227,44 @@ public class login extends AppCompatActivity {
                 });
             }
         }).start();
+    }
+
+    /** Fetch pond_history and cache it */
+    private void fetchAndCachePondHistory() {
+        new Thread(() -> {
+            try {
+                URL url = new URL(HISTORY_URL);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                OutputStream os = conn.getOutputStream();
+                os.write("".getBytes()); // no params for now
+                os.flush();
+                os.close();
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder responseBuilder = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    responseBuilder.append(line);
+                }
+                in.close();
+
+                String historyJson = responseBuilder.toString();
+
+                // Save JSON in SharedPreferences
+                savePondHistory(historyJson);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void savePondHistory(String json) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        prefs.edit().putString(KEY_POND_HISTORY, json).apply();
     }
 
     private boolean isInternetAvailable() {
