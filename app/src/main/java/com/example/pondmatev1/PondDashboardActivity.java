@@ -174,10 +174,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 ExistingPeriodicWorkPolicy.KEEP, // Keep the existing one if already enqueued
                 pendingActivityWork
         );
-
-
-
-
     }
 
     @Override
@@ -400,8 +396,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             }
         });
     }
-
-
 
     public void loadHistory(String pondId) {
         new Thread(() -> {

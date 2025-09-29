@@ -8,6 +8,7 @@
     android:fitsSystemWindows="true"
     tools:context=".PondDashboardActivity">
 
+    <!-- Top Bar -->
     <RelativeLayout
         android:id="@+id/topBar"
         android:layout_width="match_parent"
@@ -68,87 +69,81 @@
 
     </RelativeLayout>
 
-    <ScrollView
+    <LinearLayout
+        android:id="@+id/containerLayout"
+        android:layout_below="@id/topBar"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/topBar"
-        android:background="#A6C4F1FF"
-        android:fillViewport="true">
+        android:orientation="vertical"
+        android:padding="5dp"
+        android:background="#A6C4F1FF">
 
-        <LinearLayout
-            android:id="@+id/containerLayout"
+        <!-- My Ponds -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="2dp"
+            android:text="My Ponds"
+            android:textColor="#01082D"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/pondRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="160dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@android:color/transparent" />
+
+        <!-- ROI Chart -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Return on Investments"
+            android:textColor="#01082D"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="12dp">
+            android:layout_margin="8dp"
+            android:background="#FFFFFF"
+            android:elevation="4dp"
+            android:padding="5dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="2dp"
-                android:text="My Ponds"
-                android:textColor="#01082D"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/pondRecyclerView"
+            <com.github.mikephil.charting.charts.BarChart
+                android:id="@+id/roiBarChart"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="5dp"
-                android:background="@android:color/transparent"
-                android:clipToPadding="false" />
+                android:layout_height="300dp"
+                android:visibility="visible" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Return on Investments"
-                android:textColor="#01082D"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+        </FrameLayout>
 
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_margin="8dp"
-                android:background="#FFFFFF"
-                android:elevation="4dp"
-                android:padding="16dp">
+        <!-- Pond History -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Pond History"
+            android:textColor="#01082D"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-                <com.github.mikephil.charting.charts.BarChart
-                    android:id="@+id/roiBarChart"
-                    android:layout_width="match_parent"
-                    android:layout_height="380dp"
-                    android:visibility="visible" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/HistoryRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:clipToPadding="false"
+            android:nestedScrollingEnabled="true" />
 
-            </FrameLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Pond History"
-                android:textColor="#01082D"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/HistoryRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginBottom="5dp"
-                android:background="@android:color/transparent"
-                android:clipToPadding="false" />
-
-        </LinearLayout>
-
-    </ScrollView>
+    </LinearLayout>
 
 </RelativeLayout>

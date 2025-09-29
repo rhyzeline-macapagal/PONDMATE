@@ -2,7 +2,6 @@ package com.example.pondmatev1;
 
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,7 +35,6 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         HistoryModel history = historyList.get(position);
 
-
         holder.tvHistoryName.setText(history.getPondName());
         holder.tvHistoryAction.setText(history.getAction());
         holder.tvHistoryDate.setText(history.getDate());
@@ -45,11 +43,9 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
             holder.btnViewPdf.setVisibility(View.VISIBLE);
             holder.btnViewPdf.setOnClickListener(v -> {
                 try {
-                    // 🔹 Ensure pdf_path in DB is relative (e.g. "reports/pond1234.pdf")
                     String pdfUrl = "https://pondmate.alwaysdata.net/" + history.getPdfPath();
-                    Intent intent = new Intent(Intent.ACTION_VIEW);
-                    intent.setDataAndType(Uri.parse(pdfUrl), "application/pdf");
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    Intent intent = new Intent(context, PdfPreviewActivity.class);
+                    intent.putExtra(PdfPreviewActivity.EXTRA_PDF_URL, pdfUrl); // send URL to activity
                     context.startActivity(intent);
                 } catch (Exception e) {
                     Toast.makeText(context, "Unable to open PDF", Toast.LENGTH_SHORT).show();
