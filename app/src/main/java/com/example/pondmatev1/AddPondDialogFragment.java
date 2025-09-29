@@ -11,6 +11,8 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -443,6 +445,8 @@ public class AddPondDialogFragment extends DialogFragment {
             feedPrice = 0.0;
         }
 
+        uploadFeedingTimesToAdafruit(pondName, formattedTime1, formattedTime2, formattedTime3, finalFeedAmount);
+
         // Upload to your backend server
         PondSyncManager.uploadFeedingScheduleToServer(
                 pondName, formattedTime1, formattedTime2, formattedTime3,
@@ -466,11 +470,8 @@ public class AddPondDialogFragment extends DialogFragment {
                 }
         );
 
-        // ✅ Upload also to Adafruit/ESP
-        uploadFeedingTimesToAdafruit(pondName, formattedTime1, formattedTime2, formattedTime3, finalFeedAmount);
-
         Toast.makeText(getContext(), "Schedule saved!", Toast.LENGTH_SHORT).show();
-        AddPondDialogFragment.this.dismiss();
+
     }
 
 
@@ -511,26 +512,32 @@ public class AddPondDialogFragment extends DialogFragment {
                     .build();
 
             client.newCall(request).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) {
-                    android.util.Log.e("ScheduleFeeder", "Adafruit request failed", e);
-                    if (isAdded()) {
-                        requireActivity().runOnUiThread(() ->
-                                Toast.makeText(getContext(), "Failed to post to Adafruit: " + e.getMessage(), Toast.LENGTH_LONG).show());
-                    }
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        Context context = getContext();
+                        if (context != null) {
+                            Toast.makeText(context, "Failed to post to Adafruit: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
                 }
 
-                @Override public void onResponse(Call call, Response response) throws IOException {
-                    final String bodyStr = (response.body()!=null) ? response.body().string() : "";
-                    android.util.Log.d("ScheduleFeeder", "Adafruit response code: " + response.code());
-                    android.util.Log.d("ScheduleFeeder", "Adafruit response body: " + bodyStr);
-
-                    if (isAdded()) {
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "Response: " + response.code(), Toast.LENGTH_LONG).show();
-                        });
-                    }
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        Context context = getContext();
+                        if (context != null) {
+                            if (response.isSuccessful()) {
+                                Toast.makeText(context, "Schedule saved to Adafruit!", Toast.LENGTH_LONG).show();
+                                AddPondDialogFragment.this.dismiss();
+                            } else {
+                                Toast.makeText(context, "Failed to add schedule: " + response.code(), Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
                 }
             });
+
         } catch (JSONException ex) {
             android.util.Log.e("ScheduleFeeder", "JSON error", ex);
             Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();

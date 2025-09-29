@@ -39,13 +39,28 @@ public class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.View
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         CaretakerModel model = list.get(position);
         holder.username.setText(model.getUsername());
-        holder.password.setText(model.getPassword());
+
+        // ✅ Mask password
+        if (model.getPassword() != null) {
+            String hiddenPassword = new String(new char[model.getPassword().length()]).replace("\0", "*");
+            holder.password.setText(hiddenPassword);
+        } else {
+            holder.password.setText("********");
+        }
+
         holder.fullname.setText(model.getFullname());
         holder.address.setText(model.getAddress());
+        holder.salary.setText("₱" + model.getSalary());
 
         holder.edit.setOnClickListener(v -> listener.onEdit(model));
         holder.delete.setOnClickListener(v -> listener.onDelete(model));
+        holder.itemView.setOnClickListener(v -> {
+            if (context instanceof CaretakerDashboardActivity) {
+                ((CaretakerDashboardActivity) context).showEditDialog(model);
+            }
+        });
     }
+
 
     @Override
     public int getItemCount() {
@@ -53,7 +68,7 @@ public class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.View
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView username, password, fullname, address;
+        TextView username, password, fullname, address, salary;
         ImageView edit, delete;
 
         public ViewHolder(@NonNull View itemView) {
@@ -62,6 +77,7 @@ public class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.View
             password = itemView.findViewById(R.id.tvPassword);
             fullname = itemView.findViewById(R.id.tvFullname);
             address = itemView.findViewById(R.id.tvAddress);
+            salary = itemView.findViewById(R.id.tvSalary);
             edit = itemView.findViewById(R.id.btnEdit);
             delete = itemView.findViewById(R.id.btnDelete);
         }

@@ -297,6 +297,7 @@
                         android:textStyle="bold"
                         android:textSize="14sp" />
 
+
                     <!-- New Feed Price Section -->
                     <TextView
                         android:layout_width="wrap_content"

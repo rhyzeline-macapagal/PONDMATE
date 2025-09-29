@@ -129,6 +129,29 @@
                 android:padding="12dp"
                 android:background="@android:color/transparent"
                 android:minLines="2" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            app:boxStrokeColor="#00448D"
+            app:hintTextColor="#01082D">
+
+            <EditText
+                android:id="@+id/editSalary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Salary"
+                android:textColor="#01082D"
+                android:textColorHint="#888888"
+                android:inputType="numberDecimal"
+                android:padding="12dp"
+                android:background="@android:color/transparent"
+                android:minLines="2" />
+
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 

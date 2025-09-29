@@ -13,6 +13,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View; // ✅ for View.GONE
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -58,7 +60,7 @@ import androidx.work.*;
 
 
 public class PondDashboardActivity extends AppCompatActivity implements ROIChartUpdater {
-
+    private AlertDialog loadingDialog;
     private static final int REQUEST_NOTIFICATION_PERMISSION = 1001;
     RecyclerView pondRecyclerView;
     PondAdapter pondAdapter;
@@ -191,6 +193,8 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     }
 
     private void loadPondsFromServer() {
+        runOnUiThread(this::showLoadingDialog);
+
         // Show ADD_BUTTON immediately for owners
         runOnUiThread(() -> {
             pondList.clear();
@@ -202,7 +206,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
         new Thread(() -> {
             try {
-                // Fetch ponds from server
                 URL url = new URL("https://pondmate.alwaysdata.net/get_ponds.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
@@ -217,9 +220,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 ArrayList<PondModel> newPonds = new ArrayList<>();
                 if ("owner".equalsIgnoreCase(userType)) newPonds.add(new PondModel("ADD_BUTTON"));
 
-                // Load existing ActivityPrefs to preserve checked states
                 SharedPreferences activityPrefs = getSharedPreferences("ActivityPrefs", MODE_PRIVATE);
-                SharedPreferences.Editor editor = activityPrefs.edit();
 
                 for (int i = 0; i < pondsArray.length(); i++) {
                     JSONObject pond = pondsArray.getJSONObject(i);
@@ -239,11 +240,10 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     PondModel pondModel = new PondModel(id, name, breed, fishCount, costPerFish,
                             dateStarted, dateHarvest, imagePath, actualROI, estimatedROI);
 
-                    // Fetch activities for this pond from ActivityPrefs
+                    // Load activities for this pond
                     Map<String, ?> allPrefs = activityPrefs.getAll();
                     List<ActivityItem> pondActivities = new ArrayList<>();
                     for (String key : allPrefs.keySet()) {
-                        // Key format: pondId_date_activityName
                         if (key.startsWith(id + "_")) {
                             String[] parts = key.split("_", 3);
                             if (parts.length == 3) {
@@ -254,12 +254,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                         }
                     }
                     pondModel.setActivities(pondActivities);
-
                     newPonds.add(pondModel);
                 }
 
-                // Update UI
+                // ✅ Hide loading after everything is parsed
                 runOnUiThread(() -> {
+                    hideLoadingDialog();
                     pondList.clear();
                     pondList.addAll(newPonds);
                     pondAdapter.notifyDataSetChanged();
@@ -276,8 +276,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
             } catch (Exception e) {
                 Log.e("LOAD_PONDS", "Error: " + e.getMessage(), e);
+                runOnUiThread(this::hideLoadingDialog);
+            } finally {
+                runOnUiThread(this::hideLoadingDialog); // ✅ always close
             }
         }).start();
+
     }
 
     private void renderChartData() {
@@ -367,6 +371,37 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             return inputDate;
         }
     }
+
+    private void showLoadingDialog() {
+        runOnUiThread(() -> {
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                return; // already showing, don’t recreate
+            }
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            View dialogView = getLayoutInflater().inflate(R.layout.dialog_loading, null);
+            ImageView fishLoader = dialogView.findViewById(R.id.fishLoader);
+            TextView loadingText = dialogView.findViewById(R.id.loadingText);
+            loadingText.setText("Loading your PONDS please wait...");
+            Animation rotate = AnimationUtils.loadAnimation(this, R.anim.rotate);
+            if (fishLoader != null) fishLoader.startAnimation(rotate);
+            builder.setView(dialogView).setCancelable(false);
+            loadingDialog = builder.create();
+            loadingDialog.show();
+        });
+    }
+
+
+    private void hideLoadingDialog() {
+        runOnUiThread(() -> {
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                loadingDialog.dismiss();
+                loadingDialog = null;
+            }
+        });
+    }
+
+
 
     public void loadHistory(String pondId) {
         new Thread(() -> {

@@ -60,19 +60,32 @@
             android:layout_marginBottom="6dp"
             android:layout_marginStart="4dp" />
 
-        <EditText
-            android:id="@+id/etEditPassword"
-            android:hint="Password"
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#01082D"
-            android:textColorHint="#888888"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/textbox_background"
-            android:minHeight="48dp"
-            android:inputType="textPassword" />
+            android:layout_marginBottom="12dp"
+            app:boxStrokeColor="#00448D"
+            app:hintTextColor="#01082D"
+            app:passwordToggleEnabled="true">
+
+            <EditText
+                android:id="@+id/etEditPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+
+                android:textColor="#01082D"
+                android:textColorHint="#888888"
+                android:inputType="textPassword"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/textbox_background"
+                android:minHeight="48dp" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+
+
 
         <!-- Full Name Field -->
         <TextView
@@ -123,6 +136,31 @@
             android:background="@drawable/textbox_background"
             android:minHeight="48dp"
             android:inputType="textPostalAddress"
+            android:minLines="2" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Salary"
+            android:textColor="#01082D"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="6dp"
+            android:layout_marginStart="4dp" />
+
+        <EditText
+            android:id="@+id/etEditSalary"
+            android:hint="Salary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#01082D"
+            android:inputType="numberDecimal"
+            android:textColorHint="#888888"
+            android:textSize="16sp"
+            android:padding="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/textbox_background"
+            android:minHeight="48dp"
             android:minLines="2" />
     </LinearLayout>
 

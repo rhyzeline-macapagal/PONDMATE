@@ -15,143 +15,89 @@
         android:gravity="center_vertical"
         android:minHeight="56dp">
 
-        <!-- User Info Container -->
-        <LinearLayout
+        <!-- Edit Button -->
+        <ImageView
+            android:id="@+id/btnEdit"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_edit"
+            app:tint="#00448D"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Edit" />
+
+        <!-- Delete Button -->
+        <ImageView
+            android:id="@+id/btnDelete"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_delete"
+            app:tint="#E53935"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Delete" />
+
+        <!-- Username -->
+        <TextView
+            android:id="@+id/tvUsername"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:layout_marginEnd="8dp">
+            android:layout_weight="1.2"
+            android:text="john_doe"
+            android:textColor="#01082D"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:ellipsize="end"
+            android:maxLines="1" />
 
-            <!-- Username Column -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1.2"
-                android:orientation="vertical"
-                android:layout_marginEnd="8dp">
-
-                <TextView
-                    android:id="@+id/tvUsername"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="14sp"
-                    android:textColor="#01082D"
-                    android:textStyle="bold"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="john_doe" />
-            </LinearLayout>
-
-            <!-- Password Column -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1.2"
-                android:orientation="vertical"
-                android:layout_marginEnd="8dp">
-
-                <TextView
-                    android:id="@+id/tvPassword"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="14sp"
-                    android:textColor="#01082D"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="••••••••" />
-            </LinearLayout>
-
-            <!-- Full Name Column -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1.5"
-                android:orientation="vertical"
-                android:layout_marginEnd="8dp">
-
-                <TextView
-                    android:id="@+id/tvFullname"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="14sp"
-                    android:textColor="#01082D"
-                    android:textStyle="bold"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="John Doe" />
-            </LinearLayout>
-
-            <!-- Address Column -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1.8"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tvAddress"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="13sp"
-                    android:textColor="#01082D"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:lineSpacingExtra="1dp"
-                    android:text="123 Main Street, City" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Action Buttons Container -->
-        <LinearLayout
-            android:layout_width="wrap_content"
+        <!-- Password -->
+        <TextView
+            android:id="@+id/tvPassword"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_weight="1.0"
+            android:text="••••••••"
+            android:textColor="#01082D"
+            android:textSize="14sp"
+            android:ellipsize="end"
+            android:maxLines="1" />
 
-            <!-- Edit Button -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="8dp"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="2dp"
-                android:background="#2CFFFFFF">
+        <!-- Fullname -->
+        <TextView
+            android:id="@+id/tvFullname"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.5"
+            android:text="John Doe"
+            android:textColor="#01082D"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:ellipsize="end"
+            android:maxLines="1" />
 
-                <ImageView
-                    android:id="@+id/btnEdit"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_edit"
-                    android:contentDescription="Edit User"
-                    app:tint="#00448D"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true" />
-            </androidx.cardview.widget.CardView>
+        <!-- Address -->
+        <TextView
+            android:id="@+id/tvAddress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.8"
+            android:text="123 Main Street, City"
+            android:textColor="#01082D"
+            android:textSize="13sp"
+            android:ellipsize="end"
+            android:maxLines="1" />
 
-            <!-- Delete Button -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                app:cardCornerRadius="18dp"
-                app:cardElevation="2dp"
-                android:background="@android:color/white">
-
-                <ImageView
-                    android:id="@+id/btnDelete"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_delete"
-                    android:contentDescription="Delete User"
-                    app:tint="#E53935"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true" />
-            </androidx.cardview.widget.CardView>
-        </LinearLayout>
+        <!-- Salary -->
+        <TextView
+            android:id="@+id/tvSalary"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.0"
+            android:text="₱0.00"
+            android:textColor="#004D40"
+            android:textSize="13sp"
+            android:ellipsize="end"
+            android:maxLines="1" />
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>

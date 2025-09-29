@@ -46,9 +46,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
 
         TextView closeCaretaker = findViewById(R.id.closeCaretaker);
         if (closeCaretaker != null) {
-            closeCaretaker.setOnClickListener(v -> {
-                finish();
-            });
+            closeCaretaker.setOnClickListener(v -> finish());
         }
 
         recyclerView = findViewById(R.id.caretakerRecyclerView);
@@ -65,14 +63,10 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                 new AlertDialog.Builder(CaretakerDashboardActivity.this)
                         .setTitle("Confirm Delete")
                         .setMessage("Are you sure you want to delete this caretaker?")
-                        .setPositiveButton("Yes", (dialogInterface, i) -> {
-                            // Proceed with deletion
-                            deleteCaretaker(model.getId());
-                        })
+                        .setPositiveButton("Yes", (dialogInterface, i) -> deleteCaretaker(model.getId()))
                         .setNegativeButton("No", null)
                         .show();
             }
-
         });
 
         recyclerView.setAdapter(adapter);
@@ -90,11 +84,10 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         EditText fullName = dialog.findViewById(R.id.editFullName);
         EditText address = dialog.findViewById(R.id.editAddress);
         TextView caretaker = dialog.findViewById(R.id.tvCaretaker);
+        EditText salary = dialog.findViewById(R.id.editSalary);
         Button saveBtn = dialog.findViewById(R.id.saveCaretakerBtn);
         TextView closeDialog = dialog.findViewById(R.id.closeDialog);
-
         closeDialog.setOnClickListener(v -> dialog.dismiss());
-
 
         saveBtn.setOnClickListener(v -> {
             String u = username.getText().toString().trim();
@@ -102,18 +95,31 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
             String n = fullName.getText().toString().trim();
             String a = address.getText().toString().trim();
             String c = caretaker.getText().toString().trim();
+            String s = salary.getText().toString().trim();
 
-            if (u.isEmpty() || p.isEmpty() || n.isEmpty() || a.isEmpty()) {
-                Toast.makeText(this, "All fields required", Toast.LENGTH_SHORT).show();
+            if (u.isEmpty() || p.isEmpty() || n.isEmpty() || a.isEmpty() || c.isEmpty()) {
+                Toast.makeText(this, "All fields are required!", Toast.LENGTH_SHORT).show();
                 return;
             }
 
+            double salaryValue = 0.0;
+            if (!s.isEmpty()) {
+                try {
+                    salaryValue = Double.parseDouble(s);
+                } catch (NumberFormatException e) {
+                    Toast.makeText(this, "Invalid salary", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+
+            final double finalSalary = salaryValue;
+
             new AlertDialog.Builder(this)
-                    .setTitle("Confirm Registration")
-                    .setMessage("Are you sure you want to register this caretaker?")
-                    .setPositiveButton("Yes", (d, i) -> {
+                    .setTitle("Confirm Save")
+                    .setMessage("Are you sure you want to add this caretaker?")
+                    .setPositiveButton("Yes", (dialogInterface, i) -> {
+                        registerCaretaker(u, p, n, a, c, finalSalary);
                         dialog.dismiss();
-                        registerCaretaker(u, p, n, a, c);
                     })
                     .setNegativeButton("No", null)
                     .show();
@@ -122,7 +128,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void registerCaretaker(String u, String p, String n, String a, String c) {
+    private void registerCaretaker(String u, String p, String n, String a, String c, double s) {
         new Thread(() -> {
             try {
                 URL url = new URL(BASE_URL + "register_user.php");
@@ -135,7 +141,8 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                         "&password=" + URLEncoder.encode(p, "UTF-8") +
                         "&fullname=" + URLEncoder.encode(n, "UTF-8") +
                         "&address=" + URLEncoder.encode(a, "UTF-8") +
-                        "&usertype=" + URLEncoder.encode(c, "UTF-8");
+                        "&usertype=" + URLEncoder.encode(c, "UTF-8") +
+                        "&salary=" + URLEncoder.encode(String.valueOf(s), "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
@@ -202,12 +209,16 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                         JSONArray arr = new JSONArray(response.toString());
                         for (int i = 0; i < arr.length(); i++) {
                             JSONObject obj = arr.getJSONObject(i);
+                            double salary = obj.has("salary") && !obj.isNull("salary")
+                                    ? obj.getDouble("salary") : 0.0;
+
                             CaretakerModel m = new CaretakerModel(
                                     obj.getString("username"),
                                     obj.getString("password"),
                                     obj.getString("fullname"),
                                     obj.getString("address"),
-                                    obj.getString("usertype")
+                                    obj.getString("usertype"),
+                                    salary
                             );
                             m.setId(obj.getInt("id"));
                             caretakers.add(m);
@@ -269,7 +280,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
     }
 
     // ------------------ EDIT CARETAKER ------------------
-    private void showEditDialog(CaretakerModel caretaker) {
+    public void showEditDialog(CaretakerModel caretaker) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View view = getLayoutInflater().inflate(R.layout.dialog_edit_caretaker, null);
         builder.setView(view);
@@ -278,6 +289,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         EditText etUsername = view.findViewById(R.id.etEditUsername);
         EditText etPassword = view.findViewById(R.id.etEditPassword);
         EditText etAddress = view.findViewById(R.id.etEditAddress);
+        EditText etSalary = view.findViewById(R.id.etEditSalary);
         Button btnSave = view.findViewById(R.id.btnSaveCaretaker);
 
         // Prefill existing data
@@ -285,6 +297,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         etUsername.setText(caretaker.getUsername());
         etPassword.setText(caretaker.getPassword());
         etAddress.setText(caretaker.getAddress());
+        etSalary.setText(String.valueOf(caretaker.getSalary()));
 
         AlertDialog dialog = builder.create();
         dialog.show();
@@ -294,18 +307,29 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
             String newUsername = etUsername.getText().toString().trim();
             String newPassword = etPassword.getText().toString().trim();
             String newAddress = etAddress.getText().toString().trim();
+            String sSalary = etSalary.getText().toString().trim();
 
             if (newFullname.isEmpty() || newUsername.isEmpty() || newPassword.isEmpty() || newAddress.isEmpty()) {
                 Toast.makeText(this, "All fields are required!", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Ask for confirmation before saving
+            double salaryValue = 0.0;
+            if (!sSalary.isEmpty()) {
+                try {
+                    salaryValue = Double.parseDouble(sSalary);
+                } catch (NumberFormatException e) {
+                    Toast.makeText(this, "Invalid salary", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+
+            final double finalSalary = salaryValue;
+
             new AlertDialog.Builder(this)
                     .setTitle("Confirm Save")
                     .setMessage("Are you sure you want to save changes to this caretaker?")
                     .setPositiveButton("Yes", (dialogInterface, i) -> {
-                        // Proceed with saving
                         editCaretaker(
                                 caretaker.getId(),
                                 newUsername,
@@ -313,22 +337,24 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                                 newFullname,
                                 newAddress,
                                 caretaker.getUsertype(),
+                                finalSalary,
                                 dialog
                         );
                     })
                     .setNegativeButton("No", null)
                     .show();
         });
+    }
 
-}
-        private void editCaretaker(int id, String newUsername, String newPassword,
-                               String fullname, String address, String usertype, AlertDialog dialog) {
+    private void editCaretaker(int id, String newUsername, String newPassword,
+                               String fullname, String address, String usertype, double salary, AlertDialog dialog) {
         new Thread(() -> {
             try {
                 URL url = new URL(BASE_URL + "edit_caretaker.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
                 String postData =
                         "id=" + URLEncoder.encode(String.valueOf(id), "UTF-8") +
@@ -336,7 +362,8 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                                 "&password=" + URLEncoder.encode(newPassword, "UTF-8") +
                                 "&fullname=" + URLEncoder.encode(fullname, "UTF-8") +
                                 "&address=" + URLEncoder.encode(address, "UTF-8") +
-                                "&usertype=" + URLEncoder.encode(usertype, "UTF-8");
+                                "&usertype=" + URLEncoder.encode(usertype, "UTF-8") +
+                                "&salary=" + URLEncoder.encode(String.valueOf(salary), "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
