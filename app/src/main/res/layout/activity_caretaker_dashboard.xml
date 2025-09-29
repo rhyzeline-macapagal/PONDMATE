@@ -100,12 +100,13 @@
                         android:layout_weight="1"
                         android:text="Delete"
                         android:gravity="center"
+                        android:lines="1"
                         android:textStyle="bold"
                         android:textColor="@android:color/white"
                         android:textSize="14sp"/>
 
                     <TextView
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_weight="1.2"
                         android:text="Username"
@@ -119,7 +120,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1.5"
-                        android:text="Full Name"
+                        android:text="Name"
                         android:gravity="center"
                         android:textStyle="bold"
                         android:textColor="@android:color/white"

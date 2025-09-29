@@ -68,7 +68,7 @@ dependencies {
     implementation ("androidx.recyclerview:recyclerview:1.3.2")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("com.github.mhiew:android-pdf-viewer:3.2.0-beta.1")
+
 
 
 

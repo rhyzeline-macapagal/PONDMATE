@@ -3,6 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:fitsSystemWindows="true"
     android:background="#A7D8F5">
 
     <!-- Top bar -->
@@ -50,5 +51,5 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/topBar"
-        android:padding="8dp"/>
+        android:padding="12dp"/>
 </RelativeLayout>
