@@ -81,10 +81,10 @@ public class ProductionCostFragment extends Fragment {
     TextView tvSummarySalary;
     private double salaryPerPond = 0.0;
 
-
     private double totalCost = 0.0;
     private String pondName = "";
-
+    private String currentBreed = "";
+    private int currentFishCount = 0;
     Button btnDownload;
 
     File generatedPdfFile;
@@ -106,6 +106,8 @@ public class ProductionCostFragment extends Fragment {
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             pondName = pond.getName();
+            currentBreed = pond.getBreed();
+            currentFishCount = pond.getFishCount();
         }
 
         loadMaintenanceTotal();
@@ -231,14 +233,12 @@ public class ProductionCostFragment extends Fragment {
             double maintenanceCost = 0.0;
 
             tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
-
-
-
             totalCost = totalFingerlingCost + feedCost + maintenanceCost + salaryPerPond;
             tvSummaryTotal.setText("₱" + formatPrice(totalCost));
             tvCapital.setText("₱" + formatPrice(totalCost));
 
-            calculateActualSalesAndROI(breed, fishCount, totalCost);
+            updateTotalCost();
+
         }
 
         // --- Load stored ROI values for this pond ---
@@ -326,11 +326,10 @@ public class ProductionCostFragment extends Fragment {
 
                 double salaryPerPond = pondCount > 0 ? overallSalary / pondCount : 0;
 
-// Update class-level variable and UI on the main thread
                 requireActivity().runOnUiThread(() -> {
                     this.salaryPerPond = salaryPerPond; // save to class-level variable
                     tvSummarySalary.setText("₱" + formatPrice(salaryPerPond));
-                    updateTotalCost(); // refresh totalCost including salary
+                    updateTotalCost(currentBreed, currentFishCount);
                 });
 
 
@@ -343,10 +342,11 @@ public class ProductionCostFragment extends Fragment {
         }).start();
     }
 
-
-
-
     private void updateTotalCost() {
+        updateTotalCost(currentBreed, currentFishCount);
+    }
+
+    private void updateTotalCost(String breed, int fishCount) {
         double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
         double feeds = parseDouble(tvSummaryFeeds.getText().toString());
         double maintenance = parseDouble(tvSummaryMaintenance.getText().toString());
@@ -355,6 +355,15 @@ public class ProductionCostFragment extends Fragment {
 
         tvSummaryTotal.setText("₱" + formatPrice(totalCost));
         tvCapital.setText("₱" + formatPrice(totalCost));
+
+        if (!pondName.isEmpty()) {
+            SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+            String pondJson = prefs.getString("selected_pond", null);
+            if (pondJson != null) {
+                PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                calculateActualSalesAndROI(pond.getBreed(), pond.getFishCount(), totalCost);
+            }
+        }
     }
 
     // === Actual Sales → save ONLY <pond>_roi ===
@@ -365,37 +374,32 @@ public class ProductionCostFragment extends Fragment {
         switch (breed.toLowerCase()) {
             case "tilapia":
                 pricePerKilo = 120;
-                avgWeightGrams = 333.33; // ~3 pcs per kilo
+                avgWeightGrams = 333.33;
                 break;
             case "bangus":
                 pricePerKilo = 180;
                 avgWeightGrams = 333.33;
                 break;
             case "alimango":
-                pricePerKilo = 375; // midpoint of 350–400
-                avgWeightGrams = 500; // ~2 pcs per kilo
+                pricePerKilo = 375;
+                avgWeightGrams = 500;
                 break;
         }
 
-        // Compute tons: (FishCount × AvgWeightPerPiece grams) / 1,000,000
+        // Revenue
         double tons = (fishCount * avgWeightGrams) / 1_000_000.0;
-
-        // Convert tons → kilos (1 ton = 1000kg)
         double kilos = tons * 1000;
-
-        // Actual Sales = kilos × farmgate price
         double actualSalesValue = kilos * pricePerKilo;
 
-        // ROI (Profit) = Actual Sales - Capital
+        // ROI
         double roiAmount = actualSalesValue - totalCost;
-        double roiPercent = (roiAmount / totalCost) * 100;
+        double roiPercent = (totalCost > 0) ? (roiAmount / totalCost) * 100 : 0;
 
-        // --- Update UI ---
+        // Update UI
         tvActualSales.setText(String.format("₱%,.2f", actualSalesValue));
         tvROIAmount.setText(String.format("₱%,.2f", roiAmount));
         tvROI.setText(String.format("%.2f%%", roiPercent));
     }
-
 
     private String formatDate(String dateString) {
         try {
