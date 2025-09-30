@@ -255,7 +255,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
                 // ✅ Hide loading after everything is parsed
                 runOnUiThread(() -> {
-                    hideLoadingDialog();
+
                     pondList.clear();
                     pondList.addAll(newPonds);
                     pondAdapter.notifyDataSetChanged();
@@ -386,8 +386,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             loadingDialog.show();
         });
     }
-
-
     private void hideLoadingDialog() {
         runOnUiThread(() -> {
             if (loadingDialog != null && loadingDialog.isShowing()) {

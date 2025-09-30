@@ -1,15 +1,13 @@
 package com.example.pondmatev1;
 
-import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,54 +18,31 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
-import androidx.work.Data;
-
-
-import android.app.AlarmManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.os.Build;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Locale;
 
 import com.google.gson.Gson;
 
-import org.json.JSONException;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.util.Calendar;
 import java.util.Locale;
-
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 public class ScheduleFeederDialog extends DialogFragment {
 
     private TextView timeoffeeding1, timeoffeeding2, timeoffeeding3;
     private Button btnselecttime1, btnselecttime2, btnselecttime3, btnSave;
 
-    // Store selected times
     private Integer feeding1Minutes = null;
     private Integer feeding2Minutes = null;
-    private float feedPrice = 0.00F;
     private Integer feeding3Minutes = null;
 
     private String formattedTime1 = "";
     private String formattedTime2 = "";
     private String formattedTime3 = "";
 
-    private TextView tvsFishCount, feedQuantityView;
+    private TextView tvsFishCount, feedQuantityView, tvFeedPrice;
     private EditText weightInput;
     private int fishCount = 0;
+    private float feedPrice = 0.00F;
 
     private Runnable onDismissListener;
 
@@ -91,15 +66,7 @@ public class ScheduleFeederDialog extends DialogFragment {
         tvsFishCount = view.findViewById(R.id.tvsfishcount);
         weightInput = view.findViewById(R.id.weight);
         feedQuantityView = view.findViewById(R.id.feedquantity);
-
-        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-        String pondJson = prefs.getString("selected_pond", null);
-
-        if (pondJson != null) {
-            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
-            fishCount = pond.getFishCount();
-            tvsFishCount.setText(String.valueOf(fishCount));
-        }
+        tvFeedPrice = view.findViewById(R.id.feedprice);
 
         timeoffeeding1 = view.findViewById(R.id.timeoffeeding1);
         timeoffeeding2 = view.findViewById(R.id.timeoffeeding2);
@@ -114,6 +81,7 @@ public class ScheduleFeederDialog extends DialogFragment {
         btnselecttime3.setOnClickListener(v -> showTimePickerDialog(timeoffeeding3, 3));
 
         btnSave = view.findViewById(R.id.createbtn);
+        btnSave.setText("Update Schedule");
 
         weightInput.addTextChangedListener(new android.text.TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -121,13 +89,90 @@ public class ScheduleFeederDialog extends DialogFragment {
             @Override public void afterTextChanged(android.text.Editable s) {}
         });
 
-        btnSave.setOnClickListener(v -> confirmAndSaveSchedule());
+        btnSave.setOnClickListener(v -> confirmAndUpdateSchedule());
+
+        // 🔄 Fetch existing schedule when dialog opens
+        fetchExistingSchedule();
 
         return new AlertDialog.Builder(requireContext())
                 .setView(view)
                 .setCancelable(true)
                 .create();
     }
+
+    private void fetchExistingSchedule() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
+
+        if (pondJson != null) {
+            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+            String pondNameLocal = pond.getName();
+            fishCount = pond.getFishCount();
+            tvsFishCount.setText(String.valueOf(fishCount));
+
+            PondSyncManager.fetchPondSchedule(pondNameLocal, new PondSyncManager.Callback() {
+                @Override
+                public void onSuccess(Object result) {
+                    String response = (String) result;
+
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        try {
+                            JSONObject json = new JSONObject(response);
+
+                            if ("success".equals(json.getString("status"))) {
+                                JSONArray schedulesArray = json.optJSONArray("schedules");
+                                if (schedulesArray != null && schedulesArray.length() > 0) {
+                                    JSONObject scheduleObj = schedulesArray.getJSONObject(0);
+
+                                    String schedOne = scheduleObj.optString("sched_one", "");
+                                    String schedTwo = scheduleObj.optString("sched_two", "");
+                                    String schedThree = scheduleObj.optString("sched_three", "");
+                                    String feedQty = scheduleObj.optString("feed_amount", "0.0") + " kg";
+                                    String feedPriceStr = "₱" + scheduleObj.optString("feed_price", "0.00");
+                                    String fishWeight = scheduleObj.optString("fish_weight", "0.00");
+
+                                    // ✅ Populate UI
+                                    if (!schedOne.isEmpty()) {
+                                        timeoffeeding1.setText(formatTime(schedOne));
+                                        formattedTime1 = schedOne;
+                                    }
+                                    if (!schedTwo.isEmpty()) {
+                                        timeoffeeding2.setText(formatTime(schedTwo));
+                                        formattedTime2 = schedTwo;
+                                    }
+                                    if (!schedThree.isEmpty()) {
+                                        timeoffeeding3.setText(formatTime(schedThree));
+                                        formattedTime3 = schedThree;
+                                    }
+
+                                    feedQuantityView.setText(feedQty);
+                                    tvFeedPrice.setText(feedPriceStr);
+                                    weightInput.setText(fishWeight);
+
+                                    try {
+                                        feedPrice = Float.parseFloat(scheduleObj.optString("feed_price", "0.00"));
+                                    } catch (Exception ignored) {}
+                                }
+                            } else {
+                                Toast.makeText(getContext(), "Error: " + json.optString("message"), Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(getContext(), "Parse error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Failed to fetch schedule: " + error, Toast.LENGTH_SHORT).show());
+                    }
+                }
+            });
+        }
+    }
+
 
     private void computeFeedQuantity() {
         String weightStr = weightInput.getText().toString().trim();
@@ -138,13 +183,13 @@ public class ScheduleFeederDialog extends DialogFragment {
         }
 
         try {
-            float fishWeight = Float.parseFloat(weightStr); // grams
-            float feedPercentage = 0.03f; // 3%
-            float computedFeedQty = feedPercentage * fishWeight * fishCount; // grams
+            float fishWeight = Float.parseFloat(weightStr);
+            float feedPercentage = 0.03f;
+            float computedFeedQty = feedPercentage * fishWeight * fishCount;
             float computedKg = computedFeedQty / 1000f;
 
             feedQuantityView.setText(
-                    String.format(Locale.getDefault(), "%.2f kg (%.0f g)", computedKg, computedFeedQty)
+                    String.format(Locale.getDefault(), "%.2f kg", computedKg, computedFeedQty)
             );
         } catch (NumberFormatException e) {
             feedQuantityView.setText("--");
@@ -168,7 +213,8 @@ public class ScheduleFeederDialog extends DialogFragment {
 
                     String amPm = (hour >= 12) ? "PM" : "AM";
                     int hour12 = (hour == 0 || hour == 12) ? 12 : hour % 12;
-                    String formatted12 = String.format(Locale.getDefault(), "%02d:%02d %s", hour12, minute, amPm);
+
+                    String formatted12 = String.format(Locale.getDefault(), "%d:%02d %s", hour12, minute, amPm);
                     String formatted24 = String.format(Locale.getDefault(), "%02d:%02d", hour, minute);
 
                     targetTextView.setText(formatted12);
@@ -181,15 +227,44 @@ public class ScheduleFeederDialog extends DialogFragment {
                 .show();
     }
 
-    private void confirmAndSaveSchedule() {
+
+    private void confirmAndUpdateSchedule() {
         if (formattedTime1.isEmpty() || formattedTime2.isEmpty() || formattedTime3.isEmpty()) {
             Toast.makeText(getContext(), "Please set all feeding times", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // 🔒 Validate order of times (must be 1 < 2 < 3)
+        try {
+            String[] parts1 = formattedTime1.split(":");
+            String[] parts2 = formattedTime2.split(":");
+            String[] parts3 = formattedTime3.split(":");
+
+            int minutes1 = Integer.parseInt(parts1[0]) * 60 + Integer.parseInt(parts1[1]);
+            int minutes2 = Integer.parseInt(parts2[0]) * 60 + Integer.parseInt(parts2[1]);
+            int minutes3 = Integer.parseInt(parts3[0]) * 60 + Integer.parseInt(parts3[1]);
+
+            if (minutes1 >= minutes2) {
+                Toast.makeText(getContext(), "Feeding 1 must be earlier than Feeding 2!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (minutes2 >= minutes3) {
+                Toast.makeText(getContext(), "Feeding 2 must be earlier than Feeding 3!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (minutes3 <= minutes1 || minutes3 <= minutes2) {
+                Toast.makeText(getContext(), "Feeding 3 must be later than Feeding 1 and 2!", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Error validating feeding times", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         new AlertDialog.Builder(getContext())
-                .setTitle("Confirm Feeding Schedule")
-                .setMessage("Do you really want to save and upload this feeding schedule?")
+                .setTitle("Update Feeding Schedule")
+                .setMessage("Do you want to overwrite the existing feeding schedule?")
                 .setPositiveButton("Yes", (dialog, which) -> {
                     SharedPreferences prefss = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
                     String pondJson = prefss.getString("selected_pond", null);
@@ -217,57 +292,15 @@ public class ScheduleFeederDialog extends DialogFragment {
                     float computedKg = computedFeedQty / 1000f;
                     float finalFeedAmount = computedKg;
 
-                    // ✅ Make variables final for callback
-                    final String pondFinal = pondName;
-                    final String time1Final = formattedTime1;
-                    final String time2Final = formattedTime2;
-                    final String time3Final = formattedTime3;
-                    final float fishWeightFinal = fishWeight;
-                    final float feedAmountFinal = finalFeedAmount;
-
-                    // Upload to your backend server
-                    PondSyncManager.uploadFeedingScheduleToServer(
-                            pondFinal, time1Final, time2Final, time3Final,
-                            feedAmountFinal, fishWeightFinal, (float) feedPrice,
+                    PondSyncManager.updateFeedingScheduleOnServer(
+                            pondName, formattedTime1, formattedTime2, formattedTime3,
+                            finalFeedAmount, fishWeight, feedPrice,
                             new PondSyncManager.Callback() {
                                 @Override
                                 public void onSuccess(Object result) {
                                     if (isAdded()) {
                                         requireActivity().runOnUiThread(() -> {
-                                            Toast.makeText(getContext(), "Uploaded to server: " + result, Toast.LENGTH_SHORT).show();
-
-                                            // ✅ Immediate notification
-                                            NotificationHandler handler = new NotificationHandler(getContext());
-                                            String notifMessage = pondFinal + " - Scheduled feeding at "
-                                                    + time1Final + ", " + time2Final + ", " + time3Final;
-                                            handler.sendNotification("Feeding Schedule", notifMessage);
-
-                                            try {
-                                                String[] time1Parts = time1Final.split(":");
-                                                String[] time2Parts = time2Final.split(":");
-                                                String[] time3Parts = time3Final.split(":");
-
-                                                scheduleSingleFeedingNotification(pondFinal,
-                                                        Integer.parseInt(time1Parts[0]),
-                                                        Integer.parseInt(time1Parts[1]),
-                                                        "Feeding 1");
-
-                                                scheduleSingleFeedingNotification(pondFinal,
-                                                        Integer.parseInt(time2Parts[0]),
-                                                        Integer.parseInt(time2Parts[1]),
-                                                        "Feeding 2");
-
-                                                scheduleSingleFeedingNotification(pondFinal,
-                                                        Integer.parseInt(time3Parts[0]),
-                                                        Integer.parseInt(time3Parts[1]),
-                                                        "Feeding 3");
-
-
-                                            } catch (Exception e) {
-                                                e.printStackTrace();
-                                            }
-
-
+                                            Toast.makeText(getContext(), "Schedule updated successfully!", Toast.LENGTH_SHORT).show();
                                             ScheduleFeederDialog.this.dismiss();
                                         });
                                     }
@@ -277,127 +310,32 @@ public class ScheduleFeederDialog extends DialogFragment {
                                 public void onError(String error) {
                                     if (isAdded()) {
                                         requireActivity().runOnUiThread(() ->
-                                                Toast.makeText(getContext(), "Upload failed: " + error, Toast.LENGTH_SHORT).show());
+                                                Toast.makeText(getContext(), "Update failed: " + error, Toast.LENGTH_SHORT).show());
                                     }
                                 }
                             }
                     );
-
-                    // ✅ Upload also to Adafruit/ESP
-
-                    uploadFeedingTimesToAdafruit(pondFinal, time1Final, time2Final, time3Final, feedAmountFinal);
-
                 })
-                .setNegativeButton("No", (dialog, which) ->
-                        Toast.makeText(getContext(), "Schedule not saved", Toast.LENGTH_SHORT).show())
+                .setNegativeButton("No", (dialog1, which) -> dialog1.dismiss())
                 .show();
     }
 
-
-    // ✅ Schedule single feeding notifications
-    private void scheduleSingleFeedingNotification(String pondName, int hour, int minute, String feedingLabel) {
-        Calendar now = Calendar.getInstance();
-        Calendar feedTime = Calendar.getInstance();
-        feedTime.set(Calendar.HOUR_OF_DAY, hour);
-        feedTime.set(Calendar.MINUTE, minute);
-        feedTime.set(Calendar.SECOND, 0);
-
-        // If time already passed today, schedule for tomorrow
-        if (feedTime.getTimeInMillis() <= now.getTimeInMillis()) {
-            feedTime.add(Calendar.DAY_OF_MONTH, 1);
-        }
-
-        long delay = feedTime.getTimeInMillis() - now.getTimeInMillis();
-
-        Data inputData = new Data.Builder()
-                .putString("pondName", pondName)
-                .putString("feedingLabel", feedingLabel)
-                .build();
-
-        androidx.work.OneTimeWorkRequest feedingWork =
-                new androidx.work.OneTimeWorkRequest.Builder(FeedingNotificationWorker.class)
-                        .setInitialDelay(delay, java.util.concurrent.TimeUnit.MILLISECONDS)
-                        .setInputData(inputData)
-                        .build();
-
-        androidx.work.WorkManager.getInstance(requireContext()).enqueue(feedingWork);
-    }
-
-
-
-
-
-    private void uploadFeedingTimesToAdafruit(String pondName, String t1, String t2, String t3, float feedAmountKg) {
-        OkHttpClient client = new OkHttpClient();
-
-        String feedKey = "schedule"; // your Adafruit feed key
-        String username = getString(R.string.adafruit_username);
-        String aioKey = getString(R.string.adafruit_aio_key);
-
-        int feedAmountGrams = Math.round(feedAmountKg * 1000);
-        int reducedGrams = feedAmountGrams / 10;
-
-        String value = pondName + "|" + t1 + "," + t2 + "," + t3 + "|" + reducedGrams + "g";
-
-        try {
-            JSONObject json = new JSONObject();
-            json.put("value", value);
-
-            RequestBody body = RequestBody.create(json.toString(),
-                    MediaType.parse("application/json; charset=utf-8"));
-
-            String url = "https://io.adafruit.com/api/v2/" + username + "/feeds/" + feedKey + "/data";
-
-            android.util.Log.d("ScheduleFeeder", "Posting to Adafruit: " + value);
-            android.util.Log.d("ScheduleFeeder", "URL: " + url);
-
-            Request request = new Request.Builder()
-                    .url(url)
-                    .addHeader("X-AIO-Key", aioKey)
-                    .post(body)
-                    .build();
-
-            client.newCall(request).enqueue(new Callback() {
-                @Override public void onFailure(Call call, IOException e) {
-                    android.util.Log.e("ScheduleFeeder", "Adafruit request failed", e);
-                    if (isAdded()) {
-                        requireActivity().runOnUiThread(() ->
-                                Toast.makeText(getContext(), "Failed to post to Adafruit: " + e.getMessage(), Toast.LENGTH_LONG).show());
-                    }
-                }
-
-                @Override public void onResponse(Call call, Response response) throws IOException {
-                    final String bodyStr = (response.body()!=null) ? response.body().string() : "";
-                    android.util.Log.d("ScheduleFeeder", "Adafruit response code: " + response.code());
-                    android.util.Log.d("ScheduleFeeder", "Adafruit response body: " + bodyStr);
-
-                    if (isAdded()) {
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "Response: " + response.code(), Toast.LENGTH_LONG).show();
-                        });
-                    }
-                }
-            });
-        } catch (JSONException ex) {
-            android.util.Log.e("ScheduleFeeder", "JSON error", ex);
-            Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
-        }
-    }
-
     private boolean isValidTime(int feedingNumber, int selectedMinutes) {
-        Calendar now = Calendar.getInstance();
-        int currentMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
-
         switch (feedingNumber) {
             case 1:
-                if (selectedMinutes < currentMinutes) {
-                    Toast.makeText(requireContext(), "Feeding 1 cannot be set in the past!", Toast.LENGTH_SHORT).show();
+                if ((feeding2Minutes != null && selectedMinutes >= feeding2Minutes) ||
+                        (feeding3Minutes != null && selectedMinutes >= feeding3Minutes)) {
+                    Toast.makeText(requireContext(), "Feeding 1 must be earlier than Feeding 2 and 3!", Toast.LENGTH_SHORT).show();
                     return false;
                 }
                 return true;
             case 2:
                 if (feeding1Minutes == null || selectedMinutes <= feeding1Minutes) {
                     Toast.makeText(requireContext(), "Feeding 2 must be later than Feeding 1!", Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+                if (feeding3Minutes != null && selectedMinutes >= feeding3Minutes) {
+                    Toast.makeText(requireContext(), "Feeding 2 must be earlier than Feeding 3!", Toast.LENGTH_SHORT).show();
                     return false;
                 }
                 return true;
@@ -410,5 +348,20 @@ public class ScheduleFeederDialog extends DialogFragment {
                 return true;
         }
         return true;
+    }
+
+
+    private String formatTime(String time24) {
+        if (time24 == null || time24.isEmpty()) return "";
+        try {
+            String[] parts = time24.split(":");
+            int hour = Integer.parseInt(parts[0]);
+            int minute = Integer.parseInt(parts[1]);
+            String amPm = (hour >= 12) ? "PM" : "AM";
+            int hour12 = (hour == 0 || hour == 12) ? 12 : hour % 12;
+            return String.format(Locale.getDefault(), "%02d:%02d %s", hour12, minute, amPm);
+        } catch (Exception e) {
+            return time24;
+        }
     }
 }

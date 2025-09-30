@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp"
+    android:padding="6dp"
     android:scrollbars="vertical"
     android:background="@drawable/rounded_dialog_bg"
     tools:context=".ScheduleFeederDialog">
@@ -15,11 +15,11 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Header Section -->
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SET SCHEDULE"
+            android:text="EDIT SCHEDULE"
             android:textColor="#01082D"
             android:textSize="20sp"
             android:textStyle="bold"
@@ -33,104 +33,19 @@
             android:layout_height="wrap_content"
             app:cardCornerRadius="12dp"
             app:cardElevation="6dp"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="8dp">
 
-                <!-- Fish Information -->
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Fish Information"
-                    android:textColor="#01082D"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="6dp" />
-
-                <!-- Fish Count + Weight -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Fish Count"
-                            android:textColor="#01082D"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
-
-                        <TextView
-                            android:id="@+id/tvsfishcount"
-                            android:layout_width="match_parent"
-                            android:layout_height="38dp"
-                            android:background="@drawable/textbox_background"
-                            android:gravity="center"
-                            android:hint="00"
-                            android:textColor="#01082D"
-                            android:textSize="16sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Fish Weight"
-                            android:textColor="#01082D"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:layout_marginBottom="4dp" />
-
-                        <EditText
-                            android:id="@+id/weight"
-                            android:layout_width="match_parent"
-                            android:layout_height="38dp"
-                            android:background="@drawable/textbox_background"
-                            android:hint="(weight in grams)"
-                            android:inputType="numberDecimal"
-                            android:gravity="center"
-                            android:textColor="#01082D"
-                            android:textColorHint="#888888"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Divider -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#E0E0E0"
-                    android:layout_marginVertical="12dp" />
-
-
-
-
-                <!-- Feeding Times (2x2) -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Feeding Times"
                     android:layout_marginBottom="6dp"
                     android:textColor="#01082D"
                     android:textSize="14sp"
@@ -157,6 +72,209 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:gravity="center"
+                            android:text="Fish Count"
+                            android:textColor="#666666"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/tvsfishcount"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/rounded_edittext"
+                            android:gravity="center"
+                            android:hint="00:00"
+
+                            android:padding="12dp"
+                            android:textColor="#01082D"
+                            android:textColorHint="#888888"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Cell 2: Second Feeding -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="Sample Weight"
+                            android:lines="1"
+                            android:textColor="#666666"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <EditText
+                            android:id="@+id/weight"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/textbox_background"
+                            android:gravity="center"
+                            android:inputType="numberDecimal"
+                            android:hint="00:00"
+                            android:padding="12dp"
+                            android:textColor="#01082D"
+                            android:textColorHint="#888888"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Cell 3: Third Feeding -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="Feed Quantity"
+                            android:lines="1"
+                            android:textColor="#666666"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/feedquantity"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/rounded_edittext"
+                            android:gravity="center"
+                            android:hint="00:00"
+                            android:padding="12dp"
+                            android:textColor="#01082D"
+                            android:textColorHint="#888888"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Feeds Price"
+                    android:layout_marginBottom="6dp"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <!-- Cell 1: First Feeding -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:layout_marginEnd="8dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="Price per Cycle"
+                            android:textColor="#666666"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/feedpricepercycle"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/rounded_edittext"
+                            android:gravity="center"
+                            android:hint="₱0.00"
+                            android:padding="12dp"
+                            android:textColor="#01082D"
+                            android:textColorHint="#888888"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Cell 2: Second Feeding -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginStart="8dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:text="Price per Day"
+                            android:textColor="#666666"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <TextView
+                            android:id="@+id/feedprice"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@drawable/rounded_edittext"
+                            android:gravity="center"
+                            android:hint="₱0.00"
+                            android:padding="12dp"
+                            android:textColor="#01082D"
+                            android:textColorHint="#888888"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <!-- Cell 3: Third Feeding -->
+
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Feeding Times"
+                    android:layout_marginBottom="6dp"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="2dp">
+
+                    <!-- Cell 1: First Feeding -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center_horizontal"
+                        android:layout_marginEnd="8dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
                             android:text="First"
                             android:textColor="#666666"
                             android:textSize="12sp"
@@ -169,7 +287,7 @@
                             android:background="@drawable/textbox_background"
                             android:gravity="center"
                             android:hint="00:00"
-                            android:padding="12dp"
+                            android:padding="8dp"
                             android:textColor="#01082D"
                             android:textColorHint="#888888"
                             android:textSize="14sp" />
@@ -211,7 +329,7 @@
                             android:background="@drawable/textbox_background"
                             android:gravity="center"
                             android:hint="00:00"
-                            android:padding="12dp"
+                            android:padding="8dp"
                             android:textColor="#01082D"
                             android:textColorHint="#888888"
                             android:textSize="14sp" />
@@ -252,7 +370,7 @@
                             android:background="@drawable/textbox_background"
                             android:gravity="center"
                             android:hint="00:00"
-                            android:padding="12dp"
+                            android:padding="8dp"
                             android:textColor="#01082D"
                             android:textColorHint="#888888"
                             android:textSize="14sp" />
@@ -270,128 +388,18 @@
                     </LinearLayout>
 
                 </LinearLayout>
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center_horizontal">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Feed Quantity per Cycle"
-                        android:textColor="#01082D"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/feedquantity"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:background="@drawable/textbox_background"
-                        android:gravity="center"
-                        android:hint="Calculated automatically"
-                        android:textColor="#01082D"
-                        android:textColorHint="#888888"
-                        android:textStyle="bold"
-                        android:textSize="14sp" />
-
-
-                    <!-- New Feed Price Section -->
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Feed Price"
-                        android:textColor="#01082D"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="8dp"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/feedprice"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:background="@drawable/textbox_background"
-                        android:gravity="center"
-                        android:hint="₱0.00"
-                        android:textColor="#01082D"
-                        android:textColorHint="#888888"
-                        android:textStyle="bold"
-                        android:textSize="14sp" />
-
-                </LinearLayout>
 
 
 
                 <!-- Divider -->
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#DDDDDD"
-                    android:layout_marginTop="16dp"
-                    android:layout_marginBottom="12dp" />
 
-                <!-- Feeding Periods -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Feeding Periods"
-                    android:textColor="#01082D"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginBottom="16dp">
-
-                    <!-- Starter -->
-                    <TextView
-                        android:id="@+id/periodStarter"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="12dp"
-                        android:layout_marginBottom="8dp"
-                        android:gravity="center"
-                        android:background="@drawable/textbox_background"
-                        android:text="Starter • Jan 1, 2025 - Feb 1, 2025"
-
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <!-- Grower -->
-                    <TextView
-                        android:id="@+id/periodGrower"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="12dp"
-                        android:layout_marginBottom="8dp"
-                        android:gravity="center"
-                        android:background="@drawable/textbox_background"
-                        android:text="Grower • Feb 2, 2025 - Mar 15, 2025"
-
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <!-- Finisher -->
-                    <TextView
-                        android:id="@+id/periodFinisher"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:padding="12dp"
-                        android:layout_marginBottom="8dp"
-                        android:gravity="center"
-                        android:background="@drawable/textbox_background"
-                        android:text="Finisher • Mar 16, 2025 - Apr 30, 2025"
-
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
+                    android:layout_marginBottom="16dp"/>
 
 
                 <!-- Action Button -->
@@ -405,7 +413,7 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:cornerRadius="12dp"
-                    android:layout_marginTop="12dp" />
+                    android:layout_marginTop="2dp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
     </LinearLayout>

@@ -53,8 +53,8 @@ public class ReusePondDialog extends DialogFragment {
     }
 
     private final java.util.Map<String, Double> breedCosts = new java.util.HashMap<String, Double>() {{
-        put("Tilapia", 1.50);
-        put("Bangus", 2.50);
+        put("Tilapia", .20);
+        put("Bangus", .50);
         put("Alimango", 3.0);
     }};
 

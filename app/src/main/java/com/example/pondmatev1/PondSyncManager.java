@@ -75,6 +75,64 @@ public class PondSyncManager {
         }).start();
     }
 
+    // 🔹 Update existing feeding schedule
+    public static void updateFeedingScheduleOnServer(String pondName,
+                                                     String schedOne,
+                                                     String schedTwo,
+                                                     String schedThree,
+                                                     double feedAmount,
+                                                     float fishWeight,
+                                                     float feedPrice,
+                                                     Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/update_feeding_schedule.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                Log.d("UPDATE_FEED", "Updating pond=" + pondName +
+                        ", sched1=" + schedOne +
+                        ", sched2=" + schedTwo +
+                        ", sched3=" + schedThree +
+                        ", amount=" + feedAmount +
+                        ", fish_weight=" + fishWeight +
+                        ", feed_price=" + feedPrice);
+
+                // 🔑 POST data (pond_name is identifier for update)
+                String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
+                        "&sched_one=" + URLEncoder.encode(schedOne != null ? schedOne : "", "UTF-8") +
+                        "&sched_two=" + URLEncoder.encode(schedTwo != null ? schedTwo : "", "UTF-8") +
+                        "&sched_three=" + URLEncoder.encode(schedThree != null ? schedThree : "", "UTF-8") +
+                        "&feed_amount=" + feedAmount +
+                        "&fish_weight=" + fishWeight +
+                        "&feed_price=" + feedPrice;
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                    reader.close();
+
+                    runOnUiThreadSafe(() -> callback.onSuccess(response.toString()));
+                } else {
+                    runOnUiThreadSafe(() -> callback.onError("Server returned code: " + responseCode));
+                }
+
+            } catch (Exception e) {
+                runOnUiThreadSafe(() -> callback.onError(e.getMessage()));
+            }
+        }).start();
+    }
+
+
     public static void uploadMaintenanceToServer(String pond, String description, double cost, Callback callback) {
         new Thread(() -> {
             try {
@@ -340,6 +398,41 @@ public class PondSyncManager {
             }
         }).start();
     }
+
+    public static void fetchTotalPonds(Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_total_pond.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    response.append(line);
+                }
+                in.close();
+
+                JSONObject obj = new JSONObject(response.toString());
+                String status = obj.optString("status");
+
+                if ("success".equalsIgnoreCase(status)) {
+                    int pondCount = obj.optInt("count", 0);
+                    runOnUiThreadSafe(() -> callback.onSuccess(pondCount));
+                } else if ("empty".equalsIgnoreCase(status)) {
+                    runOnUiThreadSafe(() -> callback.onSuccess(0));
+                } else {
+                    String message = obj.optString("message", "Unknown error");
+                    runOnUiThreadSafe(() -> callback.onError(message));
+                }
+
+            } catch (Exception e) {
+                runOnUiThreadSafe(() -> callback.onError("Network error: " + e.getMessage()));
+            }
+        }).start();
+    }
+
 
     public static void uploadFeedingScheduleToServer(String pondName,
                                                      String schedOne,

@@ -27,6 +27,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -76,7 +77,10 @@ public class ProductionCostFragment extends Fragment {
     TextView tvBreed, tvCount, tvAmountPerPiece, tvTotalCost;
     TextView tvSummaryFingerlings, tvSummaryFeeds, tvSummaryMaintenance, tvSummaryTotal, tvActualSales;
     TextView tvCapital, tvROIAmount, tvROI, tvEstimatedRoI, tvRoIDifference;
-    EditText etEstimatedRevenue;
+    EditText etEstimatedSales, etEstimatedRevenue;
+    TextView tvSummarySalary;
+    private double salaryPerPond = 0.0;
+
 
     private double totalCost = 0.0;
     private String pondName = "";
@@ -106,6 +110,9 @@ public class ProductionCostFragment extends Fragment {
 
         loadMaintenanceTotal();
 
+        tvSummarySalary = view.findViewById(R.id.tvSummarySalary);
+
+        loadSalarySummary();
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
         Button btnGenerateReport = view.findViewById(R.id.btnGenerateReport);
@@ -225,7 +232,9 @@ public class ProductionCostFragment extends Fragment {
 
             tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
 
-            totalCost = totalFingerlingCost + feedCost + maintenanceCost;
+
+
+            totalCost = totalFingerlingCost + feedCost + maintenanceCost + salaryPerPond;
             tvSummaryTotal.setText("₱" + formatPrice(totalCost));
             tvCapital.setText("₱" + formatPrice(totalCost));
 
@@ -278,6 +287,74 @@ public class ProductionCostFragment extends Fragment {
                 }
             }
         });
+    }
+
+    private void loadSalarySummary() {
+        new Thread(() -> {
+            try {
+                double overallSalary = 0;
+                int pondCount = 0;
+
+                // --- Fetch overall salary ---
+                URL url = new URL("https://pondmate.alwaysdata.net/get_overall_salary.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                try (OutputStream os = conn.getOutputStream()) { os.write("".getBytes()); }
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                    String line = reader.readLine();
+                    Log.d("SALARY_DEBUG", "Overall salary: " + line);
+                    overallSalary = Double.parseDouble(line.trim());
+                }
+
+                // --- Fetch total pond count ---
+                URL pondUrl = new URL("https://pondmate.alwaysdata.net/get_total_pond.php");
+                HttpURLConnection pondConn = (HttpURLConnection) pondUrl.openConnection();
+                pondConn.setRequestMethod("POST");
+                pondConn.setDoOutput(true);
+                pondConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                try (OutputStream os = pondConn.getOutputStream()) { os.write("".getBytes()); }
+                try (BufferedReader pondReader = new BufferedReader(new InputStreamReader(pondConn.getInputStream()))) {
+                    String line = pondReader.readLine();
+                    Log.d("SALARY_DEBUG", "Pond count: " + line);
+
+                    // Parse JSON properly
+                    JSONObject pondJson = new JSONObject(line.trim());
+                    pondCount = pondJson.getInt("count");
+                }
+
+                double salaryPerPond = pondCount > 0 ? overallSalary / pondCount : 0;
+
+// Update class-level variable and UI on the main thread
+                requireActivity().runOnUiThread(() -> {
+                    this.salaryPerPond = salaryPerPond; // save to class-level variable
+                    tvSummarySalary.setText("₱" + formatPrice(salaryPerPond));
+                    updateTotalCost(); // refresh totalCost including salary
+                });
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Failed to load salary per pond", Toast.LENGTH_SHORT).show()
+                );
+            }
+        }).start();
+    }
+
+
+
+
+    private void updateTotalCost() {
+        double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
+        double feeds = parseDouble(tvSummaryFeeds.getText().toString());
+        double maintenance = parseDouble(tvSummaryMaintenance.getText().toString());
+
+        totalCost = fingerlings + feeds + maintenance + salaryPerPond;
+
+        tvSummaryTotal.setText("₱" + formatPrice(totalCost));
+        tvCapital.setText("₱" + formatPrice(totalCost));
     }
 
     // === Actual Sales → save ONLY <pond>_roi ===
@@ -333,6 +410,7 @@ public class ProductionCostFragment extends Fragment {
         }
     }
 
+
     PdfPCell headerCell(String text) {
         PdfPCell cell = new PdfPCell(new Phrase(text));
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -341,10 +419,7 @@ public class ProductionCostFragment extends Fragment {
         return cell;
     }
 
-    /**
-     * generatePDF now takes pond JSON and the pondId (used for stable filename).
-     * It writes the file to cacheDir and returns the File.
-     */
+
     private File generatePDF(JSONObject data, String pondId) {
         // Build stable filename
         String baseName;

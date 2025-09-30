@@ -199,40 +199,5 @@ public class ScheduleFeeder extends Fragment {
         }
     }
 
-    private void populateScheduleTable(String schedOne, String schedTwo, String schedThree, String feedAmount) {
-
-
-        // Header row
-        TableRow header = new TableRow(getContext());
-        header.setBackgroundColor(Color.parseColor("#CCCCCC"));
-        String[] headers = {"Date", "Time", "Feed Qty", "Status"};
-        for (String h : headers) {
-            TextView tv = new TextView(getContext());
-            tv.setText(h);
-            tv.setTypeface(Typeface.DEFAULT_BOLD);
-            tv.setGravity(Gravity.CENTER);
-            tv.setPadding(8, 8, 8, 8);
-            header.addView(tv);
-        }
-//        SummaryT.addView(header);
-//
-        // Today date
-        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-
-        // Add each feeding as a row
-        String[] times = {schedOne, schedTwo, schedThree};
-        for (String t : times) {
-            if (t == null || t.isEmpty()) continue;
-            TableRow row = new TableRow(getContext());
-            String[] cols = {today, formatTime(t), feedAmount, "Pending"};
-            for (String c : cols) {
-                TextView tv = new TextView(getContext());
-                tv.setText(c);
-                tv.setGravity(Gravity.CENTER);
-                tv.setPadding(8, 8, 8, 8);
-                row.addView(tv);
-            }
-            SummaryT.addView(row);
-        }
     }
-}
+

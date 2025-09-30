@@ -19,6 +19,8 @@ import android.text.TextWatcher;
 import android.util.Base64;
 import android.util.Log;
 import android.view.*;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.*;
 
 import androidx.annotation.NonNull;
@@ -45,6 +47,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class AddPondDialogFragment extends DialogFragment {
+
+    private AlertDialog loadingDialog;
 
     private EditText etPondName, etFishCount, etCostPerFish;
     private Spinner spinnerBreed;
@@ -191,13 +195,13 @@ public class AddPondDialogFragment extends DialogFragment {
 
             switch (selectedBreed) {
                     case "Tilapia":
-                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 120);
+                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 125);
                         break;
                     case "Bangus":
-                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 120);
+                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 125);
                         break;
                     case "Alimango":
-                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 270);
+                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 275);
                         break;
                 }
 
@@ -303,6 +307,8 @@ public class AddPondDialogFragment extends DialogFragment {
                     .setMessage("Do you want to save this pond?")
                     .setPositiveButton("Yes", (dialogInterface, which) -> {
 
+                        showLoadingDialog();
+
                         // ✅ Use stored values
                         String dateStartedStr = rawDateForDB;      // from today
                         String dateHarvestStr = rawHarvestDateForDB; // from breed calculation
@@ -345,11 +351,13 @@ public class AddPondDialogFragment extends DialogFragment {
 
                                     if (listener != null) listener.onPondAdded(pond);
 
+                                    hideLoadingDialog();
                                     Toast.makeText(getContext(), "Pond and fingerlings cost added successfully!", Toast.LENGTH_SHORT).show();
                                     confirmAndSaveSchedule(name);
                                     dismiss();
 
                                 } catch (Exception e) {
+                                    hideLoadingDialog();
                                     Toast.makeText(getContext(), "Error parsing server response: " + e.getMessage(), Toast.LENGTH_LONG).show();
                                     Log.d("ServerResponse", "Raw result: [" + result.toString() + "]");
                                 }
@@ -357,6 +365,7 @@ public class AddPondDialogFragment extends DialogFragment {
 
                             @Override
                             public void onError(String error) {
+                                hideLoadingDialog();
                                 Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show();
                             }
                         });
@@ -431,8 +440,10 @@ public class AddPondDialogFragment extends DialogFragment {
         float fishWeight = Float.parseFloat(weightStr);
         float feedPercentage = 0.03f;
         float computedFeedQty = feedPercentage * fishWeight * fishCount;
-        float computedKg = computedFeedQty / 1000f;
-        float finalFeedAmount = computedKg;
+        // ✅ Always divide by 3 (fixed cycles)
+        float perCycleGrams = computedFeedQty / 3;
+        // Convert to kg
+        float finalFeedAmount = perCycleGrams / 1000f;
 
         String feedPriceText = feedPriceView.getText().toString().replace("₱", "").trim();
         double feedPrice = 0.0;
@@ -660,16 +671,41 @@ public class AddPondDialogFragment extends DialogFragment {
 
 
 
+    private void showLoadingDialog() {
+        if (loadingDialog != null && loadingDialog.isShowing()) return;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_loading, null);
+        ImageView fishLoader = dialogView.findViewById(R.id.fishLoader);
+        TextView loadingText = dialogView.findViewById(R.id.loadingText);
+        loadingText.setText("Loading your PONDS please wait...");
+        Animation rotate = AnimationUtils.loadAnimation(requireContext(), R.anim.rotate);
+        if (fishLoader != null) fishLoader.startAnimation(rotate);
+        builder.setView(dialogView).setCancelable(false);
+        loadingDialog = builder.create();
+        loadingDialog.show();
+    }
+
+    private void hideLoadingDialog() {
+        if (loadingDialog != null && loadingDialog.isShowing()) {
+            loadingDialog.dismiss();
+            loadingDialog = null;
+        }
+    }
+
 
     private void showTimePickerDialog(TextView targetTextView, int feedingNumber) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_timepicker, null);
         TimePicker timePicker = dialogView.findViewById(R.id.timePickerSpinner);
         timePicker.setIs24HourView(false);
 
+
+
         new AlertDialog.Builder(requireContext())
                 .setTitle("Select Feeding Time " + feedingNumber)
                 .setView(dialogView)
                 .setPositiveButton("OK", (dialog, which) -> {
+
                     int hour = timePicker.getHour();
                     int minute = timePicker.getMinute();
 
@@ -744,32 +780,48 @@ public class AddPondDialogFragment extends DialogFragment {
         return String.format(Locale.getDefault(), "%02d:%02d", hour, minute);
     }
 
-
     private boolean isValidTime(int feedingNumber, int selectedMinutes) {
         Calendar now = Calendar.getInstance();
         int currentMinutes = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE);
 
         switch (feedingNumber) {
             case 1:
-                // Feeding 1 cannot be in the past
-                if (selectedMinutes < currentMinutes) {
+                // Feeding 1 must be earlier than Feeding 2 and 3 (if already set)
+                if (feeding2Minutes != null && selectedMinutes >= feeding2Minutes) {
                     Toast.makeText(requireContext(),
-                            "Feeding 1 cannot be set in the past!",
+                            "Feeding 1 must be earlier than Feeding 2!",
                             Toast.LENGTH_SHORT).show();
                     return false;
                 }
+                if (feeding3Minutes != null && selectedMinutes >= feeding3Minutes) {
+                    Toast.makeText(requireContext(),
+                            "Feeding 1 must be earlier than Feeding 3!",
+                            Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+
                 feeding1Minutes = selectedMinutes;
                 return true;
 
             case 2:
                 // Use default if Feeding 1 is not set
                 int f1 = (feeding1Minutes != null) ? feeding1Minutes : DEFAULT_FEEDING_1;
+
                 if (selectedMinutes <= f1) {
                     Toast.makeText(requireContext(),
                             "Feeding 2 must be later than Feeding 1!",
                             Toast.LENGTH_SHORT).show();
                     return false;
                 }
+
+                // Feeding 2 must be earlier than Feeding 3 (if already set)
+                if (feeding3Minutes != null && selectedMinutes >= feeding3Minutes) {
+                    Toast.makeText(requireContext(),
+                            "Feeding 2 must be earlier than Feeding 3!",
+                            Toast.LENGTH_SHORT).show();
+                    return false;
+                }
+
                 feeding2Minutes = selectedMinutes;
                 return true;
 
@@ -777,24 +829,27 @@ public class AddPondDialogFragment extends DialogFragment {
                 // Use default if Feeding 1 or 2 are not set
                 f1 = (feeding1Minutes != null) ? feeding1Minutes : DEFAULT_FEEDING_1;
                 int f2 = (feeding2Minutes != null) ? feeding2Minutes : DEFAULT_FEEDING_2;
+
                 if (selectedMinutes <= f1 || selectedMinutes <= f2) {
                     Toast.makeText(requireContext(),
                             "Feeding 3 must be later than Feeding 1 and 2!",
                             Toast.LENGTH_SHORT).show();
                     return false;
                 }
+
                 feeding3Minutes = selectedMinutes;
                 return true;
 
             default:
                 return false;
         }
+
     }
 
 
     private final java.util.Map<String, Double> breedCosts = new java.util.HashMap<String, Double>() {{
-        put("Tilapia", 1.50);
-        put("Bangus", 2.50);
+        put("Tilapia", .20);
+        put("Bangus", .50);
         put("Alimango", 3.0);
     }};
 

@@ -35,12 +35,17 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
     private ArrayList<CaretakerModel> caretakers = new ArrayList<>();
     private AlertDialog loadingDialog;
 
+    private TextView tvTotalSalary, tvOverallSalary;
+
     private static final String BASE_URL = "https://pondmate.alwaysdata.net/";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_caretaker_dashboard);
+        // ✅ Correct mapping
+        tvOverallSalary = findViewById(R.id.tvTotalSalary);   // example id: tvOverallSalary
+        tvTotalSalary   = findViewById(R.id.tvSalaryPerPond);
 
         findViewById(R.id.btnAddCaretaker).setOnClickListener(v -> showAddCaretakerDialog());
 
@@ -72,6 +77,8 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
         fetchCaretakers();
     }
+
+
 
     // ------------------ ADD CARETAKER ------------------
     private void showAddCaretakerDialog() {
@@ -224,6 +231,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                             caretakers.add(m);
                         }
                         adapter.notifyDataSetChanged();
+                        updateSalaryTextViews();
                     } catch (Exception e) {
                         e.printStackTrace();
                         Toast.makeText(this, "Parse error", Toast.LENGTH_SHORT).show();
@@ -240,6 +248,45 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
             }
         }).start();
     }
+
+    // ------------------ SET SALARY TEXTVIEWS ------------------
+    // ------------------ SET SALARY TEXTVIEWS ------------------
+    private void updateSalaryTextViews() {
+        double overallSalary = 0.0;
+        for (CaretakerModel caretaker : caretakers) {
+            overallSalary += caretaker.getSalary();
+        }
+
+        // ✅ Make it effectively final
+        final double totalSalary = overallSalary;
+
+        // ✅ Add label for overall salary
+        tvOverallSalary.setText("Overall Caretakers Salary: " + formatCurrency(overallSalary));
+
+        // Fetch pond count from DB and compute salary per pond
+        PondSyncManager.fetchTotalPonds(new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object result) {
+                int pondCount = (int) result;
+                double salaryPerPond = (pondCount > 0) ? (totalSalary / pondCount) : 0.0;
+
+                runOnUiThread(() -> {
+                    // ✅ Add label for salary per pond
+                    tvTotalSalary.setText("Salary per Pond: " + formatCurrency(salaryPerPond));
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() -> {
+                    Toast.makeText(CaretakerDashboardActivity.this,
+                            "Error fetching ponds: " + error,
+                            Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
 
     // ------------------ DELETE CARETAKER ------------------
     private void deleteCaretaker(int id) {
@@ -344,6 +391,9 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                     .setNegativeButton("No", null)
                     .show();
         });
+    }
+    private String formatCurrency(double amount) {
+        return "₱" + String.format("%,.2f", amount);
     }
 
     private void editCaretaker(int id, String newUsername, String newPassword,
