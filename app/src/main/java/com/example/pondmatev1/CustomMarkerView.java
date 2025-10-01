@@ -16,19 +16,16 @@ public class CustomMarkerView extends MarkerView {
     private final Map<String, String> dateRangeMap;
     private final List<String> pondLabels;
     private final List<BarEntry> actualEntries;
-    private final List<BarEntry> compareEntries;
 
     public CustomMarkerView(Context context, int layoutResource,
                             Map<String, String> dateRangeMap,
                             List<String> pondLabels,
-                            List<BarEntry> actualEntries,
-                            List<BarEntry> compareEntries) {
+                            List<BarEntry> actualEntries) {
         super(context, layoutResource);
         this.tvContent = findViewById(R.id.tvContent);
         this.dateRangeMap = dateRangeMap;
         this.pondLabels = pondLabels;
         this.actualEntries = actualEntries;
-        this.compareEntries = compareEntries;
     }
 
     @Override
@@ -47,18 +44,11 @@ public class CustomMarkerView extends MarkerView {
                     break;
                 }
             }
-            for (BarEntry entry : compareEntries) {
-                if ((int) entry.getX() == xIndex) {
-                    compareROI = entry.getY();
-                    break;
-                }
-            }
 
             String dateRange = dateRangeMap.containsKey(pondName) ? dateRangeMap.get(pondName) : "N/A";
 
             String info = pondName + "\n" +
                     "Actual ROI: " + String.format("%.2f%%", actualROI) + "\n" +
-                    "Comparison ROI: " + String.format("%.2f%%", compareROI) + "\n" +
                     "Date Range: " + dateRange;
 
             tvContent.setText(info);

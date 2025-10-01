@@ -281,15 +281,15 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     }
 
     private void renderChartData() {
-        Map<String, float[]> roiMap = new LinkedHashMap<>();
+        Map<String, Float> roiMap = new LinkedHashMap<>();
         dateRangeMap.clear();
 
+        // Prepare data
         for (PondModel pond : pondList) {
             if ("ADD_BUTTON".equals(pond.getMode())) continue;
 
             String pondName = pond.getName();
             float actual = pond.getActualROI();
-            float compare = pond.getEstimatedROI();
 
             String startRaw = pond.getDateStarted();
             String harvestRaw = pond.getDateHarvest();
@@ -298,19 +298,15 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     : formatDateDisplay(startRaw) + " - " + formatDateDisplay(harvestRaw);
 
             dateRangeMap.put(pondName, range);
-            roiMap.put(pondName, new float[]{actual, compare});
+            roiMap.put(pondName, actual);
         }
 
         List<BarEntry> actualEntries = new ArrayList<>();
-        List<BarEntry> compareEntries = new ArrayList<>();
         List<String> pondLabels = new ArrayList<>();
 
         int i = 0;
-        for (Map.Entry<String, float[]> e : roiMap.entrySet()) {
-            float a = e.getValue()[0];
-            float c = e.getValue()[1];
-            actualEntries.add(new BarEntry(i, a));
-            compareEntries.add(new BarEntry(i, c));
+        for (Map.Entry<String, Float> e : roiMap.entrySet()) {
+            actualEntries.add(new BarEntry(i, e.getValue()));
             pondLabels.add(e.getKey());
             i++;
         }
@@ -321,29 +317,22 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             return;
         }
 
+        // Single dataset
         BarDataSet setActual = new BarDataSet(actualEntries, "Actual ROI");
         setActual.setColor(Color.parseColor("#4CAF50"));
-        BarDataSet setCompare = new BarDataSet(compareEntries, "Estimated ROI");
-        setCompare.setColor(Color.parseColor("#2196F3"));
 
-        BarData data = new BarData(setActual, setCompare);
-        float groupSpace = 0.28f;
-        float barSpace = 0.04f;
-        float barWidth = 0.32f;
-        data.setBarWidth(barWidth);
+        BarData data = new BarData(setActual);
+        data.setBarWidth(0.5f); // width for single bars
         roiBarChart.setData(data);
 
+        // X Axis
         XAxis xAxis = roiBarChart.getXAxis();
         xAxis.setValueFormatter(new IndexAxisValueFormatter(pondLabels));
         xAxis.setGranularity(1f);
-        xAxis.setCenterAxisLabels(true);
+        xAxis.setCenterAxisLabels(false); // no grouping
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
 
-        float startX = 0f;
-        xAxis.setAxisMinimum(startX);
-        xAxis.setAxisMaximum(startX + data.getGroupWidth(groupSpace, barSpace) * pondLabels.size());
-        roiBarChart.groupBars(startX, groupSpace, barSpace);
-
+        // Y Axis
         YAxis left = roiBarChart.getAxisLeft();
         left.setAxisMinimum(0f);
         roiBarChart.getAxisRight().setEnabled(false);
@@ -351,13 +340,14 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         roiBarChart.getDescription().setEnabled(false);
         roiBarChart.animateY(800);
 
+        // Custom marker
         CustomMarkerView markerView = new CustomMarkerView(this, R.layout.custom_marker,
-                dateRangeMap, pondLabels, actualEntries, compareEntries);
+                dateRangeMap, pondLabels, actualEntries);
         roiBarChart.setMarker(markerView);
 
         roiBarChart.invalidate();
     }
-
+    
     private String formatDateDisplay(String inputDate) {
         try {
             SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);

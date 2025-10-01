@@ -374,6 +374,10 @@ public class ProductionCostFragment extends Fragment {
         tvActualSales.setText(String.format("₱%,.2f", actualSalesValue));
         tvROIAmount.setText(String.format("₱%,.2f", roiAmount));
         tvROI.setText(String.format("%.2f%%", roiPercent));
+
+        if (!pondName.isEmpty()) {
+            saveActualROI(pondName, roiPercent);
+        }
     }
 
     private void calculateEstimatedROI(double totalCost) {
@@ -385,6 +389,10 @@ public class ProductionCostFragment extends Fragment {
         etEstimatedRevenue.setText(String.format("₱%,.2f", estimatedRevenue));
         tvEstimatedRoI.setText(String.format("%.2f%%", estimatedROIPercent));
         tvRoIDifference.setText(String.format("%.2f%%",estimatedROIPercent));
+
+        if (!pondName.isEmpty()) {
+            saveEstimatedROI(pondName, estimatedROIPercent);
+        }
     }
 
     private String formatDate(String dateString) {
@@ -408,10 +416,6 @@ public class ProductionCostFragment extends Fragment {
         cell.setBackgroundColor(BaseColor.LIGHT_GRAY);
         return cell;
     }
-
-
-
-
 
     class BorderPageEvent extends PdfPageEventHelper {
         @Override
@@ -527,9 +531,9 @@ public class ProductionCostFragment extends Fragment {
         }).start();
     }
 
-    private void saveComparisonROI(String pond, double roiPercent) {
+    private void saveEstimatedROI(String pondName, double roiPercent) {
         SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-        sp.edit().putFloat(pond + "_roi_diff", (float) roiPercent).apply();
+        sp.edit().putFloat(pondName + "_estimated_roi", (float) roiPercent).apply();
 
         new Thread(() -> {
             try {
@@ -539,9 +543,11 @@ public class ProductionCostFragment extends Fragment {
                 conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-                String postData = "pond_name=" + pond + "&estimated_roi=" + roiPercent;
+                String postData = "pond_name=" + pondName + "&estimated_roi=" + roiPercent;
                 conn.getOutputStream().write(postData.getBytes("UTF-8"));
+
                 conn.getInputStream().close();
+                conn.disconnect();
             } catch (Exception e) {
                 e.printStackTrace();
             }
