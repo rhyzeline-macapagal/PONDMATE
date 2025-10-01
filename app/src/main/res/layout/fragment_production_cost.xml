@@ -29,7 +29,7 @@
                 android:textSize="14sp"
                 android:backgroundTint="#00448D"
                 android:drawableLeft="@drawable/ic_add"
-                android:drawablePadding="8dp"
+                android:drawablePadding="5dp"
                 app:cornerRadius="6dp"
                 android:textColor="#FFFFFF"
                 android:elevation="2dp"

@@ -238,6 +238,7 @@ public class ProductionCostFragment extends Fragment {
             tvCapital.setText("₱" + formatPrice(totalCost));
 
             updateTotalCost();
+            calculateEstimatedROI(totalCost);
 
         }
 
@@ -262,31 +263,6 @@ public class ProductionCostFragment extends Fragment {
                 etEstimatedRevenue.setText("");
             }
         }
-
-        // === Estimated Revenue → save ONLY <pond>_roi_diff ===
-        etEstimatedRevenue.addTextChangedListener(new TextWatcher() {
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            public void afterTextChanged(Editable s) {
-                String str = s.toString();
-                SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-                sp.edit().putString(pondName + "_estimated_revenue", str).apply();
-
-                double estimatedRevenue = parseDouble(s.toString());
-                double capital = parseDouble(tvCapital.getText().toString());
-                double netProfit = estimatedRevenue - capital;
-                double roiPercent = (capital > 0) ? (netProfit / capital) * 100 : 0;
-                if (roiPercent < 25) roiPercent = 25; // Ensure minimum 25%
-
-                tvEstimatedRoI.setText(formatPrice(roiPercent) + "%");
-                tvRoIDifference.setText(formatPrice(roiPercent) + "%");
-
-                if (!pondName.isEmpty()) {
-                    saveComparisonROI(pondName, roiPercent);
-                   notifyChart();
-                }
-            }
-        });
     }
 
     private void loadSalarySummary() {
@@ -362,6 +338,7 @@ public class ProductionCostFragment extends Fragment {
             if (pondJson != null) {
                 PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
                 calculateActualSalesAndROI(pond.getBreed(), pond.getFishCount(), totalCost);
+                calculateEstimatedROI(totalCost);
             }
         }
     }
@@ -399,6 +376,17 @@ public class ProductionCostFragment extends Fragment {
         tvActualSales.setText(String.format("₱%,.2f", actualSalesValue));
         tvROIAmount.setText(String.format("₱%,.2f", roiAmount));
         tvROI.setText(String.format("%.2f%%", roiPercent));
+    }
+
+    private void calculateEstimatedROI(double totalCost) {
+        // 25% industry standard ROI
+        double estimatedRevenue = totalCost * 1.25;
+        double estimatedROIPercent = 25.0; // fixed industry standard
+
+        // Update UI
+        etEstimatedRevenue.setText(String.format("₱%,.2f", estimatedRevenue));
+        tvEstimatedRoI.setText(String.format("%.2f%%", estimatedROIPercent));
+        tvRoIDifference.setText(String.format("%.2f%%",estimatedROIPercent));
     }
 
     private String formatDate(String dateString) {
