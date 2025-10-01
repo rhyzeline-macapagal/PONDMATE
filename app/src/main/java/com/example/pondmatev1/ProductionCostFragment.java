@@ -313,19 +313,19 @@ public class ProductionCostFragment extends Fragment {
         }
     }
 
-    // Inside your fragment or activity
     private void fetchTotalFeedCost(String pondId) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://pondmate.alwaysdata.net/fetch_total_feed_cost.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                // Build URL with pond_id as GET parameter
+                String urlString = "https://pondmate.alwaysdata.net/fetch_total_feed_cost.php";
+                if (pondId != null && !pondId.isEmpty()) {
+                    urlString += "?pond_id=" + pondId;
+                }
 
-                // Send pond_id in POST body
-                String postData = "pond_id=" + pondId;
-                conn.getOutputStream().write(postData.getBytes("UTF-8"));
+                URL url = new URL(urlString);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET"); // Use GET to match PHP
+                conn.connect();
 
                 int responseCode = conn.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -359,6 +359,7 @@ public class ProductionCostFragment extends Fragment {
             }
         }).start();
     }
+
 
 
 
