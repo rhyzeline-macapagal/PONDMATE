@@ -120,39 +120,27 @@ public class PondPDFGenerator {
             }
             document.add(mtable);
             document.add(new Paragraph("\n"));
-
-            // Salary table
-            document.add(new Paragraph("Salary Cost"));
-            document.add(new Paragraph("\n"));
-            PdfPTable stable = new PdfPTable(5);
-            stable.setWidthPercentage(100);
-            stable.addCell(headerCell("Description"));
-            stable.addCell(headerCell("Quantity"));
-            stable.addCell(headerCell("Unit"));
-            stable.addCell(headerCell("Cost per Unit"));
-            stable.addCell(headerCell("Amount"));
-
+            // Salary Cost (Per Pond)
             JSONObject salary = data.optJSONObject("salary");
-            JSONArray salaryLogs = salary != null ? salary.optJSONArray("logs") : null;
-            if (salaryLogs != null && salaryLogs.length() > 0) {
-                for (int i = 0; i < salaryLogs.length(); i++) {
-                    JSONObject s = salaryLogs.getJSONObject(i);
-                    stable.addCell(s.optString("description", "-"));
-                    stable.addCell(s.optString("quantity", "0"));
-                    stable.addCell(s.optString("unit", "-"));
-                    stable.addCell("₱" + s.optString("cost_per_unit", "0"));
-                    stable.addCell("₱" + s.optString("amount", "0"));
-                }
-            } else {
-                stable.addCell("No data");
-                stable.addCell("-");
-                stable.addCell("-");
-                stable.addCell("-");
-                stable.addCell("-");
-            }
-            document.add(stable);
+            double totalSalary = (salary != null) ? salary.optDouble("total_salary", 0) : 0;
 
-// Feeds Logs Page
+            document.add(new Paragraph("Salary Total Cost: ₱" + String.format("%.2f", totalSalary)));
+            document.add(new Paragraph("\n")); // optional spacing
+
+            // Totals and ROI
+            maintenance = data.optJSONObject("maintenance");
+            salary = data.optJSONObject("salary");
+            JSONObject roi = data.optJSONObject("roi");
+
+            document.add(new Paragraph("Maintenance Total: ₱" + (maintenance != null ? String.format("%.2f", maintenance.optDouble("total_maintenance", 0)) : "0.00")));
+            document.add(new Paragraph("Salary Total: ₱" + (salary != null ? String.format("%.2f", salary.optDouble("total_salary", 0)) : "0.00")));
+            document.add(new Paragraph("\nROI"));
+            document.add(new Paragraph("Total Cost: ₱" + (roi != null ? String.format("%.2f", roi.optDouble("total_cost", 0)) : "0.00")));
+            document.add(new Paragraph("Estimated ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("estimated", 0)) : "0.00")));
+            document.add(new Paragraph("Actual ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("actual", 0)) : "0.00")));
+
+
+
             document.newPage();
             Paragraph feedsTitle = new Paragraph("Feeds Logs", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD));
             feedsTitle.setAlignment(Element.ALIGN_CENTER);
@@ -227,25 +215,17 @@ public class PondPDFGenerator {
                     }
                 }
             }
-
-            document.add(feedsTable);
             document.add(new Paragraph("\n"));
 
+            document.add(feedsTable);
 
-            // Totals and ROI
+            document.add(new Paragraph("\n"));
+
             feeds = data.optJSONObject("feeds");
-            maintenance = data.optJSONObject("maintenance");
-            salary = data.optJSONObject("salary");
-            JSONObject roi = data.optJSONObject("roi");
-
             document.add(new Paragraph("Feeds Total Cost: ₱" + (feeds != null ? String.format("%.2f", feeds.optDouble("total_feed_cost", 0)) : "0.00")));
-            document.add(new Paragraph("Maintenance Total: ₱" + (maintenance != null ? String.format("%.2f", maintenance.optDouble("total_maintenance", 0)) : "0.00")));
-            document.add(new Paragraph("Salary Total: ₱" + (salary != null ? String.format("%.2f", salary.optDouble("total_salary", 0)) : "0.00")));
 
-            document.add(new Paragraph("\nROI"));
-            document.add(new Paragraph("Total Cost: ₱" + (roi != null ? String.format("%.2f", roi.optDouble("total_cost", 0)) : "0.00")));
-            document.add(new Paragraph("Estimated ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("estimated", 0)) : "0.00")));
-            document.add(new Paragraph("Actual ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("actual", 0)) : "0.00")));
+            document.add(new Paragraph("\n"));
+
 
             document.add(new Paragraph("\n\n--- End of Report ---"));
 

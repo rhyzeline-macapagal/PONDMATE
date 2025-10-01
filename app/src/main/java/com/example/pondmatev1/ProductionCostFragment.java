@@ -151,13 +151,11 @@ public class ProductionCostFragment extends Fragment {
                                         // Still save a copy to Downloads
                                         savePDFToDownloads(generatedPdfFile);
 
-                                        // Upload the generated PDF and save history (pass pond id & name)
-                                        uploadPdfAndSaveHistory(pondId, pondNameLocal, generatedPdfFile);
+
 
                                         Toast.makeText(getContext(),
                                                 "Report generated for " + pondNameLocal,
                                                 Toast.LENGTH_SHORT).show();
-
 
                                     } else {
                                         Toast.makeText(getContext(), "Failed to create PDF", Toast.LENGTH_SHORT).show();

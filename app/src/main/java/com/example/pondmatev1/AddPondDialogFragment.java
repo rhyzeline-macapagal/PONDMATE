@@ -36,6 +36,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 import okhttp3.Call;
@@ -56,6 +57,9 @@ public class AddPondDialogFragment extends DialogFragment {
     private TextView tvDateHarvest, dateStarted;
     private Button btnSave;
     private String rawHarvestDateForDB = "";
+
+    private String rawDateForDB = "";
+
     private ImageView ivPondImage;
     private Button btnCaptureImage;
     private Bitmap capturedImageBitmap;
@@ -186,7 +190,7 @@ public class AddPondDialogFragment extends DialogFragment {
         String todayDisplay = displayFormat.format(today.getTime());
         dateStarted.setText(todayDisplay);
 
-        String rawDateForDB = dbFormat.format(today.getTime());
+        rawDateForDB = dbFormat.format(today.getTime());
 
 
         Runnable updateHarvestDate = () -> {
@@ -278,7 +282,6 @@ public class AddPondDialogFragment extends DialogFragment {
             String fishCountStr = etFishCount.getText().toString().trim();
             String costStr = etCostPerFish.getText().toString().trim().replace("₱", "");
 
-
             if (name.isEmpty() || breed.isEmpty() || fishCountStr.isEmpty() || costStr.isEmpty()) {
                 Toast.makeText(getContext(), "Please fill out all fields.", Toast.LENGTH_SHORT).show();
                 return;
@@ -286,7 +289,6 @@ public class AddPondDialogFragment extends DialogFragment {
 
             int fishCount;
             double cost;
-
             try {
                 fishCount = Integer.parseInt(fishCountStr);
                 cost = Double.parseDouble(costStr);
@@ -302,82 +304,137 @@ public class AddPondDialogFragment extends DialogFragment {
 
             String imageBase64 = bitmapToBase64(capturedImageBitmap);
 
+            // 🟢 Compute feed per cycle (final variable for lambda)
+            float tempFeedPerCycle;
+            try {
+                int fishCnt = Integer.parseInt(fishCountStr);
+                String weightStr = weightInput.getText().toString().trim();
+                float fishW = weightStr.isEmpty() ? 0f : Float.parseFloat(weightStr);
+                float feedPct = 0.03f; // 3% of body weight
+                float totalFeedGrams = feedPct * fishW * fishCnt;
+
+                int cycleCount = 0;
+                if (feeding1Minutes != null) cycleCount++;
+                if (feeding2Minutes != null) cycleCount++;
+                if (feeding3Minutes != null) cycleCount++;
+                if (cycleCount == 0) cycleCount = 3;
+
+                float perCycleGrams = (cycleCount > 0) ? totalFeedGrams / cycleCount : 0f;
+                tempFeedPerCycle = perCycleGrams / 1000f; // convert grams → kg
+            } catch (NumberFormatException e) {
+                tempFeedPerCycle = 0f;
+            }
+
+// ✅ Now make it effectively final for lambda use
+            final float computedFeedPerCycle = tempFeedPerCycle;
+
+
             new AlertDialog.Builder(requireContext())
                     .setTitle("Confirm Save")
                     .setMessage("Do you want to save this pond?")
-                    .setPositiveButton("Yes", (dialogInterface, which) -> {
+                    .setPositiveButton("Yes", (dialog1, which1) -> {
+                        String confirmationMessage =
+                                "Are you sure with the feeding schedule you inputted?\n\n" +
+                                        "Feeding 1: " + convertTo12Hour(formattedTime1) + "\n" +
+                                        "Feeding 2: " + convertTo12Hour(formattedTime2) + "\n" +
+                                        "Feeding 3: " + convertTo12Hour(formattedTime3) + "\n\n" +
+                                        "Feed per cycle: " + String.format(Locale.getDefault(), "%.2f kg", computedFeedPerCycle);
 
-                        showLoadingDialog();
-
-                        // ✅ Use stored values
-                        String dateStartedStr = rawDateForDB;      // from today
-                        String dateHarvestStr = rawHarvestDateForDB; // from breed calculation
-
-                        PondModel pond = new PondModel(
-                                null,                // id
-                                name,                // name
-                                breed,               // breed
-                                fishCount,           // fish count
-                                cost,                // cost per fish
-                                dateStartedStr,      // date started
-                                dateHarvestStr,      // date harvest
-                                null,                // imagePath
-                                0f,                  // actualROI default
-                                0f                   // estimatedROI default
-                        );
-
-                        // Upload pond to server
-                        PondSyncManager.uploadPondToServer(pond, imageBase64, new PondSyncManager.Callback() {
-                            @Override
-                            public void onSuccess(Object result) {
-                                try {
-                                    JSONObject json = new JSONObject(result.toString());
-                                    String message = json.optString("message", "Unknown error");
-
-                                    if (!json.getString("status").equals("success")) {
-                                        Toast.makeText(getContext(), "Error: " + message, Toast.LENGTH_LONG).show();
-                                        return;
-                                    }
-
-                                    int pondId = json.getInt("pond_id");
-                                    pond.setId(String.valueOf(pondId));
-
-                                    String serverImagePath = json.optString("image_path", "");
-                                    if (!serverImagePath.isEmpty() && !serverImagePath.startsWith("http")) {
-                                        serverImagePath = "https://pondmate.alwaysdata.net/" + serverImagePath;
-                                    }
-                                    pond.setImagePath(serverImagePath);
-
-
-                                    if (listener != null) listener.onPondAdded(pond);
-
-                                    hideLoadingDialog();
-                                    Toast.makeText(getContext(), "Pond and fingerlings cost added successfully!", Toast.LENGTH_SHORT).show();
-                                    confirmAndSaveSchedule(name);
-                                    dismiss();
-
-                                } catch (Exception e) {
-                                    hideLoadingDialog();
-                                    Toast.makeText(getContext(), "Error parsing server response: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                                    Log.d("ServerResponse", "Raw result: [" + result.toString() + "]");
-                                }
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                hideLoadingDialog();
-                                Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show();
-                            }
-                        });
+                        new AlertDialog.Builder(requireContext())
+                                .setTitle("Confirm Feeding Schedule")
+                                .setMessage(confirmationMessage)
+                                .setPositiveButton("Yes", (dialog2, which2) -> {
+                                    // ✅ Only now save pond + schedule
+                                    savePondAndSchedule(name, breed, fishCount, cost, imageBase64);
+                                })
+                                .setNegativeButton("No", (dialog2, which2) -> {
+                                    Toast.makeText(getContext(), "Cancelled", Toast.LENGTH_SHORT).show();
+                                })
+                                .show();
 
                     })
-                    .setNegativeButton("No", (dialogInterface, which) -> dialogInterface.dismiss())
+                    .setNegativeButton("No", (dialog1, which1) -> {
+                        Toast.makeText(getContext(), "Cancelled", Toast.LENGTH_SHORT).show();
+                    })
                     .show();
         });
-
-
         return view;
     }
+
+    private void savePondAndSchedule(String name, String breed, int fishCount, double cost, String imageBase64) {
+        showLoadingDialog();
+
+        String dateStartedStr = rawDateForDB;
+        String dateHarvestStr = rawHarvestDateForDB;
+
+        PondModel pond = new PondModel(
+                null,
+                name,
+                breed,
+                fishCount,
+                cost,
+                dateStartedStr,
+                dateHarvestStr,
+                null,
+                0f,
+                0f
+        );
+
+        PondSyncManager.uploadPondToServer(pond, imageBase64, new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object result) {
+                try {
+                    JSONObject json = new JSONObject(result.toString());
+                    String message = json.optString("message", "Unknown error");
+
+                    if (!json.getString("status").equals("success")) {
+                        hideLoadingDialog();
+                        Toast.makeText(getContext(), "Error: " + message, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    int pondId = json.getInt("pond_id");
+                    pond.setId(String.valueOf(pondId));
+
+                    String serverImagePath = json.optString("image_path", "");
+                    if (!serverImagePath.isEmpty() && !serverImagePath.startsWith("http")) {
+                        serverImagePath = "https://pondmate.alwaysdata.net/" + serverImagePath;
+                    }
+                    pond.setImagePath(serverImagePath);
+                    if (listener != null) listener.onPondAdded(pond);
+
+                    hideLoadingDialog();
+                    Toast.makeText(getContext(), "Pond added successfully!", Toast.LENGTH_SHORT).show();
+                    confirmAndSaveSchedule(name);
+                    dismiss();
+
+                } catch (Exception e) {
+                    hideLoadingDialog();
+                    Toast.makeText(getContext(), "Error parsing server response: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Log.d("ServerResponse", "Raw result: [" + result.toString() + "]");
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                hideLoadingDialog();
+                Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private String convertTo12Hour(String time24) {
+        try {
+            SimpleDateFormat sdf24 = new SimpleDateFormat("HH:mm", Locale.getDefault());
+            SimpleDateFormat sdf12 = new SimpleDateFormat("hh:mm a", Locale.getDefault());
+            Date date = sdf24.parse(time24);
+            return sdf12.format(date);
+        } catch (Exception e) {
+            return time24; // fallback if parsing fails
+        }
+    }
+
+
 
     @Override
     public void onStart() {
