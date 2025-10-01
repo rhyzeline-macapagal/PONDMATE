@@ -30,7 +30,7 @@ public class ControlsFeeder extends Fragment {
     private TextView lastFeedingTimeTV;
     private TextView nextFeedingTimeTV;
     private final Handler timeHandler = new Handler();
-    private final String[] levels = {"LOW", "MEDIUM", "HIGH"};
+
     private int currentIndex = 0;
     // Feeding schedule hours (24h format)
     private final int[] feedingHours = {7, 12, 17}; // 7AM, 12PM, 5PM

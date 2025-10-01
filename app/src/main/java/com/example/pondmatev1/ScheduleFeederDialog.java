@@ -24,7 +24,13 @@ import com.google.gson.Gson;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.util.Locale;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
 
 public class ScheduleFeederDialog extends DialogFragment {
 
@@ -145,7 +151,18 @@ public class ScheduleFeederDialog extends DialogFragment {
                                         formattedTime3 = schedThree;
                                     }
 
-                                    feedQuantityView.setText(feedQty);
+                                    // Parse feed amount from schedule JSON
+                                    String feedAmountStr = scheduleObj.optString("feed_amount", "0.0");
+                                    try {
+                                        float feedAmount = Float.parseFloat(feedAmountStr);
+
+                                        // 🔹 If feedAmount was already reduced for Adafruit, reverse it
+                                        float realFeedKg = feedAmount / 3; // or whatever the correct factor
+                                        feedQuantityView.setText(String.format(Locale.getDefault(), "%.2f kg", realFeedKg));
+                                    } catch (NumberFormatException e) {
+                                        feedQuantityView.setText(feedAmountStr + " kg");
+                                    }
+
                                     tvFeedPrice.setText(feedPriceStr);
                                     weightInput.setText(fishWeight);
 
@@ -292,6 +309,7 @@ public class ScheduleFeederDialog extends DialogFragment {
                     float computedKg = computedFeedQty / 1000f;
                     float finalFeedAmount = computedKg;
 
+                    String finalPondName = pondName;
                     PondSyncManager.updateFeedingScheduleOnServer(
                             pondName, formattedTime1, formattedTime2, formattedTime3,
                             finalFeedAmount, fishWeight, feedPrice,
@@ -301,6 +319,7 @@ public class ScheduleFeederDialog extends DialogFragment {
                                     if (isAdded()) {
                                         requireActivity().runOnUiThread(() -> {
                                             Toast.makeText(getContext(), "Schedule updated successfully!", Toast.LENGTH_SHORT).show();
+                                            updateFeedingTimesOnAdafruit(finalPondName, formattedTime1, formattedTime2, formattedTime3, finalFeedAmount);
                                             ScheduleFeederDialog.this.dismiss();
                                         });
                                     }
@@ -348,6 +367,72 @@ public class ScheduleFeederDialog extends DialogFragment {
                 return true;
         }
         return true;
+    }
+
+    private void updateFeedingTimesOnAdafruit(String pondName, String t1, String t2, String t3, float feedAmountKg) {
+        OkHttpClient client = new OkHttpClient();
+
+        String feedKey = "schedule"; // your Adafruit feed key
+        String username = getString(R.string.adafruit_username);
+        String aioKey = getString(R.string.adafruit_aio_key);
+
+        // Convert kg → grams (1 kg = 1000 g) and divide by 10 as before
+        int feedAmountGrams = Math.round(feedAmountKg * 1000);
+        int reducedGrams = feedAmountGrams / 10;
+
+        // Format: PondName|time1,time2,time3|feedAmountGrams
+        String value = pondName + "|" + t1 + "," + t2 + "," + t3 + "|" + reducedGrams + "g";
+
+        try {
+            JSONObject json = new JSONObject();
+            json.put("value", value);
+
+            RequestBody body = RequestBody.create(
+                    json.toString(),
+                    MediaType.parse("application/json; charset=utf-8")
+            );
+
+            String url = "https://io.adafruit.com/api/v2/" + username + "/feeds/" + feedKey + "/data";
+
+            android.util.Log.d("ScheduleFeeder", "Updating Adafruit feed: " + value);
+            android.util.Log.d("ScheduleFeeder", "URL: " + url);
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("X-AIO-Key", aioKey)
+                    .post(body)
+                    .build();
+
+            client.newCall(request).enqueue(new okhttp3.Callback() {
+                @Override
+                public void onFailure(okhttp3.Call call, IOException e) {
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        if (isAdded()) {
+                            Toast.makeText(getContext(), "Failed to update Adafruit feed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onResponse(okhttp3.Call call, okhttp3.Response response) throws IOException {
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        if (isAdded()) {
+                            if (response.isSuccessful()) {
+                                Toast.makeText(getContext(), "Adafruit feed updated!", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(getContext(), "Failed to update Adafruit feed: " + response.code(), Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+                }
+            });
+
+        } catch (Exception ex) {
+            android.util.Log.e("ScheduleFeeder", "JSON error", ex);
+            if (isAdded()) {
+                Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
 

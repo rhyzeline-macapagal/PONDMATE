@@ -52,9 +52,10 @@ public class AddPondDialogFragment extends DialogFragment {
     private AlertDialog loadingDialog;
 
     private EditText etPondName, etFishCount, etCostPerFish;
+
     private Spinner spinnerBreed;
 
-    private TextView tvDateHarvest, dateStarted;
+    private TextView tvDateHarvest, dateStarted, etFeedPrice;
     private Button btnSave;
     private String rawHarvestDateForDB = "";
 
@@ -115,6 +116,8 @@ public class AddPondDialogFragment extends DialogFragment {
         weightInput = view.findViewById(R.id.etFishWeight);
         feedPriceView = view.findViewById(R.id.feedprice);
         feedPriceDayView = view.findViewById(R.id.feedpriceday);
+
+
 
         timeoffeeding1 = view.findViewById(R.id.timeoffeeding1);
         timeoffeeding2 = view.findViewById(R.id.timeoffeeding2);
@@ -344,8 +347,13 @@ public class AddPondDialogFragment extends DialogFragment {
                                 .setTitle("Confirm Feeding Schedule")
                                 .setMessage(confirmationMessage)
                                 .setPositiveButton("Yes", (dialog2, which2) -> {
-                                    // ✅ Only now save pond + schedule
-                                    savePondAndSchedule(name, breed, fishCount, cost, imageBase64);
+                                    String feedPriceStr = feedPriceView.getText().toString().replace("₱", "").trim();
+                                    if (feedPriceStr.isEmpty()) feedPriceStr = "0";
+
+
+// ✅ Pass computedFeedPerCycle and feedPriceStr
+                                    savePondAndSchedule(name, breed, fishCount, cost, imageBase64, computedFeedPerCycle, feedPriceStr);
+
                                 })
                                 .setNegativeButton("No", (dialog2, which2) -> {
                                     Toast.makeText(getContext(), "Cancelled", Toast.LENGTH_SHORT).show();
@@ -361,7 +369,9 @@ public class AddPondDialogFragment extends DialogFragment {
         return view;
     }
 
-    private void savePondAndSchedule(String name, String breed, int fishCount, double cost, String imageBase64) {
+    private void savePondAndSchedule(String name, String breed, int fishCount, double cost,
+                                     String imageBase64, float computedFeedPerCycle, String feedPriceStr) {
+
         showLoadingDialog();
 
         String dateStartedStr = rawDateForDB;
@@ -406,6 +416,47 @@ public class AddPondDialogFragment extends DialogFragment {
                     hideLoadingDialog();
                     Toast.makeText(getContext(), "Pond added successfully!", Toast.LENGTH_SHORT).show();
                     confirmAndSaveSchedule(name);
+
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    Date startDate = sdf.parse(dateStartedStr);
+                    Date today = new Date();
+                    long diffInMillis = today.getTime() - startDate.getTime();
+                    int pondAgeDays = (int) (diffInMillis / (1000 * 60 * 60 * 24));
+                    int pondAgeMonths = pondAgeDays / 30; // approximate month
+                    String feederType = getFeederType(breed, pondAgeMonths);
+
+
+                    PondSyncManager syncManager = new PondSyncManager();
+                    syncManager.createWeeklySchedule(
+                            pond.getName(),
+                            formattedTime1,
+                            formattedTime2,
+                            formattedTime3,
+                            String.valueOf(computedFeedPerCycle),
+                            weightInput.getText().toString().trim(),
+                            feedPriceStr,
+                            feederType,
+                            new PondSyncManager.Callback() {
+                                @Override
+                                public void onSuccess(Object result) {
+                                    if (!isAdded()) return; // fragment no longer attached, exit early
+
+                                    requireActivity().runOnUiThread(() ->
+                                            Toast.makeText(getContext(), "Schedule Created!", Toast.LENGTH_LONG).show()
+                                    );
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    if (!isAdded()) return;
+
+                                    requireActivity().runOnUiThread(() ->
+                                            Toast.makeText(getContext(), "Schedule error: " + error, Toast.LENGTH_LONG).show()
+                                    );
+                                    }
+                                }
+
+                    );
                     dismiss();
 
                 } catch (Exception e) {
@@ -461,6 +512,20 @@ public class AddPondDialogFragment extends DialogFragment {
             ivPondImage.setImageBitmap(capturedImageBitmap);
         }
     }
+    private String getFeederType(String breed, int pondAgeMonths) {
+        breed = breed.toLowerCase();
+        if (breed.contains("tilapia") || breed.contains("bangus")) {
+            if (pondAgeMonths < 1) return "starter";
+            else if (pondAgeMonths <= 3) return "grower";
+            else return "finisher";
+        } else if (breed.contains("alimango")) {
+            if (pondAgeMonths < 1) return "starter";
+            else if (pondAgeMonths <= 7) return "grower";
+            else return "fattener"; // changed from finisher
+        }
+        return "auto"; // default
+    }
+
 
     private void confirmAndSaveSchedule(String pondName) {
         pondName = etPondName.getText().toString().trim();

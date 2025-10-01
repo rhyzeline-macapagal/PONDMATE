@@ -521,6 +521,7 @@ public class PondSyncManager {
     public static String reusePond(String pondId,
                                    String name,
                                    String breed,
+
                                    int fishCount,
                                    double costPerFish,
                                    String dateStarted,
@@ -578,6 +579,49 @@ public class PondSyncManager {
     private static void runOnUiThreadSafe(Runnable action) {
         new Handler(Looper.getMainLooper()).post(action);
     }
+
+    public static void fetchWeeklyScheduleByName(String pondName, Callback callback) {
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/fetch_weekly_schedule.php");
+                    conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
+
+                // Create JSON body
+                // Create JSON body
+                JSONObject jsonBody = new JSONObject();
+                jsonBody.put("name", pondName);
+
+                // Send request
+                OutputStream os = conn.getOutputStream();
+                os.write(jsonBody.toString().getBytes("UTF-8"));
+                os.close();
+
+                // Read response
+                int responseCode = conn.getResponseCode();
+                InputStream is = responseCode == 200 ? conn.getInputStream() : conn.getErrorStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                reader.close();
+
+                String response = sb.toString();
+                if (callback != null) callback.onSuccess((Object) response);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (callback != null) callback.onError(e.getMessage());
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }).start(); }
 
     private static void writeFormField(DataOutputStream request, String name, String value, String boundary) throws IOException {
         String LINE_FEED = "\r\n";
@@ -666,4 +710,56 @@ public class PondSyncManager {
             }
         }).start();
     }
+
+    public void createWeeklySchedule(String pondName,
+                                     String time1, String time2, String time3,
+                                     String feedAmount, String fishWeight,
+                                     String feedPrice, String feederType,
+                                     Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/save_schedule.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                // Data na ipapasa
+                String data = "pond_name=" + URLEncoder.encode(pondName, "UTF-8")
+                        + "&time1=" + URLEncoder.encode(time1, "UTF-8")
+                        + "&time2=" + URLEncoder.encode(time2, "UTF-8")
+                        + "&time3=" + URLEncoder.encode(time3, "UTF-8")
+                        + "&feed_amount=" + URLEncoder.encode(feedAmount, "UTF-8")
+                        + "&fish_weight=" + URLEncoder.encode(fishWeight, "UTF-8")
+                        + "&feed_price=" + URLEncoder.encode(feedPrice, "UTF-8")
+                        + "&feeder_type=" + URLEncoder.encode(feederType, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(data.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    response.append(line);
+                }
+                br.close();
+
+                if (callback != null) {
+                    callback.onSuccess(response.toString());
+
+                }
+
+            } catch (Exception e) {
+                if (callback != null) {
+                    callback.onError(e.getMessage());
+                }
+            }
+        }).start();
+    }
+
+
+
 }
