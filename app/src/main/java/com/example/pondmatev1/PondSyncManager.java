@@ -518,58 +518,72 @@ public class PondSyncManager {
         }).start();
     }
 
-    public static String reusePond(String pondId,
-                                   String name,
-                                   String breed,
+    public static void fetchFeederTypeByName(String pondName, Callback callback) {
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_feeder_type.php");
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                conn.setDoOutput(true);
+                conn.setDoInput(true);
 
-                                   int fishCount,
-                                   double costPerFish,
-                                   String dateStarted,
-                                   String dateHarvest,
-                                   String pdfPath,
-                                   String action) {
+                // 🔹 Send pond_name as form-data
+                String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8");
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes("UTF-8"));
+                os.flush();
+                os.close();
 
-        try {
-            URL url = new URL("https://pondmate.alwaysdata.net/reuse_pond.php");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-            conn.setDoInput(true);
-            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                // 🔹 Read response
+                int responseCode = conn.getResponseCode();
+                InputStream is = (responseCode == 200) ? conn.getInputStream() : conn.getErrorStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                reader.close();
 
-            // Build the POST data string
-            String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8") +
-                    "&name=" + URLEncoder.encode(name, "UTF-8") +
-                    "&breed=" + URLEncoder.encode(breed != null ? breed : "", "UTF-8") +
-                    "&fish_count=" + URLEncoder.encode(String.valueOf(fishCount), "UTF-8") +
-                    "&cost_per_fish=" + URLEncoder.encode(String.valueOf(costPerFish), "UTF-8") +
-                    "&date_started=" + URLEncoder.encode(dateStarted != null ? dateStarted : "", "UTF-8") +
-                    "&date_harvest=" + URLEncoder.encode(dateHarvest != null ? dateHarvest : "", "UTF-8") +
-                    "&pdf_path=" + URLEncoder.encode(pdfPath != null ? pdfPath : "", "UTF-8") +
-                    "&action=" + URLEncoder.encode(action != null ? action : "Reused", "UTF-8");
+                String response = sb.toString();
+                Log.d("Feedertype", "Code: " + responseCode + " | Body: " + response);
 
-            // Write POST data
-            OutputStream os = conn.getOutputStream();
-            os.write(postData.getBytes("UTF-8"));
-            os.flush();
-            os.close();
+                if (callback != null) {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        if ("success".equalsIgnoreCase(jsonResponse.optString("status"))) {
+                            JSONObject pondObj = jsonResponse.getJSONObject("pond");
 
-            // Read the response
-            BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) {
-                response.append(line);
+                            // Extract fields
+                            String feederType = pondObj.optString("feeder_type", "N/A");
+                            int pondAgeDays = pondObj.optInt("pond_age_days", 0);
+
+                            JSONObject resultObj = new JSONObject();
+                            resultObj.put("feeder_type", feederType);
+                            resultObj.put("pond_age_days", pondAgeDays);
+
+                            callback.onSuccess(resultObj);
+                        } else {
+                            callback.onError("Server error: " + jsonResponse.optString("message"));
+                        }
+                    } catch (Exception parseEx) {
+                        callback.onError("Parse error: " + parseEx.getMessage() + "\nResponse: " + response);
+                    }
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (callback != null) callback.onError("Request error: " + e.getMessage());
+            } finally {
+                if (conn != null) conn.disconnect();
             }
-            br.close();
-
-            return response.toString();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}";
-        }
+        }).start();
     }
+
+
+
 
     public interface Callback {
         void onSuccess(Object result);

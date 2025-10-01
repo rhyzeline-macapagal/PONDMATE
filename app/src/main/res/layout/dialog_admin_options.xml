@@ -99,31 +99,6 @@
                 android:layout_marginTop="4dp"/>
         </LinearLayout>
 
-        <!-- Pond History -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_margin="8dp">
-
-            <ImageButton
-                android:id="@+id/btnPondHistory"
-                android:layout_width="64dp"
-                android:layout_height="64dp"
-                android:background="@drawable/circle_button_background"
-                android:src="@drawable/ic_history"
-                android:contentDescription="Pond History"
-                app:tint="@android:color/white" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Pond History"
-                android:textSize="14sp"
-                android:textColor="#333333"
-                android:layout_marginTop="4dp"/>
-        </LinearLayout>
 
     </LinearLayout>
 </LinearLayout>

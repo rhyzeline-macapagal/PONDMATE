@@ -116,12 +116,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 dialog.dismiss();
             });
 
-            // Pond History button
-            ImageButton btnPondHistory = dialogView.findViewById(R.id.btnPondHistory);
-            btnPondHistory.setOnClickListener(v1 -> {
-                startActivity(new Intent(PondDashboardActivity.this, CaretakerDashboardActivity.class));
-                dialog.dismiss();
-            });
+
 
             // Show dialog
             dialog.show();

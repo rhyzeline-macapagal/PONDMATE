@@ -128,12 +128,7 @@ public class MainActivity extends AppCompatActivity {
                 dialog.dismiss();
             });
 
-            // Pond History button
-            ImageButton btnPondHistory = dialogView.findViewById(R.id.btnPondHistory);
-            btnPondHistory.setOnClickListener(v1 -> {
-                startActivity(new Intent(MainActivity.this, PondDashboardActivity.class));
-                dialog.dismiss();
-            });
+
 
             // Show dialog
             dialog.show();

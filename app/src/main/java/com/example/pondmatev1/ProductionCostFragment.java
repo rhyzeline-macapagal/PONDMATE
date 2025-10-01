@@ -110,6 +110,8 @@ public class ProductionCostFragment extends Fragment {
             currentFishCount = pond.getFishCount();
         }
 
+
+
         loadMaintenanceTotal();
 
         tvSummarySalary = view.findViewById(R.id.tvSummarySalary);
@@ -238,6 +240,47 @@ public class ProductionCostFragment extends Fragment {
             updateTotalCost();
             calculateEstimatedROI(totalCost);
 
+        }
+
+
+        if (pondJson != null) {
+            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+            pondName = pond.getName();
+
+        }
+        TextView feederTypeTv = view.findViewById(R.id.feedtypefeeders);
+
+        if (pondName != null) {
+            PondSyncManager.fetchFeederTypeByName(pondName, new PondSyncManager.Callback() {
+                @Override
+                public void onSuccess(Object result) {
+                    if (getActivity() == null) return; // prevent crash if fragment detached
+                    requireActivity().runOnUiThread(() -> {
+                        try {
+                            JSONObject json = (JSONObject) result;
+                            String feederType = json.optString("feeder_type", "N/A");
+                            int pondAgeDays = json.optInt("pond_age_days", 0);
+
+                            // 🔹 Update the UI
+                            feederTypeTv.setText(feederType);
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            Toast.makeText(requireContext(), "Parse error", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    if (getActivity() == null) return;
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(requireContext(), "Error: " + error, Toast.LENGTH_SHORT).show()
+                    );
+                }
+            });
+        } else {
+            Toast.makeText(requireContext(), "No pond name provided", Toast.LENGTH_SHORT).show();
         }
 
         // --- Load stored ROI values for this pond ---

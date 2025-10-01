@@ -223,17 +223,18 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="4dp" />
-
                     <TextView
-                        android:id="@+id/typeoffeeders"
+                        android:id="@+id/feedtypefeeders"
                         android:layout_width="match_parent"
                         android:layout_height="36dp"
                         android:background="@drawable/textbox_background"
                         android:padding="8dp"
-                        android:hint="e.g. Starter, Grower"
+                        android:hint="₱"
                         android:textColor="#212121"
                         android:textSize="14sp"
                         android:gravity="center_vertical" />
+
+
                 </LinearLayout>
 
                 <LinearLayout
