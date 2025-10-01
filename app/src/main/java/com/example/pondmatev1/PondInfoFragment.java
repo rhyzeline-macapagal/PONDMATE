@@ -153,19 +153,17 @@ public class PondInfoFragment extends Fragment {
 
     }
 
+
+
     private void updateMortalityData(int fishCount) {
         if (fishCount > 0) {
             int estimatedDead = (int) Math.ceil(fishCount * 0.10);
 
-            // Always show 10% mortality rate
-            tvMortalityRate.setText("10.00%");
-
-            // If you also have a TextView for dead fish count
-            // tvEstDeadFish.setText(String.valueOf(estimatedDead));
-
+            double mortalityRate = (estimatedDead / (double) fishCount) * 100;
+            String result = String.format(Locale.US, "%.2f%% or %d pieces", mortalityRate, estimatedDead);
+            tvMortalityRate.setText(result);
         } else {
-            tvMortalityRate.setText("0.00%");
-            // tvEstDeadFish.setText("0");
+            tvMortalityRate.setText("0.00% or 0 pieces");
         }
     }
 

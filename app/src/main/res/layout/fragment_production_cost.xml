@@ -201,7 +201,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Third Row: Feed Type & Feed Cost -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -212,6 +211,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:layout_gravity="center"
                     android:orientation="vertical"
                     android:layout_marginEnd="8dp">
 
@@ -229,11 +229,9 @@
                         android:layout_height="36dp"
                         android:background="@drawable/textbox_background"
                         android:padding="8dp"
-                        android:hint="₱"
                         android:textColor="#212121"
                         android:textSize="14sp"
                         android:gravity="center_vertical" />
-
 
                 </LinearLayout>
 
@@ -242,28 +240,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
-                    android:layout_marginStart="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Total Feed Cost"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/amtoffeeders"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:padding="8dp"
-                        android:hint="₱"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:gravity="center_vertical" />
-                </LinearLayout>
+                    android:layout_marginStart="8dp"/>
             </LinearLayout>
         </LinearLayout>
 

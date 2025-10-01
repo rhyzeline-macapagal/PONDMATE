@@ -108,11 +108,18 @@ public class ProductionCostFragment extends Fragment {
             pondName = pond.getName();
             currentBreed = pond.getBreed();
             currentFishCount = pond.getFishCount();
+
         }
 
 
 
         loadMaintenanceTotal();
+        if (pondJson != null) {
+            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+            String pondId = pond.getId(); // Make sure this is actually the numeric ID from your DB
+            Log.d("FEED_DEBUG", "Pond ID sent: " + pondId);
+            fetchTotalFeedCost(pondId);
+        }
 
         tvSummarySalary = view.findViewById(R.id.tvSummarySalary);
 
@@ -306,6 +313,55 @@ public class ProductionCostFragment extends Fragment {
         }
     }
 
+    // Inside your fragment or activity
+    private void fetchTotalFeedCost(String pondId) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/fetch_total_feed_cost.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                // Send pond_id in POST body
+                String postData = "pond_id=" + pondId;
+                conn.getOutputStream().write(postData.getBytes("UTF-8"));
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+
+                    Log.d("FEED_DEBUG", "PHP response: " + sb.toString());
+
+                    JSONObject json = new JSONObject(sb.toString());
+                    if (json.has("total_feed_cost")) {
+                        final double totalFeedCost = json.getDouble("total_feed_cost");
+
+                        // Update UI on main thread
+                        requireActivity().runOnUiThread(() -> {
+                            TextView tvSummaryFeeds = requireView().findViewById(R.id.tvSummaryFeeds);
+                            tvSummaryFeeds.setText("₱" + formatPrice(totalFeedCost));
+                            updateTotalCost(); // recalc total after feeds loaded
+                        });
+                    }
+                } else {
+                    Log.e("FeedCost", "Server returned: " + responseCode);
+                }
+
+                conn.disconnect();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+
+
     private void loadSalarySummary() {
         new Thread(() -> {
             try {
@@ -368,6 +424,8 @@ public class ProductionCostFragment extends Fragment {
         double feeds = parseDouble(tvSummaryFeeds.getText().toString());
         double maintenance = parseDouble(tvSummaryMaintenance.getText().toString());
 
+
+
         totalCost = fingerlings + feeds + maintenance + salaryPerPond;
 
         tvSummaryTotal.setText("₱" + formatPrice(totalCost));
@@ -425,8 +483,8 @@ public class ProductionCostFragment extends Fragment {
 
     private void calculateEstimatedROI(double totalCost) {
         // 25% industry standard ROI
-        double estimatedRevenue = totalCost * 1.25;
-        double estimatedROIPercent = 25.0; // fixed industry standard
+        double estimatedRevenue = totalCost * 1.30;
+        double estimatedROIPercent = 30.0; // fixed industry standard
 
         // Update UI
         etEstimatedRevenue.setText(String.format("₱%,.2f", estimatedRevenue));

@@ -28,7 +28,6 @@ import java.util.Locale;
 public class PondPDFGenerator {
 
     public static File generatePDF(Context context, JSONObject data, String pondId) {
-        // Build stable filename: prefer pondId; fallback to sanitized pond name
         String baseName;
         if (pondId != null && !pondId.isEmpty()) {
             baseName = "pond_report_" + pondId + ".pdf";
@@ -124,7 +123,7 @@ public class PondPDFGenerator {
             JSONObject salary = data.optJSONObject("salary");
             double totalSalary = (salary != null) ? salary.optDouble("total_salary", 0) : 0;
 
-            document.add(new Paragraph("Salary Total Cost: ₱" + String.format("%.2f", totalSalary)));
+
             document.add(new Paragraph("\n")); // optional spacing
 
             // Totals and ROI
@@ -142,92 +141,88 @@ public class PondPDFGenerator {
 
 
             document.newPage();
-            Paragraph feedsTitle = new Paragraph("Feeds Logs", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD));
+            document.newPage();
+            Paragraph feedsTitle = new Paragraph("Feeds Schedules", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD));
             feedsTitle.setAlignment(Element.ALIGN_CENTER);
             document.add(feedsTitle);
             document.add(new Paragraph("\n"));
 
-// Create table with 12 columns
-            PdfPTable feedsTable = new PdfPTable(12);
+// ✅ Table with 5 columns
+            PdfPTable feedsTable = new PdfPTable(5);
             feedsTable.setWidthPercentage(100);
-            feedsTable.setWidths(new float[]{2, 3, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 1.5f, 2, 2});
+            feedsTable.setWidths(new float[]{2.5f, 2f, 2f, 2f, 2f});
 
-// First row
-            PdfPCell dateCell = headerCell("Date");
-            dateCell.setRowspan(2);
-            feedsTable.addCell(dateCell);
+// Headers
+            feedsTable.addCell(headerCell("Date"));
+            feedsTable.addCell(headerCell("Time"));
+            feedsTable.addCell(headerCell("Feed Type"));
+            feedsTable.addCell(headerCell("Feed Amount (kg)"));
+            feedsTable.addCell(headerCell("Feed Cost (pesos)"));
 
-            PdfPCell typeCell = headerCell("Feed Type");
-            typeCell.setRowspan(2);
-            feedsTable.addCell(typeCell);
+// Populate rows
+            JSONObject feedingSchedule = data.optJSONObject("feeding_schedule");
+            JSONArray feedLogs = feedingSchedule != null ? feedingSchedule.optJSONArray("logs") : null;
 
-            PdfPCell kiloHeader = headerCell("Kilograms of feeds per feeding time");
-            kiloHeader.setColspan(8);
-            feedsTable.addCell(kiloHeader);
-
-            PdfPCell adgCell = headerCell("ADG (g)\nAverage Daily Growth");
-            adgCell.setRowspan(2);
-            feedsTable.addCell(adgCell);
-
-// Second row (sub-headers under "Kilograms...")
-            feedsTable.addCell(headerCell("kg"));
-            feedsTable.addCell(headerCell("time"));
-            feedsTable.addCell(headerCell("kg"));
-            feedsTable.addCell(headerCell("time"));
-            feedsTable.addCell(headerCell("kg"));
-            feedsTable.addCell(headerCell("time"));
-            feedsTable.addCell(headerCell("kg"));
-            feedsTable.addCell(headerCell("time"));
-
-// Add "Total kg" (still part of sub-header row)
-            feedsTable.addCell(headerCell("Total kg"));
-
-// Now add data rows (20 rows minimum)
-            JSONObject feeds = data.optJSONObject("feeds");
-            JSONArray feedLogs = feeds != null ? feeds.optJSONArray("logs") : null;
-
-            int maxRows = 20;
             if (feedLogs != null && feedLogs.length() > 0) {
-                for (int i = 0; i < maxRows; i++) {
-                    if (i < feedLogs.length()) {
-                        JSONObject f = feedLogs.getJSONObject(i);
+                // Date & time formatters
+                SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                SimpleDateFormat outputDateFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.US); // September 2, 2025
 
-                        feedsTable.addCell(f.optString("date", "-"));
-                        feedsTable.addCell(f.optString("feeder_type", "-"));
+                SimpleDateFormat inputTimeFormat = new SimpleDateFormat("HH:mm:ss", Locale.US);
+                SimpleDateFormat outputTimeFormat = new SimpleDateFormat("hh:mm a", Locale.US); // 05:47 PM
 
-                        feedsTable.addCell(f.optString("sched_one", "-")); feedsTable.addCell("-");
-                        feedsTable.addCell(f.optString("sched_two", "-")); feedsTable.addCell("-");
-                        feedsTable.addCell(f.optString("sched_three", "-")); feedsTable.addCell("-");
-                        feedsTable.addCell("-"); feedsTable.addCell("-");
+                for (int i = 0; i < feedLogs.length(); i++) {
+                    JSONObject f = feedLogs.getJSONObject(i);
 
-                        feedsTable.addCell(f.optString("feed_amount", "0"));
-                        feedsTable.addCell("-");
-                    } else {
-                        for (int c = 0; c < 12; c++) {
-                            feedsTable.addCell(" ");
-                        }
-                    }
+                    // Format date
+                    String rawDate = f.optString("schedule_date", "-");
+                    String formattedDate = rawDate;
+                    try {
+                        Date date = inputDateFormat.parse(rawDate);
+                        if (date != null) formattedDate = outputDateFormat.format(date);
+                    } catch (Exception e) { e.printStackTrace(); }
+
+                    // Format time
+                    String rawTime = f.optString("schedule_time", "-");
+                    String formattedTime = rawTime;
+                    try {
+                        Date time = inputTimeFormat.parse(rawTime);
+                        if (time != null) formattedTime = outputTimeFormat.format(time);
+                    } catch (Exception e) { e.printStackTrace(); }
+
+                    // Add row
+                    feedsTable.addCell(formattedDate);
+                    feedsTable.addCell(formattedTime);
+                    feedsTable.addCell(f.optString("feeder_type", "-"));
+                    feedsTable.addCell(f.optString("feed_amount", "0"));
+                    feedsTable.addCell(f.optString("feed_price", "0"));
                 }
+
+                // ✅ Total row
+                PdfPCell totalLabel = new PdfPCell(new Phrase("Total Feed Cost"));
+                totalLabel.setColspan(4);
+                totalLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                feedsTable.addCell(totalLabel);
+
+                double totalFeedCostValue = feedingSchedule.optDouble("total_feed_cost", 0.0);
+
+
+                String totalFeedCost = String.format(Locale.US, "%.2f", totalFeedCostValue);
+
+                feedsTable.addCell(totalFeedCost);
+
+
             } else {
-                for (int r = 0; r < maxRows; r++) {
-                    for (int c = 0; c < 12; c++) {
-                        feedsTable.addCell(" ");
-                    }
-                }
+                PdfPCell noDataCell = new PdfPCell(new Phrase("No feed logs available"));
+                noDataCell.setColspan(5);
+                noDataCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                feedsTable.addCell(noDataCell);
             }
-            document.add(new Paragraph("\n"));
 
+            document.add(new Paragraph("\n"));
             document.add(feedsTable);
-
-            document.add(new Paragraph("\n"));
-
-            feeds = data.optJSONObject("feeds");
-            document.add(new Paragraph("Feeds Total Cost: ₱" + (feeds != null ? String.format("%.2f", feeds.optDouble("total_feed_cost", 0)) : "0.00")));
-
-            document.add(new Paragraph("\n"));
-
-
             document.add(new Paragraph("\n\n--- End of Report ---"));
+
 
             document.close();
 
