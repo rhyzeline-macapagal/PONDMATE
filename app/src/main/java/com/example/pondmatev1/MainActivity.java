@@ -128,6 +128,12 @@ public class MainActivity extends AppCompatActivity {
                 dialog.dismiss();
             });
 
+            ImageButton btnFarmgatePrice = dialogView.findViewById(R.id.btnFarmgatePrice);
+            btnFarmgatePrice.setOnClickListener(v1 -> {
+                startActivity(new Intent(MainActivity.this, FarmgatePriceActivity.class));
+                dialog.dismiss();
+            });
+            
 
 
             // Show dialog

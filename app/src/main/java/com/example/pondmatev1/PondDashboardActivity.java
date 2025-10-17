@@ -116,6 +116,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 dialog.dismiss();
             });
 
+            ImageButton btnFarmgatePrice = dialogView.findViewById(R.id.btnFarmgatePrice);
+            btnFarmgatePrice.setOnClickListener(v1 -> {
+                startActivity(new Intent(PondDashboardActivity.this, FarmgatePriceActivity.class));
+                dialog.dismiss();
+            });
+
 
 
             // Show dialog

@@ -39,6 +39,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
+import android.util.Log;
+import java.text.DecimalFormat;
+
+
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -72,7 +76,7 @@ public class AddPondDialogFragment extends DialogFragment {
     private final int DEFAULT_FEEDING3 = 15 * 60;  // 3:00 PM
 
     // TextViews for feeding times
-    private TextView timeoffeeding1, timeoffeeding2, timeoffeeding3, feedQuantityView, feedPriceView, feedPriceDayView;
+    private TextView timeoffeeding1, timeoffeeding2, timeoffeeding3, feedQuantityView, feedPriceView, feedPriceDayView, tvTotalFingerlingsCost;
 
 
     // Store selected times
@@ -105,6 +109,7 @@ public class AddPondDialogFragment extends DialogFragment {
         etPondName = view.findViewById(R.id.etPondName);
         spinnerBreed = view.findViewById(R.id.spinnerBreed);
         etFishCount = view.findViewById(R.id.etFishCount);
+        tvTotalFingerlingsCost = view.findViewById(R.id.tvTotalFingerlingsCost);
         etCostPerFish = view.findViewById(R.id.etCostPerFish);
         dateStarted = view.findViewById(R.id.tvDateStarted);
         tvDateHarvest = view.findViewById(R.id.tvDateHarvest);
@@ -127,18 +132,28 @@ public class AddPondDialogFragment extends DialogFragment {
 
         setDefaultFeedingTimes();
 
+
+
         etFishCount.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-            @Override
-            public void afterTextChanged(Editable s) {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
                 computeFeedQuantity();
+                computeTotalFingerlingsCost();
             }
         });
+
+        etCostPerFish.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                computeTotalFingerlingsCost();
+            }
+        });
+
+// optional: if etFishCount or etCostPerFish are prefilled before user types,
+// compute once to reflect initial values
+        computeTotalFingerlingsCost();
 
 
         weightInput.addTextChangedListener(new android.text.TextWatcher() {
@@ -368,6 +383,33 @@ public class AddPondDialogFragment extends DialogFragment {
         });
         return view;
     }
+
+    private void computeTotalFingerlingsCost() {
+        String fishCountStr = etFishCount.getText().toString().trim();
+        String costPerFishStr = etCostPerFish.getText().toString().trim();
+
+        // Remove any characters except digits and dot
+        fishCountStr = fishCountStr.replaceAll("[^\\d.]", "");
+        costPerFishStr = costPerFishStr.replaceAll("[^\\d.]", "");
+
+        if (fishCountStr.isEmpty() || costPerFishStr.isEmpty()) {
+            tvTotalFingerlingsCost.setText("₱0.00");
+            return;
+        }
+
+        try {
+            double fishCount = Double.parseDouble(fishCountStr);
+            double costPerFish = Double.parseDouble(costPerFishStr);
+            double totalCost = fishCount * costPerFish;
+
+            DecimalFormat df = new DecimalFormat("#,##0.00"); // adds commas and 2 decimals
+            tvTotalFingerlingsCost.setText("₱" + df.format(totalCost));
+        } catch (NumberFormatException e) {
+            tvTotalFingerlingsCost.setText("₱0.00");
+        }
+    }
+
+
 
     private void savePondAndSchedule(String name, String breed, int fishCount, double cost,
                                      String imageBase64, float computedFeedPerCycle, String feedPriceStr) {

@@ -725,6 +725,68 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void fetchFarmgatePrices(Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_farmgate.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                OutputStream os = conn.getOutputStream();
+                os.write("".getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+
+                callback.onSuccess(result.toString());
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    public static void updateFarmgatePrice(int priceId, double newPrice, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/update_farmgate.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData = "id=" + URLEncoder.encode(String.valueOf(priceId), "UTF-8") +
+                        "&price_per_kg=" + URLEncoder.encode(String.valueOf(newPrice), "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+
+                callback.onSuccess(result.toString());
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+
     public void createWeeklySchedule(String pondName,
                                      String time1, String time2, String time3,
                                      String feedAmount, String fishWeight,
