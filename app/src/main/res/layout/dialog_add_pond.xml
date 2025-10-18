@@ -76,7 +76,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:weightSum="2"
+                        android:weightSum="3"
                         android:layout_marginBottom="2dp">
 
                         <!-- Pond Name -->
@@ -92,7 +92,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="Pond Name"
                                 android:textColor="#01082D"
-                                android:textSize="14sp"
+                                android:textSize="12sp"
                                 android:textStyle="bold"
                                 android:layout_marginBottom="6dp"
                                 android:layout_marginStart="4dp"/>
@@ -115,16 +115,17 @@
                         <LinearLayout
                             android:layout_width="0dp"
                             android:layout_weight="1"
-                            android:layout_height="match_parent"
+                            android:layout_height="wrap_content"
                             android:orientation="vertical"
-                            android:layout_marginStart="8dp">
+                            android:layout_marginStart="8dp"
+                            android:layout_marginEnd="8dp">
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Fish Breed"
+                                android:text="Breed"
                                 android:textColor="#01082D"
-                                android:textSize="14sp"
+                                android:textSize="12sp"
                                 android:textStyle="bold"
                                 android:layout_marginBottom="6dp"
                                 android:layout_marginStart="4dp"/>
@@ -132,7 +133,7 @@
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:background="@drawable/rounded_edittext"
+                                android:background="@drawable/textbox_background"
                                 android:padding="2dp">
 
                                 <Spinner
@@ -144,7 +145,42 @@
                                     android:background="@android:color/transparent" />
                             </LinearLayout>
                         </LinearLayout>
+
+                        <!-- Pond Area -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:layout_marginStart="8dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Area (m²)"
+                                android:textColor="#01082D"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:layout_marginBottom="6dp"
+                                android:layout_marginStart="4dp"/>
+
+                            <EditText
+                                android:id="@+id/etPondArea"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:hint="Enter area"
+                                android:inputType="numberDecimal"
+                                android:background="@drawable/textbox_background"
+                                android:gravity="center"
+                                android:textColor="#01082D"
+                                android:textColorHint="#888888"
+                                android:textSize="14sp"
+                                android:padding="6dp"
+                                android:minHeight="48dp"/>
+                        </LinearLayout>
+
                     </LinearLayout>
+
 
 
                     <!-- Fish Count × Cost per Fingerling = Total Cost -->
@@ -238,14 +274,7 @@
                                 android:paddingHorizontal="8dp"
                                 android:minHeight="48dp"
                                 android:gravity="center_vertical">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="₱"
-                                    android:textColor="#01082D"
-                                    android:textSize="16sp"
-                                    android:layout_marginEnd="4dp"/>
+                                
 
                                 <EditText
                                     android:id="@+id/etCostPerFish"

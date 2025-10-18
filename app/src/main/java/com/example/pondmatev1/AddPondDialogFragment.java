@@ -55,7 +55,7 @@ public class AddPondDialogFragment extends DialogFragment {
 
     private AlertDialog loadingDialog;
 
-    private EditText etPondName, etFishCount, etCostPerFish;
+    private EditText etPondName, etFishCount, etCostPerFish, etPondArea;
 
     private Spinner spinnerBreed;
 
@@ -121,6 +121,7 @@ public class AddPondDialogFragment extends DialogFragment {
         weightInput = view.findViewById(R.id.etFishWeight);
         feedPriceView = view.findViewById(R.id.feedprice);
         feedPriceDayView = view.findViewById(R.id.feedpriceday);
+        etPondArea = view.findViewById(R.id.etPondArea);
 
 
 
@@ -134,15 +135,21 @@ public class AddPondDialogFragment extends DialogFragment {
 
 
 
+        // 🟢 Fish Count listener
         etFishCount.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                checkStockingDensityRealtime(); // ✅ Check density in real time
+            }
+
             @Override public void afterTextChanged(Editable s) {
                 computeFeedQuantity();
                 computeTotalFingerlingsCost();
             }
         });
 
+// 🟢 Cost per Fish listener
         etCostPerFish.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -151,23 +158,27 @@ public class AddPondDialogFragment extends DialogFragment {
             }
         });
 
-// optional: if etFishCount or etCostPerFish are prefilled before user types,
-// compute once to reflect initial values
-        computeTotalFingerlingsCost();
+// 🟢 Pond Area listener (to recalc density when area changes)
+        etPondArea.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                checkStockingDensityRealtime(); // ✅ Trigger when pond area changes
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        });
 
-
-        weightInput.addTextChangedListener(new android.text.TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+// 🟢 Fish Weight listener
+        weightInput.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 computeFeedQuantity();
             }
-
-            @Override
-            public void afterTextChanged(android.text.Editable s) {}
+            @Override public void afterTextChanged(Editable s) {}
         });
+
+// optional: if prefilled
+        computeTotalFingerlingsCost();
+
 
         Button btnselecttime1 = view.findViewById(R.id.btnselecttime1);
         Button btnselecttime2 = view.findViewById(R.id.btnselecttime2);
@@ -238,6 +249,7 @@ public class AddPondDialogFragment extends DialogFragment {
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 updateHarvestDate.run();
                 computeFeedQuantity();
+                checkStockingDensityRealtime();
 
                 String selectedBreed = spinnerBreed.getSelectedItem().toString();
                 if (breedCosts.containsKey(selectedBreed)) {
@@ -320,6 +332,11 @@ public class AddPondDialogFragment extends DialogFragment {
                 return;
             }
 
+            // 🟢 Stocking density validation here
+            if (!checkStockingDensity()) {
+                return; // ❌ Stop saving if overstocked
+            }
+
             String imageBase64 = bitmapToBase64(capturedImageBitmap);
 
             // 🟢 Compute feed per cycle (final variable for lambda)
@@ -383,6 +400,116 @@ public class AddPondDialogFragment extends DialogFragment {
         });
         return view;
     }
+
+    private void checkStockingDensityRealtime() {
+        String breed = spinnerBreed.getSelectedItem() != null ? spinnerBreed.getSelectedItem().toString() : "";
+        String fishCountStr = etFishCount.getText().toString().trim();
+        String pondAreaStr = etPondArea.getText().toString().trim();
+
+        if (fishCountStr.isEmpty() || pondAreaStr.isEmpty()) {
+            etFishCount.setError(null);
+            return;
+        }
+
+        try {
+            double fishCount = Double.parseDouble(fishCountStr);
+            double pondArea = Double.parseDouble(pondAreaStr);
+
+            if (pondArea <= 0) {
+                etPondArea.setError("Pond area must be > 0");
+                return;
+            }
+
+            double density = fishCount / pondArea;
+            double maxAllowed = 0;
+            double minRecommended = 0;
+
+            switch (breed) {
+                case "Tilapia":
+                    minRecommended = 3.0;
+                    maxAllowed = 15.0;
+                    break;
+                case "Bangus":
+                    minRecommended = 0.2;
+                    maxAllowed = 3.0;
+                    break;
+                case "Alimango":
+                    minRecommended = 0.5;
+                    maxAllowed = 3.0;
+                    break;
+            }
+
+            // 🟡 Give visual feedback in real time
+            if (density > maxAllowed) {
+                etFishCount.setError(String.format(Locale.getDefault(),
+                        "⚠️ Overstocked! %.2f fish/m² (max %.2f)", density, maxAllowed));
+            } else if (density < minRecommended) {
+                etFishCount.setError(String.format(Locale.getDefault(),
+                        "Low density: %.2f fish/m² (min %.2f)", density, minRecommended));
+            } else {
+                etFishCount.setError(null); // ✅ Clear warning if within range
+            }
+
+        } catch (NumberFormatException e) {
+            etFishCount.setError(null);
+        }
+    }
+
+    private boolean checkStockingDensity() {
+        String breed = spinnerBreed.getSelectedItem() != null ? spinnerBreed.getSelectedItem().toString() : "";
+        String fishCountStr = etFishCount.getText().toString().trim();
+        String pondAreaStr = etPondArea.getText().toString().trim();
+
+        if (fishCountStr.isEmpty() || pondAreaStr.isEmpty()) {
+            Toast.makeText(getContext(), "Please enter fish count and pond area.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        try {
+            double fishCount = Double.parseDouble(fishCountStr);
+            double pondArea = Double.parseDouble(pondAreaStr);
+
+            if (pondArea <= 0) {
+                Toast.makeText(getContext(), "Pond area must be greater than 0.", Toast.LENGTH_SHORT).show();
+                return false;
+            }
+
+            double density = fishCount / pondArea;
+            double maxAllowed = 0;
+            double minRecommended = 0;
+
+            switch (breed) {
+                case "Tilapia":
+                    minRecommended = 3.0;
+                    maxAllowed = 15.0;
+                    break;
+                case "Bangus":
+                    minRecommended = 0.2;
+                    maxAllowed = 3.0;
+                    break;
+                case "Alimango":
+                    minRecommended = 0.5;
+                    maxAllowed = 3.0;
+                    break;
+            }
+
+            if (density > maxAllowed) {
+                Toast.makeText(getContext(),
+                        String.format(Locale.getDefault(),
+                                "❌ Overstocked! %.2f fish/m² (max %.2f)", density, maxAllowed),
+                        Toast.LENGTH_LONG).show();
+                return false; // ❌ prevent saving
+            }
+
+            return true; // ✅ within safe range
+
+        } catch (NumberFormatException e) {
+            Toast.makeText(getContext(), "Invalid input format.", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+    }
+
+
 
     private void computeTotalFingerlingsCost() {
         String fishCountStr = etFishCount.getText().toString().trim();
