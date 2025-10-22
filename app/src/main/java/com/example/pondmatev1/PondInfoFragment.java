@@ -72,7 +72,8 @@ public class PondInfoFragment extends Fragment {
             tvPondName.setText(pond.getName());
             tvBreed.setText(pond.getBreed());
             tvFishCount.setText(String.valueOf(fishCount));
-            tvCostPerFish.setText(String.valueOf(costPerFish));
+            tvCostPerFish.setText(String.format("₱%.2f", costPerFish));
+
 
             String formattedDateStarted = formatDateDisplay(pond.getDateStarted());
             String formattedDateHarvest = formatDateDisplay(pond.getDateHarvest());
@@ -128,7 +129,7 @@ public class PondInfoFragment extends Fragment {
                 tvPondName.setText(updatedPond.getName());
                 tvBreed.setText(updatedPond.getBreed());
                 tvFishCount.setText(String.valueOf(updatedPond.getFishCount()));
-                tvCostPerFish.setText(String.valueOf(updatedPond.getCostPerFish()));
+                tvCostPerFish.setText(String.format("₱%.2f", updatedPond.getCostPerFish()));
                 tvDateStarted.setText(formatDateDisplay(updatedPond.getDateStarted()));
                 tvHarvestDate.setText(formatDateDisplay(updatedPond.getDateHarvest()));
 

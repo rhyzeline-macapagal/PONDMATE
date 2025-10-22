@@ -132,11 +132,38 @@ public class FarmgatePriceActivity extends AppCompatActivity {
 
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        input.setText(oldPrice);
+        input.setText("₱" + oldPrice); // Show peso sign in the input
+        input.setSelection(input.getText().length()); // Cursor after the number
+
+        // Prevent deleting the peso sign
+        input.addTextChangedListener(new android.text.TextWatcher() {
+            private boolean isEditing = false;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (isEditing) return;
+
+                isEditing = true;
+                if (!s.toString().startsWith("₱")) {
+                    input.setText("₱");
+                    input.setSelection(input.getText().length());
+                }
+                isEditing = false;
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+            }
+        });
+
         builder.setView(input);
 
         builder.setPositiveButton("Update", (dialog, which) -> {
-            String entered = input.getText().toString().trim();
+            String entered = input.getText().toString().replace("₱", "").trim();
 
             if (entered.isEmpty()) {
                 Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show();

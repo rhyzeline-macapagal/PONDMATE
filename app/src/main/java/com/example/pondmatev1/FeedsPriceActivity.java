@@ -169,16 +169,41 @@ public class FeedsPriceActivity extends AppCompatActivity {
 
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        input.setText(oldPrice);
+        input.setText("₱" + oldPrice);
+        input.setSelection(input.getText().length()); // cursor after the number
+
+        // 🔒 Prevent deleting the peso sign
+        input.addTextChangedListener(new android.text.TextWatcher() {
+            private boolean isEditing = false;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (isEditing) return;
+
+                isEditing = true;
+                if (!s.toString().startsWith("₱")) {
+                    input.setText("₱");
+                    input.setSelection(input.getText().length());
+                }
+                isEditing = false;
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {}
+        });
+
         builder.setView(input);
 
         builder.setPositiveButton("Update", (dialog, which) -> {
-            String entered = input.getText().toString().trim();
+            String entered = input.getText().toString().replace("₱", "").trim();
 
             // ✅ Check if input is empty or invalid
             if (entered.isEmpty() || entered.equals(".") || entered.equals(",")) {
                 Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show();
-                return; // don't proceed
+                return;
             }
 
             double newPrice;
@@ -199,7 +224,6 @@ public class FeedsPriceActivity extends AppCompatActivity {
                             public void onSuccess(Object result) {
                                 runOnUiThread(() -> {
                                     Toast.makeText(FeedsPriceActivity.this, "Updated successfully", Toast.LENGTH_SHORT).show();
-                                    // ✅ formatted display
                                     tvPrice.setText("₱" + String.format("%.2f", newPrice));
                                 });
                             }
@@ -217,7 +241,6 @@ public class FeedsPriceActivity extends AppCompatActivity {
         });
 
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-
         builder.show();
     }
 
