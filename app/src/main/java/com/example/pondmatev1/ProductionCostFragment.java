@@ -457,10 +457,7 @@ public class ProductionCostFragment extends Fragment {
                 pricePerKilo = 180;
                 avgWeightGrams = 333.33;
                 break;
-            case "alimango":
-                pricePerKilo = 375;
-                avgWeightGrams = 500;
-                break;
+
         }
 
         // Revenue

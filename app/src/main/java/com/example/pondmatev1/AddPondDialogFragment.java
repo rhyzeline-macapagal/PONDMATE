@@ -133,14 +133,12 @@ public class AddPondDialogFragment extends DialogFragment {
 
         setDefaultFeedingTimes();
 
-
-
         // 🟢 Fish Count listener
         etFishCount.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                checkStockingDensityRealtime(); // ✅ Check density in real time
+                checkStockingDensityRealtime();
             }
 
             @Override public void afterTextChanged(Editable s) {
@@ -201,7 +199,7 @@ public class AddPondDialogFragment extends DialogFragment {
         });
 
         // Populate spinner with fish breeds
-        String[] fishBreeds = {"Tilapia", "Bangus", "Alimango"};
+        String[] fishBreeds = {"Tilapia", "Bangus"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_spinner_item, fishBreeds);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -233,9 +231,7 @@ public class AddPondDialogFragment extends DialogFragment {
                     case "Bangus":
                         harvestCalendar.add(Calendar.DAY_OF_YEAR, 125);
                         break;
-                    case "Alimango":
-                        harvestCalendar.add(Calendar.DAY_OF_YEAR, 275);
-                        break;
+
                 }
 
 
@@ -433,10 +429,6 @@ public class AddPondDialogFragment extends DialogFragment {
                     minRecommended = 0.2;
                     maxAllowed = 3.0;
                     break;
-                case "Alimango":
-                    minRecommended = 0.5;
-                    maxAllowed = 3.0;
-                    break;
             }
 
             // 🟡 Give visual feedback in real time
@@ -487,10 +479,7 @@ public class AddPondDialogFragment extends DialogFragment {
                     minRecommended = 0.2;
                     maxAllowed = 3.0;
                     break;
-                case "Alimango":
-                    minRecommended = 0.5;
-                    maxAllowed = 3.0;
-                    break;
+
             }
 
             if (density > maxAllowed) {
@@ -687,10 +676,6 @@ public class AddPondDialogFragment extends DialogFragment {
             if (pondAgeMonths < 1) return "starter";
             else if (pondAgeMonths <= 3) return "grower";
             else return "finisher";
-        } else if (breed.contains("alimango")) {
-            if (pondAgeMonths < 1) return "starter";
-            else if (pondAgeMonths <= 7) return "grower";
-            else return "fattener"; // changed from finisher
         }
         return "auto"; // default
     }
@@ -1141,7 +1126,7 @@ public class AddPondDialogFragment extends DialogFragment {
     private final java.util.Map<String, Double> breedCosts = new java.util.HashMap<String, Double>() {{
         put("Tilapia", .20);
         put("Bangus", .50);
-        put("Alimango", 3.0);
+
     }};
 
 }

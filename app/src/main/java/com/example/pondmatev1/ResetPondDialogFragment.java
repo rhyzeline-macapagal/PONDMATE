@@ -57,7 +57,7 @@ public class ResetPondDialogFragment extends DialogFragment {
         TextView closeDialog = view.findViewById(R.id.btnClose);
 
         // Populate spinner
-        String[] fishBreeds = {"Tilapia", "Bangus", "Alimango"};
+        String[] fishBreeds = {"Tilapia", "Bangus"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_spinner_item, fishBreeds);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -88,9 +88,8 @@ public class ResetPondDialogFragment extends DialogFragment {
                         harvestCalendar.add(Calendar.DAY_OF_YEAR, 60);
                     } else if (selectedBreed.equals("Bangus")) {
                         harvestCalendar.add(Calendar.DAY_OF_YEAR, 90);
-                    } else if (selectedBreed.equals("Alimango")) {
-                        harvestCalendar.add(Calendar.MONTH, 9);
                     }
+
 
                     SimpleDateFormat dbFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
                     rawHarvestDateForDB = dbFormat.format(harvestCalendar.getTime());

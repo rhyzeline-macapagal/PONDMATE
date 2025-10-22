@@ -55,7 +55,7 @@ public class ReusePondDialog extends DialogFragment {
     private final java.util.Map<String, Double> breedCosts = new java.util.HashMap<String, Double>() {{
         put("Tilapia", .20);
         put("Bangus", .50);
-        put("Alimango", 3.0);
+
     }};
 
     @Nullable
@@ -95,7 +95,7 @@ public class ReusePondDialog extends DialogFragment {
         view.findViewById(R.id.btnselecttime3).setOnClickListener(v -> showTimePickerDialog(timeoffeeding3, 3));
 
         // Populate spinner
-        String[] fishBreeds = {"Tilapia", "Bangus", "Alimango"};
+        String[] fishBreeds = {"Tilapia", "Bangus"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_spinner_item, fishBreeds);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -117,7 +117,6 @@ public class ReusePondDialog extends DialogFragment {
             switch (selectedBreed) {
                 case "Tilapia": harvestCalendar.add(Calendar.DAY_OF_YEAR, 60); break;
                 case "Bangus": harvestCalendar.add(Calendar.DAY_OF_YEAR, 90); break;
-                case "Alimango": harvestCalendar.add(Calendar.DAY_OF_YEAR, 270); break;
             }
             rawHarvestDateForDB = dbFormat.format(harvestCalendar.getTime());
             tvDateHarvest.setText(displayFormat.format(harvestCalendar.getTime()));
