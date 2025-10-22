@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -151,6 +152,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
         pondList = new ArrayList<>();
         pondAdapter = new PondAdapter(this, pondList, userType);
+
         LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
         pondRecyclerView.setLayoutManager(layoutManager);
         pondRecyclerView.setAdapter(pondAdapter);
@@ -160,9 +162,16 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         loadPondsFromServer();
 
         historyRecyclerView = findViewById(R.id.HistoryRecyclerView);
-        historyRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        int historySpacing = getResources().getDimensionPixelSize(R.dimen.history_card_spacing);
+        historyRecyclerView.addItemDecoration(new SpacingItemDecoration(spacing));
+        historyRecyclerView.setBackgroundColor(Color.TRANSPARENT);
+
         historyList = new ArrayList<>();
         historyAdapter = new HistoryAdapter(this, historyList);
+
+        LinearLayoutManager historyLayoutManager =
+                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+        historyRecyclerView.setLayoutManager(historyLayoutManager);
         historyRecyclerView.setAdapter(historyAdapter);
 
         PeriodicWorkRequest pendingActivityWork =
@@ -320,7 +329,7 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
         // Single dataset
         BarDataSet setActual = new BarDataSet(actualEntries, "Actual ROI");
-        setActual.setColor(Color.parseColor("#4CAF50"));
+        setActual.setColor(Color.parseColor("#001C4F"));
 
         BarData data = new BarData(setActual);
         data.setBarWidth(0.5f); // width for single bars
@@ -493,6 +502,18 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         }).start();
     }
 
+    public class SpacingItemDecoration extends RecyclerView.ItemDecoration {
+        private final int spacing;
+
+        public SpacingItemDecoration(int spacing) {
+            this.spacing = spacing;
+        }
+
+        @Override
+        public void getItemOffsets(Rect outRect, View view, RecyclerView parent, RecyclerView.State state) {
+            outRect.right = spacing;
+        }
+    }
 
 
     private void saveROIsToServer() {
