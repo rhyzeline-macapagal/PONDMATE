@@ -10,6 +10,7 @@ import com.itextpdf.text.Font;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPageEventHelper;
@@ -28,29 +29,53 @@ import java.util.Locale;
 public class PondPDFGenerator {
 
     public static File generatePDF(Context context, JSONObject data, String pondId) {
-        String baseName;
-        if (pondId != null && !pondId.isEmpty()) {
-            baseName = "pond_report_" + pondId + ".pdf";
-        } else {
-            JSONObject pondObj = data.optJSONObject("pond");
-            String pname = (pondObj != null) ? pondObj.optString("name", "unknown") : "unknown";
-            pname = pname.replaceAll("[^a-zA-Z0-9_\\-]", "_");
-            baseName = "pond_report_" + pname + ".pdf";
+        String action = "REPORT";
+
+        if (data.has("action")) {
+            action = data.optString("action", "REPORT").toUpperCase(Locale.ROOT);
+        } else if (pondId != null && (pondId.equalsIgnoreCase("INACTIVE") || pondId.equalsIgnoreCase("REUSED"))) {
+            action = pondId.toUpperCase(Locale.ROOT);
         }
 
+        JSONObject pondObj = data.optJSONObject("pond");
+        String safePondName = pondObj != null ? pondObj.optString("name", "unknown") : "unknown";
+        safePondName = safePondName.replaceAll("[^a-zA-Z0-9_\\-]", "_");
+
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String baseName = "pond_" + safePondName + "_" + action + "_" + timestamp + ".pdf";
+
         File pdfFile = new File(context.getCacheDir(), baseName);
-        Log.d("PDF_DEBUG", "PondPDFGenerator: Generating PDF at: " + pdfFile.getAbsolutePath());
+        Log.d("PDF_DEBUG", "Generating " + action + " PDF: " + pdfFile.getAbsolutePath());
 
         try (FileOutputStream outputStream = new FileOutputStream(pdfFile)) {
             Document document = new Document();
             PdfWriter writer = PdfWriter.getInstance(document, outputStream);
-            writer.setPageEvent(new BorderPageEvent());
+
+            // Add watermark and border event
+            writer.setPageEvent(new BorderAndWatermarkEvent(action));
             document.open();
 
+            // 🔴 INACTIVE or 🔵 REUSED Banner
+            if (action.equals("INACTIVE") || action.equals("REUSED")) {
+                BaseColor bannerColor = action.equals("INACTIVE") ? new BaseColor(220, 53, 69) : new BaseColor(0, 123, 255);
+                Font bannerFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, BaseColor.WHITE);
+
+                PdfPTable bannerTable = new PdfPTable(1);
+                bannerTable.setWidthPercentage(100);
+                PdfPCell bannerCell = new PdfPCell(new Phrase(action + " POND", bannerFont));
+                bannerCell.setBackgroundColor(bannerColor);
+                bannerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                bannerCell.setPadding(10);
+                bannerCell.setBorder(Rectangle.NO_BORDER);
+                bannerTable.addCell(bannerCell);
+                document.add(bannerTable);
+
+                document.add(new Paragraph("\n"));
+            }
+
             // HEADER
-            document.add(new Paragraph("PRODUCTION REPORT"));
-            String dateCreated = new SimpleDateFormat("MMMM d, yyyy hh:mm a", Locale.getDefault())
-                    .format(new Date());
+            document.add(new Paragraph("PRODUCTION REPORT", new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD)));
+            String dateCreated = new SimpleDateFormat("MMMM d, yyyy hh:mm a", Locale.getDefault()).format(new Date());
             document.add(new Paragraph("Report Generated: " + dateCreated));
             document.add(new Paragraph("-------------------------------------------------------------------------------\n"));
 
@@ -69,7 +94,7 @@ public class PondPDFGenerator {
             document.add(new Paragraph("Period: " + start + " to " + end));
             document.add(new Paragraph("\n"));
 
-            // Fingerlings Table
+            // FINGERLINGS TABLE
             document.add(new Paragraph("Fingerlings Cost"));
             document.add(new Paragraph("\n"));
             PdfPTable ftable = new PdfPTable(4);
@@ -97,7 +122,7 @@ public class PondPDFGenerator {
             document.add(ftable);
             document.add(new Paragraph("\n"));
 
-            // Maintenance table
+            // MAINTENANCE TABLE
             document.add(new Paragraph("Maintenance Cost"));
             document.add(new Paragraph("\n"));
             PdfPTable mtable = new PdfPTable(2);
@@ -119,16 +144,9 @@ public class PondPDFGenerator {
             }
             document.add(mtable);
             document.add(new Paragraph("\n"));
-            // Salary Cost (Per Pond)
+
+            // TOTALS AND ROI
             JSONObject salary = data.optJSONObject("salary");
-            double totalSalary = (salary != null) ? salary.optDouble("total_salary", 0) : 0;
-
-
-            document.add(new Paragraph("\n")); // optional spacing
-
-            // Totals and ROI
-            maintenance = data.optJSONObject("maintenance");
-            salary = data.optJSONObject("salary");
             JSONObject roi = data.optJSONObject("roi");
 
             document.add(new Paragraph("Maintenance Total: ₱" + (maintenance != null ? String.format("%.2f", maintenance.optDouble("total_maintenance", 0)) : "0.00")));
@@ -138,59 +156,41 @@ public class PondPDFGenerator {
             document.add(new Paragraph("Estimated ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("estimated", 0)) : "0.00")));
             document.add(new Paragraph("Actual ROI: " + (roi != null ? String.format("%.2f", roi.optDouble("actual", 0)) : "0.00")));
 
-
-
-            document.newPage();
+            // NEW PAGE FOR FEEDS
             document.newPage();
             Paragraph feedsTitle = new Paragraph("Feeds Schedules", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD));
             feedsTitle.setAlignment(Element.ALIGN_CENTER);
             document.add(feedsTitle);
             document.add(new Paragraph("\n"));
 
-// ✅ Table with 5 columns
             PdfPTable feedsTable = new PdfPTable(5);
             feedsTable.setWidthPercentage(100);
             feedsTable.setWidths(new float[]{2.5f, 2f, 2f, 2f, 2f});
 
-// Headers
             feedsTable.addCell(headerCell("Date"));
             feedsTable.addCell(headerCell("Time"));
             feedsTable.addCell(headerCell("Feed Type"));
             feedsTable.addCell(headerCell("Feed Amount (kg)"));
             feedsTable.addCell(headerCell("Feed Cost (pesos)"));
 
-// Populate rows
             JSONObject feedingSchedule = data.optJSONObject("feeding_schedule");
             JSONArray feedLogs = feedingSchedule != null ? feedingSchedule.optJSONArray("logs") : null;
 
             if (feedLogs != null && feedLogs.length() > 0) {
-                // Date & time formatters
-                SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-                SimpleDateFormat outputDateFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.US); // September 2, 2025
-
-                SimpleDateFormat inputTimeFormat = new SimpleDateFormat("HH:mm:ss", Locale.US);
-                SimpleDateFormat outputTimeFormat = new SimpleDateFormat("hh:mm a", Locale.US); // 05:47 PM
+                SimpleDateFormat inputDate = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+                SimpleDateFormat outputDate = new SimpleDateFormat("MMMM d, yyyy", Locale.US);
+                SimpleDateFormat inputTime = new SimpleDateFormat("HH:mm:ss", Locale.US);
+                SimpleDateFormat outputTime = new SimpleDateFormat("hh:mm a", Locale.US);
 
                 for (int i = 0; i < feedLogs.length(); i++) {
                     JSONObject f = feedLogs.getJSONObject(i);
-
-                    // Format date
                     String rawDate = f.optString("schedule_date", "-");
                     String formattedDate = rawDate;
-                    try {
-                        Date date = inputDateFormat.parse(rawDate);
-                        if (date != null) formattedDate = outputDateFormat.format(date);
-                    } catch (Exception e) { e.printStackTrace(); }
-
-                    // Format time
+                    try { Date d = inputDate.parse(rawDate); if (d != null) formattedDate = outputDate.format(d); } catch (Exception ignored) {}
                     String rawTime = f.optString("schedule_time", "-");
                     String formattedTime = rawTime;
-                    try {
-                        Date time = inputTimeFormat.parse(rawTime);
-                        if (time != null) formattedTime = outputTimeFormat.format(time);
-                    } catch (Exception e) { e.printStackTrace(); }
+                    try { Date t = inputTime.parse(rawTime); if (t != null) formattedTime = outputTime.format(t); } catch (Exception ignored) {}
 
-                    // Add row
                     feedsTable.addCell(formattedDate);
                     feedsTable.addCell(formattedTime);
                     feedsTable.addCell(f.optString("feeder_type", "-"));
@@ -198,19 +198,13 @@ public class PondPDFGenerator {
                     feedsTable.addCell(f.optString("feed_price", "0"));
                 }
 
-                // ✅ Total row
                 PdfPCell totalLabel = new PdfPCell(new Phrase("Total Feed Cost"));
                 totalLabel.setColspan(4);
                 totalLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
                 feedsTable.addCell(totalLabel);
 
                 double totalFeedCostValue = feedingSchedule.optDouble("total_feed_cost", 0.0);
-
-
-                String totalFeedCost = String.format(Locale.US, "%.2f", totalFeedCostValue);
-
-                feedsTable.addCell(totalFeedCost);
-
+                feedsTable.addCell(String.format(Locale.US, "%.2f", totalFeedCostValue));
 
             } else {
                 PdfPCell noDataCell = new PdfPCell(new Phrase("No feed logs available"));
@@ -223,32 +217,27 @@ public class PondPDFGenerator {
             document.add(feedsTable);
             document.add(new Paragraph("\n\n--- End of Report ---"));
 
-
             document.close();
 
-            Log.d("PDF_DEBUG", "PondPDFGenerator: PDF generated successfully. Size: " + pdfFile.length());
-
+            Log.d("PDF_DEBUG", "PDF generated successfully: " + pdfFile.length() + " bytes");
         } catch (Exception e) {
-            e.printStackTrace();
-            Log.e("PondPDFGenerator", "Error generating PDF: " + e.getMessage(), e);
+            Log.e("PondPDFGenerator", "Error generating PDF", e);
             return null;
         }
 
         return pdfFile;
     }
 
-    // Helper to format date string "yyyy-MM-dd" -> "MMMM d, yyyy"
     private static String formatDate(String dateString) {
         try {
-            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-            SimpleDateFormat outputFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.getDefault());
-            return outputFormat.format(inputFormat.parse(dateString));
+            SimpleDateFormat input = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            SimpleDateFormat output = new SimpleDateFormat("MMMM d, yyyy", Locale.getDefault());
+            return output.format(input.parse(dateString));
         } catch (Exception e) {
             return dateString;
         }
     }
 
-    // Build a header cell like in your fragment
     private static PdfPCell headerCell(String text) {
         PdfPCell cell = new PdfPCell(new Phrase(text));
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -257,22 +246,37 @@ public class PondPDFGenerator {
         return cell;
     }
 
-    // Page border event (same visuals as in your fragment)
-    private static class BorderPageEvent extends PdfPageEventHelper {
+    // ✅ Adds both border + watermark
+    private static class BorderAndWatermarkEvent extends PdfPageEventHelper {
+        private final String action;
+
+        public BorderAndWatermarkEvent(String action) {
+            this.action = action;
+        }
+
         @Override
         public void onEndPage(PdfWriter writer, Document document) {
-            PdfContentByte canvas = writer.getDirectContent();
-            Rectangle rect = document.getPageSize();
+            PdfContentByte canvas = writer.getDirectContentUnder();
 
+            Rectangle rect = document.getPageSize();
             float offset = 20f;
-            float left   = document.leftMargin() - offset;
-            float right  = rect.getRight() - document.rightMargin() + offset;
-            float top    = rect.getTop() - document.topMargin() + offset;
+            float left = document.leftMargin() - offset;
+            float right = rect.getRight() - document.rightMargin() + offset;
+            float top = rect.getTop() - document.topMargin() + offset;
             float bottom = document.bottomMargin() - offset;
 
+            // Border
             canvas.setLineWidth(1.5f);
             canvas.rectangle(left, bottom, right - left, top - bottom);
             canvas.stroke();
+
+            // Watermark
+            if (action.equals("INACTIVE") || action.equals("REUSED")) {
+                Font watermarkFont = new Font(Font.FontFamily.HELVETICA, 60, Font.BOLD, new BaseColor(200, 200, 200, 70));
+                Phrase watermark = new Phrase(action + " POND", watermarkFont);
+                ColumnText.showTextAligned(canvas, Element.ALIGN_CENTER, watermark,
+                        rect.getWidth() / 2, rect.getHeight() / 2, 45);
+            }
         }
     }
 }

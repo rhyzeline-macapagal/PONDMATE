@@ -131,56 +131,31 @@ public class ProductionCostFragment extends Fragment {
             if (pondJson != null) {
                 PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
                 String pondNameLocal = pond.getName();
+                String pondId = pond.getId();
+                if (pondId == null || pondId.trim().isEmpty()) {
+                    Toast.makeText(getContext(), "Missing Pond ID — please re-sync or reopen the pond.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
-                PondSyncManager.fetchProductionReportByName(pondNameLocal, new PondSyncManager.Callback() {
+                PondSyncManager.fetchPondReportById(pondId, new PondSyncManager.Callback() {
                     @Override
                     public void onSuccess(Object response) {
                         new Handler(Looper.getMainLooper()).post(() -> {
                             try {
                                 JSONObject json = new JSONObject(String.valueOf(response));
+                                // ✅ Standard report (no forced INACTIVE)
+                                json.put("action", "REPORT");
 
-                                if (json.getString("status").equals("success")) {
-                                    // extract pond id from returned JSON
-                                    JSONObject pondObj = json.optJSONObject("pond");
-                                    String pondId = "";
-                                    if (pondObj != null) {
-                                        pondId = pondObj.optString("id", pondObj.optString("pond_id", ""));
-                                    }
-
-                                    if (pondId == null) pondId = "";
-
-                                    generatedPdfFile = PondPDFGenerator.generatePDF(requireContext(), json, pondId);
-
-                                    if (generatedPdfFile != null && generatedPdfFile.exists()) {
-                                        // In-app preview using PDFView (via PdfPreviewActivity)
-                                        previewPDF(generatedPdfFile);
-                                        Log.d("PDF_DEBUG", "showPdfDialog called for file: " + generatedPdfFile.getAbsolutePath() +
-                                                ", size: " + generatedPdfFile.length());
-
-                                        // Still save a copy to Downloads
-                                        savePDFToDownloads(generatedPdfFile);
-
-
-
-                                        Toast.makeText(getContext(),
-                                                "Report generated for " + pondNameLocal,
-                                                Toast.LENGTH_SHORT).show();
-
-                                    } else {
-                                        Toast.makeText(getContext(), "Failed to create PDF", Toast.LENGTH_SHORT).show();
-                                        Log.d("PDF_DEBUG", "generatePDF returned null or file does not exist");
-                                    }
-
+                                File pdfFile = PondPDFGenerator.generatePDF(requireContext(), json, pondId);
+                                if (pdfFile != null && pdfFile.exists()) {
+                                    previewPDF(pdfFile);
+                                    savePDFToDownloads(pdfFile);
+                                    Toast.makeText(getContext(), "Report generated for " + pond.getName(), Toast.LENGTH_SHORT).show();
                                 } else {
-                                    Toast.makeText(getContext(),
-                                            "Error: " + json.optString("message", "Unknown error"),
-                                            Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(getContext(), "Failed to generate PDF", Toast.LENGTH_SHORT).show();
                                 }
                             } catch (Exception e) {
-                                e.printStackTrace();
-                                Toast.makeText(getContext(),
-                                        "Parse error: " + e.getMessage(),
-                                        Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getContext(), "Parse error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                             }
                         });
                     }
@@ -188,12 +163,11 @@ public class ProductionCostFragment extends Fragment {
                     @Override
                     public void onError(String error) {
                         new Handler(Looper.getMainLooper()).post(() ->
-                                Toast.makeText(getContext(),
-                                        "Network Error: " + error,
-                                        Toast.LENGTH_SHORT).show()
+                                Toast.makeText(getContext(), "Network Error: " + error, Toast.LENGTH_SHORT).show()
                         );
                     }
                 });
+
             } else {
                 Toast.makeText(getContext(), "No pond selected", Toast.LENGTH_SHORT).show();
             }
@@ -797,43 +771,46 @@ public class ProductionCostFragment extends Fragment {
         dialog.show();
     }
 
-
-
-    /**
-     * Uploads PDF via multipart and writes the pond_history record (server should save file and pdf_path).
-     * We POST pond_id, name, action and pdf_file.
-     */
-
-    private void uploadPdfAndSaveHistory(String pondId, String pondName, File pdfFile) {
+    private void uploadPdfAndSaveHistory(String pondId, String pondName, File pdfFile, String existingPdfPath, String actionType) {
         new Thread(() -> {
             try {
+                String safePondId = (pondId != null && !pondId.trim().isEmpty()) ? pondId : "INACTIVE_POND";
+
                 String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-                URL url = new URL("https://pondmate.alwaysdata.net/savePondHistory.php"); // ensure your server script handles multipart
+                URL url = new URL("https://pondmate.alwaysdata.net/savePondHistory.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setDoOutput(true);
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 
                 try (OutputStream outputStream = conn.getOutputStream()) {
-                    // --- pond_id ---
+                    // pond_id
                     outputStream.write(("--" + boundary + "\r\n").getBytes());
                     outputStream.write("Content-Disposition: form-data; name=\"pond_id\"\r\n\r\n".getBytes());
-                    outputStream.write((pondId != null ? pondId : "").getBytes());
+                    outputStream.write(pondId.getBytes());
                     outputStream.write("\r\n".getBytes());
 
-                    // --- name ---
+                    // name
                     outputStream.write(("--" + boundary + "\r\n").getBytes());
                     outputStream.write("Content-Disposition: form-data; name=\"name\"\r\n\r\n".getBytes());
-                    outputStream.write((pondName != null ? pondName : "").getBytes());
+                    outputStream.write(pondName.getBytes());
                     outputStream.write("\r\n".getBytes());
 
-                    // --- action ---
+                    // action
                     outputStream.write(("--" + boundary + "\r\n").getBytes());
                     outputStream.write("Content-Disposition: form-data; name=\"action\"\r\n\r\n".getBytes());
-                    outputStream.write("generate_report".getBytes());
+                    outputStream.write(actionType.getBytes());
                     outputStream.write("\r\n".getBytes());
 
-                    // --- file field ---
+                    // optional existing pdf_path
+                    if (existingPdfPath != null && !existingPdfPath.isEmpty()) {
+                        outputStream.write(("--" + boundary + "\r\n").getBytes());
+                        outputStream.write("Content-Disposition: form-data; name=\"pdf_path\"\r\n\r\n".getBytes());
+                        outputStream.write(existingPdfPath.getBytes());
+                        outputStream.write("\r\n".getBytes());
+                    }
+
+                    // optional new pdf file upload
                     if (pdfFile != null && pdfFile.exists()) {
                         outputStream.write(("--" + boundary + "\r\n").getBytes());
                         outputStream.write(("Content-Disposition: form-data; name=\"pdf_file\"; filename=\"" +
@@ -850,37 +827,36 @@ public class ProductionCostFragment extends Fragment {
                         outputStream.write("\r\n".getBytes());
                     }
 
-                    // --- End boundary ---
+                    // end of form
                     outputStream.write(("--" + boundary + "--\r\n").getBytes());
                     outputStream.flush();
                 }
 
                 int responseCode = conn.getResponseCode();
-                InputStream is = (responseCode >= 200 && responseCode < 400) ? conn.getInputStream() : conn.getErrorStream();
+                InputStream is = (responseCode >= 200 && responseCode < 400)
+                        ? conn.getInputStream()
+                        : conn.getErrorStream();
+
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is));
                 StringBuilder response = new StringBuilder();
                 String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
+                while ((line = reader.readLine()) != null) response.append(line);
                 reader.close();
 
-                Log.d("PDF_UPLOAD", "Server Response: " + response.toString());
+                Log.d("PDF_UPLOAD", "Server Response: " + response);
 
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    requireActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "PDF uploaded & saved to pond history", Toast.LENGTH_SHORT).show()
-                    );
-                } else {
-                    requireActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "PDF upload failed: HTTP " + responseCode, Toast.LENGTH_LONG).show()
-                    );
-                }
+                requireActivity().runOnUiThread(() -> {
+                    if (response.toString().toLowerCase().contains("success")) {
+                        Toast.makeText(requireContext(), "PDF successfully uploaded!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(requireContext(), "Upload completed (check logs).", Toast.LENGTH_SHORT).show();
+                    }
+                });
 
             } catch (Exception e) {
                 e.printStackTrace();
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Upload failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                new Handler(Looper.getMainLooper()).post(() ->
+                        Toast.makeText(requireContext(), "Upload error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
             }
         }).start();

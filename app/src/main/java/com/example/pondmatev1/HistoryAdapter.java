@@ -36,7 +36,6 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
         HistoryModel history = historyList.get(position);
 
         holder.tvHistoryName.setText(history.getPondName());
-        holder.tvHistoryAction.setText(history.getAction());
         holder.tvHistoryDate.setText(history.getDate());
 
         if (history.getPdfPath() != null && !history.getPdfPath().isEmpty()) {
@@ -62,13 +61,12 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.ViewHold
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvHistoryName, tvHistoryAction, tvHistoryDate;
+        TextView tvHistoryName, tvHistoryDate;
         Button btnViewPdf;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvHistoryName = itemView.findViewById(R.id.tvHistoryName);
-            tvHistoryAction = itemView.findViewById(R.id.tvHistoryAction);
             tvHistoryDate = itemView.findViewById(R.id.tvHistoryDate);
             btnViewPdf = itemView.findViewById(R.id.btnViewPdf);
         }

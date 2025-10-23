@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 
 import org.json.JSONException;
+import androidx.appcompat.app.AlertDialog;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -98,10 +99,9 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             holder.stopIcon.setVisibility(View.VISIBLE);
             holder.stopIcon.setOnClickListener(v -> {
                 new androidx.appcompat.app.AlertDialog.Builder(context)
-                        .setTitle("Stop Pond")
+                        .setTitle("Stop Progress")
                         .setMessage("Choose what you want to do with this pond:")
-                        .setPositiveButton("Reuse Pond", (dialog, which) -> reusePond(holder, pond))
-                        .setNegativeButton("Delete Pond", (dialog, which) -> deletePond(holder, pond))
+                        .setNegativeButton("Set to Inactive", (dialog, which) -> setPondInactive(holder, pond))
                         .setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss())
                         .show();
             });
@@ -125,156 +125,122 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         });
     }
 
-    private void reusePond(ViewHolder holder, PondModel pond) {
-        ReusePondDialog reuseDialog = new ReusePondDialog();
-        reuseDialog.setPond(pond);
+    private void setPondInactive(ViewHolder holder, PondModel pond) {
+        Context context = holder.itemView.getContext();
 
-        reuseDialog.setOnPondReusedListener(updatedPond -> {
-            // Keep original pond ID and name
-            updatedPond.setId(pond.getId());
-            updatedPond.setName(pond.getName());
+        new androidx.appcompat.app.AlertDialog.Builder(context)
+                .setTitle("Set Pond as Inactive")
+                .setMessage("Are you sure you want to mark \"" + pond.getName() + "\" as INACTIVE?\n\n" +
+                        "It will be removed from the active list and moved to Pond History.")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    try {
+                        // ✅ Create a minimal JSON object to pass to PDF generator
+                        JSONObject json = new JSONObject();
+                        json.put("pond_id", pond.getId());
+                        json.put("name", pond.getName());
+                        json.put("breed", pond.getBreed());
+                        json.put("fish_count", pond.getFishCount());
+                        json.put("cost_per_fish", pond.getCostPerFish());
+                        json.put("date_started", pond.getDateStarted());
+                        json.put("date_harvest", pond.getDateHarvest());
+                        json.put("action", "INACTIVE");
 
-            // Step 1: Update pond details in database
-            PondSyncManager.updatePondDetails(updatedPond, new PondSyncManager.Callback() {
-                @Override
-                public void onSuccess(Object result) {
-                    // Step 2: Fetch current pond report
-                    PondSyncManager.fetchPondReport(updatedPond.getId(), new PondSyncManager.Callback() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            try {
-                                JSONObject pondReport = (JSONObject) result;
+                        // ✅ Generate the same PDF but with INACTIVE watermark/indicator
+                        File pdfFile = PondPDFGenerator.generatePDF(context, json, pond.getId());
 
-                                // Step 3: Generate PDF
-                                File generatedPDF = PondPDFGenerator.generatePDF(context, pondReport, "REUSED");
-                                if (generatedPDF == null) throw new Exception("PDF generation failed");
-
-                                // Update pond model locally
-                                updatedPond.setExtraData("REUSED"); // set action column
-
-                                // Step 4: Save history with PDF
-                                PondSyncManager.savePondHistoryWithPDF(updatedPond, "REUSED", generatedPDF, new PondSyncManager.Callback() {
-                                    @Override
-                                    public void onSuccess(Object result) {
-                                        new Handler(Looper.getMainLooper()).post(() -> {
-                                            try {
-                                                JSONObject response = new JSONObject(result.toString());
-                                                if (response.optString("status").equals("success")) {
-                                                    // Use server PDF path
-                                                    String serverPdfPath = response.optString("pdf_path");
-                                                    if (!serverPdfPath.isEmpty()) {
-                                                        updatedPond.setPdfPath(serverPdfPath);
-                                                    }
-
-                                                    int adapterPos = holder.getAdapterPosition();
-                                                    if (adapterPos >= 0 && adapterPos < pondList.size()) {
-                                                        pondList.set(adapterPos, updatedPond);
-                                                        notifyItemChanged(adapterPos);
-                                                    }
-
-                                                    com.google.android.material.snackbar.Snackbar.make(
-                                                            holder.itemView,
-                                                            "Pond reused successfully!",
-                                                            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
-                                                    ).show();
-
-                                                    if (context instanceof PondDashboardActivity) {
-                                                        ((PondDashboardActivity) context).loadHistory(updatedPond.getId());
-                                                    }
-                                                } else {
-                                                    String message = response.optString("message", "Unknown error");
-                                                    Toast.makeText(context, "Save failed: " + message, Toast.LENGTH_SHORT).show();
-                                                }
-                                            } catch (JSONException e) {
-                                                e.printStackTrace();
-                                                Toast.makeText(context, "Invalid server response", Toast.LENGTH_SHORT).show();
-                                            }
-                                        });
-                                    }
-                                    @Override
-                                    public void onError(String error) {
-                                        new Handler(Looper.getMainLooper()).post(() ->
-                                                Toast.makeText(context, "Error saving history: " + error, Toast.LENGTH_SHORT).show()
-                                        );
-                                    }
-                                });
-
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                new Handler(Looper.getMainLooper()).post(() ->
-                                        Toast.makeText(context, "Error generating PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                                );
-                            }
-                        }
-
-                        @Override
-                        public void onError(String error) {
-                            new Handler(Looper.getMainLooper()).post(() ->
-                                    Toast.makeText(context, "Error fetching pond report: " + error, Toast.LENGTH_SHORT).show()
-                            );
-                        }
-                    });
-                }
-
-                @Override
-                public void onError(String error) {
-                    new Handler(Looper.getMainLooper()).post(() ->
-                            Toast.makeText(context, "Update failed: " + error, Toast.LENGTH_SHORT).show()
-                    );
-                }
-            });
-        });
-
-        reuseDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ReusePondDialog");
-    }
-
-    private void deletePond(ViewHolder holder, PondModel pond) {
-        PondSyncManager.fetchPondReport(pond.getId(), new PondSyncManager.Callback() {
-            @Override
-            public void onSuccess(Object result) {
-                try {
-                    JSONObject pondReport = (JSONObject) result;
-                    File generatedPDF = PondPDFGenerator.generatePDF(context, pondReport, "DELETED");
-                    if (generatedPDF == null) throw new Exception("PDF generation failed");
-
-                    PondSyncManager.savePondHistoryWithPDF(pond, "DELETED", generatedPDF, new PondSyncManager.Callback() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            PondSyncManager.deletePond(pond.getId(), new PondSyncManager.Callback() {
+                        if (pdfFile != null && pdfFile.exists()) {
+                            // ✅ Upload the INACTIVE PDF and remove from list
+                            PondSyncManager.setPondInactive(pond, pdfFile, new PondSyncManager.Callback() {
                                 @Override
-                                public void onSuccess(Object result) {
-                                    int adapterPos = holder.getAdapterPosition();
-                                    if (adapterPos >= 0 && adapterPos < pondList.size()) {
-                                        pondList.remove(adapterPos);
-                                        notifyItemRemoved(adapterPos);
-                                    }
-                                    if (context instanceof PondDashboardActivity) {
-                                        runOnUiThread(() -> ((PondDashboardActivity) context).loadHistory(pond.getId()));
-                                    }
+                                public void onSuccess(Object resp) {
+                                    ((Activity) context).runOnUiThread(() -> {
+                                        Toast.makeText(context, "Pond set as INACTIVE", Toast.LENGTH_SHORT).show();
+
+                                        // ✅ Remove from active pond list
+                                        int position = holder.getAdapterPosition();
+                                        if (position >= 0 && position < pondList.size()) {
+                                            pondList.remove(position);
+                                            notifyItemRemoved(position);
+                                        }
+
+                                        if (context instanceof PondDashboardActivity) {
+                                            ((PondDashboardActivity) context).loadHistory(null);
+                                        }
+
+                                        // ✅ If parent listens for deletions, trigger that too
+                                        if (deleteListener != null) {
+                                            deleteListener.onPondDeleteRequest(pond, position);
+                                        }
+                                    });
                                 }
 
                                 @Override
                                 public void onError(String error) {
-                                    runOnUiThread(() -> Toast.makeText(context, "Error deleting pond: " + error, Toast.LENGTH_SHORT).show());
+                                    ((Activity) context).runOnUiThread(() ->
+                                            Toast.makeText(context, "Error: " + error, Toast.LENGTH_SHORT).show()
+                                    );
                                 }
                             });
+                        } else {
+                            Toast.makeText(context, "Failed to generate PDF", Toast.LENGTH_SHORT).show();
                         }
 
-                        @Override
-                        public void onError(String error) {
-                            runOnUiThread(() -> Toast.makeText(context, "Error saving history: " + error, Toast.LENGTH_SHORT).show());
-                        }
-                    });
+                    } catch (Exception e) {
+                        Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
 
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    runOnUiThread(() -> Toast.makeText(context, "Error generating PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-                }
+    private File getExistingPdfForPond(String pondId) {
+        // Search both cacheDir and filesDir/pond_pdfs for matching files
+        File[] searchDirs = new File[] {
+                context.getCacheDir(),
+                new File(context.getFilesDir(), "pond_pdfs")
+        };
+
+        File best = null;
+        for (File dir : searchDirs) {
+            if (dir == null || !dir.exists()) continue;
+            File[] files = dir.listFiles((d, name) -> name.startsWith("pond_" + pondId + "_") || name.contains("pond_" + pondId + "_"));
+            if (files == null || files.length == 0) continue;
+            for (File f : files) {
+                if (best == null || f.lastModified() > best.lastModified()) best = f;
+            }
+        }
+        return best;
+    }
+
+    private void saveAndDeletePond(ViewHolder holder, PondModel pond, File pdfFile) {
+        // If we don't have a local file, ensure pond.getPdfPath() is available
+        File pdfToUse = (pdfFile != null && pdfFile.exists()) ? pdfFile : null;
+
+        // If no local file, ensure pond.pdfPath is set (maybe came from earlier server upload)
+        String serverPdfPath = (pond.getPdfPath() != null && !pond.getPdfPath().isEmpty()) ? pond.getPdfPath() : "";
+
+        // If no local file and no server path, then we will still call save but server will attempt to handle it
+        PondSyncManager.savePondHistoryWithPDF(pond, "INACTIVE", pdfToUse, new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object result) {
+                ((Activity) context).runOnUiThread(() -> {
+                    Toast.makeText(context, "Pond set as INACTIVE", Toast.LENGTH_SHORT).show();
+
+                    int position = holder.getAdapterPosition();
+                    if (position >= 0 && position < pondList.size()) {
+                        pondList.remove(position);
+                        notifyItemRemoved(position);
+                    }
+
+                    PondDashboardActivity.refreshHistoryNow();
+                });
             }
 
             @Override
             public void onError(String error) {
-                runOnUiThread(() -> Toast.makeText(context, "Error fetching pond report: " + error, Toast.LENGTH_SHORT).show());
+                runOnUiThread(() ->
+                        Toast.makeText(context, "Failed to mark pond as INACTIVE: " + error, Toast.LENGTH_LONG).show()
+                );
             }
         });
     }

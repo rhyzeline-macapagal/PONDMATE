@@ -17,6 +17,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class PondSyncManager {
 
@@ -213,22 +216,36 @@ public class PondSyncManager {
 
                 DataOutputStream request = new DataOutputStream(conn.getOutputStream());
 
+                // ✅ Build a safe and unique filename if needed
+                String safePondName = (pond.getName() != null && !pond.getName().isEmpty())
+                        ? pond.getName().replaceAll("\\s+", "_")
+                        : "unknown";
+                String formattedDate = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+                String finalPdfName = "pond_" + safePondName + "_" + action + "_" + formattedDate + ".pdf";
+                String pdfPathToSend = "uploads/" + finalPdfName;
+
+                // ✅ If you already have a custom file (like from PDFGenerator), rename it for consistency
+                File pdfToUpload;
+                if (pdfFile != null && pdfFile.exists()) {
+                    File renamed = new File(pdfFile.getParent(), finalPdfName);
+                    if (pdfFile.renameTo(renamed)) {
+                        pdfToUpload = renamed;
+                    } else {
+                        pdfToUpload = pdfFile;
+                    }
+                } else {
+                    pdfToUpload = pdfFile;
+                }
+
+                // ✅ Write form data once (no duplicates)
                 writeFormField(request, "pond_id", pond.getId(), boundary);
                 writeFormField(request, "name", pond.getName(), boundary);
-                writeFormField(request, "action", action != null ? action : "REUSED", boundary);
-                writeFormField(request, "pdf_path", pdfFile != null ? pdfFile.getAbsolutePath() : (pond.getPdfPath() != null ? pond.getPdfPath() : ""), boundary);
-
-                String pdfPathToSend = "";
-                if (pdfFile != null && pdfFile.exists()) {
-                    pdfPathToSend = "uploads/" + pdfFile.getName(); // store relative path
-                } else if (pond.getPdfPath() != null && !pond.getPdfPath().isEmpty()) {
-                    pdfPathToSend = pond.getPdfPath();
-                }
+                writeFormField(request, "action", action != null ? action : "INACTIVE", boundary);
                 writeFormField(request, "pdf_path", pdfPathToSend, boundary);
 
-                // Upload PDF file if exists
-                if (pdfFile != null && pdfFile.exists()) {
-                    writeFileField(request, "pdf_file", pdfFile, boundary);
+                // ✅ Upload PDF file if available
+                if (pdfToUpload != null && pdfToUpload.exists()) {
+                    writeFileField(request, "pdf_file", pdfToUpload, boundary);
                 }
 
                 request.writeBytes("--" + boundary + "--" + LINE_FEED);
@@ -249,9 +266,7 @@ public class PondSyncManager {
                 reader.close();
 
                 if (responseCode == 200) {
-                    if (!pdfPathToSend.isEmpty()) {
-                        pond.setPdfPath(pdfPathToSend);
-                    }
+                    pond.setPdfPath(pdfPathToSend); // ✅ sync final path
                     callback.onSuccess(response.toString());
                 } else {
                     callback.onError("HTTP Error: " + responseCode + " → " + response);
@@ -264,6 +279,7 @@ public class PondSyncManager {
             }
         }).start();
     }
+
 
     public static void updatePondDetails(PondModel pond, Callback callback) {
         new Thread(() -> {
@@ -315,53 +331,92 @@ public class PondSyncManager {
         }).start();
     }
 
-    public static void deletePond(String pondId, Callback callback) {
+    public static void fetchPondReportById(String pondId, Callback callback) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://pondmate.alwaysdata.net/deletePond.php");
+                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_report.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
                 String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8");
-                try (OutputStream os = conn.getOutputStream()) {
-                    os.write(postData.getBytes());
-                    os.flush();
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+                reader.close();
+                conn.disconnect();
+
+                callback.onSuccess(result.toString());
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    public static void setPondInactive(PondModel pond, File pdfFile, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/setPondInactive.php");
+                String boundary = "----PondBoundary" + System.currentTimeMillis();
+                String LINE_FEED = "\r\n";
+
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setDoOutput(true);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+
+                DataOutputStream request = new DataOutputStream(conn.getOutputStream());
+
+                writeFormField(request, "pond_id", pond.getId(), boundary);
+                writeFormField(request, "name", pond.getName(), boundary);
+
+                String pdfPath = pdfFile != null && pdfFile.exists()
+                        ? "uploads/" + pdfFile.getName()
+                        : (pond.getPdfPath() != null ? pond.getPdfPath() : "");
+
+                writeFormField(request, "pdf_path", pdfPath, boundary);
+
+                if (pdfFile != null && pdfFile.exists()) {
+                    writeFileField(request, "pdf_file", pdfFile, boundary);
                 }
 
+                request.writeBytes("--" + boundary + "--" + LINE_FEED);
+                request.flush();
+                request.close();
+
                 int responseCode = conn.getResponseCode();
-                BufferedReader in = new BufferedReader(new InputStreamReader(
-                        responseCode >= 200 ? conn.getInputStream() : conn.getErrorStream()
+                BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()
                 ));
                 StringBuilder response = new StringBuilder();
                 String line;
-                while ((line = in.readLine()) != null) {
-                    response.append(line);
-                }
-                in.close();
+                while ((line = reader.readLine()) != null) response.append(line);
+                reader.close();
 
-                String cleanedResponse = response.toString().trim();
-                Log.d("DeletePondResponse", "Code: " + responseCode + " | Body: " + response);
+                String resp = response.toString().trim();
+                Log.d("SetInactivePond", "Response: " + resp);
 
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    if (cleanedResponse.equalsIgnoreCase("success")) {
-                        runOnUiThreadSafe(() -> callback.onSuccess("Pond deleted"));
-                    } else {
-                        runOnUiThreadSafe(() -> callback.onError("Delete failed → " + cleanedResponse));
-                    }
+                if (resp.equalsIgnoreCase("success")) {
+                    runOnUiThreadSafe(() -> callback.onSuccess("Pond set to INACTIVE"));
                 } else {
-                    runOnUiThreadSafe(() -> callback.onError("HTTP Error: " + responseCode + " → " + cleanedResponse));
+                    runOnUiThreadSafe(() -> callback.onError("Error: " + resp));
                 }
 
                 conn.disconnect();
             } catch (Exception e) {
-                runOnUiThreadSafe(() -> {
-                    if (callback != null) callback.onError("Exception: " + e.getMessage());
-                });
+                runOnUiThreadSafe(() -> callback.onError("Exception: " + e.getMessage()));
             }
         }).start();
     }
+
 
     public static void fetchPondReport(String pondId, Callback callback) {
         new Thread(() -> {

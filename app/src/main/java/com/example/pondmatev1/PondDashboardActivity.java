@@ -73,10 +73,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     private HistoryAdapter historyAdapter;
     private ArrayList<HistoryModel> historyList = new ArrayList<>();
     private static final String BASE_URL = "http://pondmate.alwaysdata.net/getPondHistory.php";
+    public static PondDashboardActivity instance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        instance = this;
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_pond_dashboard);
 
@@ -122,9 +124,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 startActivity(new Intent(PondDashboardActivity.this, FarmgatePriceActivity.class));
                 dialog.dismiss();
             });
-
-
-
             // Show dialog
             dialog.show();
         });
@@ -398,7 +397,10 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     public void loadHistory(String pondId) {
         new Thread(() -> {
             try {
-                String urlStr = "https://pondmate.alwaysdata.net/getPondHistory.php?pond_id=" + pondId;
+                String urlStr = "https://pondmate.alwaysdata.net/getPondHistory.php";
+                if (pondId != null && !pondId.isEmpty()) {
+                    urlStr += "?pond_id=" + pondId;
+                }
                 URL url = new URL(urlStr);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
@@ -426,6 +428,9 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                         String action = obj.optString("action", "");
                         String date = obj.optString("created_at", "");
                         String pdfPath = obj.optString("pdf_path", "");
+                        if (!pdfPath.isEmpty() && !pdfPath.startsWith("http")) {
+                            pdfPath = "https://pondmate.alwaysdata.net/" + (pdfPath.startsWith("/") ? pdfPath.substring(1) : pdfPath);
+                        }
                         newHistory.add(new HistoryModel(historypondId, pondName, action, date, pdfPath));
                     }
 
@@ -556,6 +561,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    public static void refreshHistoryNow() {
+        if (instance != null) {
+            instance.runOnUiThread(() -> instance.loadHistory(""));
+        }
     }
 
     private void schedulePendingActivityNotifications() {
