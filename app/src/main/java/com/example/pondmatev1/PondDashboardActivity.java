@@ -24,6 +24,7 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -520,6 +521,56 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         }
     }
 
+    public void generateInactivePondReport(String pondId, String pondName) {
+        PondSyncManager.fetchPondReportData (pondName, new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object response) {
+                runOnUiThread(() -> {
+                    try {
+                        String raw = String.valueOf(response);
+                        JSONObject json = new JSONObject(raw);
+
+                        // Mark it as INACTIVE for watermark/title
+                        json.put("action", "INACTIVE");
+
+                        // Ensure pond object exists
+                        if (!json.has("pond") || json.optJSONObject("pond") == null) {
+                            JSONObject pondObj = new JSONObject();
+                            pondObj.put("id", pondId);
+                            pondObj.put("name", pondName);
+                            json.put("pond", pondObj);
+                        }
+
+                        // Use the same generator used in Production Cost Fragment
+                        File pdfFile = PondPDFGenerator.generatePDF(PondDashboardActivity.this, json, pondId);
+
+                        if (pdfFile != null && pdfFile.exists()) {
+                            previewPDF(pdfFile);
+                            Toast.makeText(PondDashboardActivity.this,
+                                    "Inactive pond report generated for " + pondName, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(PondDashboardActivity.this,
+                                    "Failed to generate report", Toast.LENGTH_SHORT).show();
+                        }
+
+                    } catch (Exception e) {
+                        Toast.makeText(PondDashboardActivity.this,
+                                "Error generating report: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() ->
+                        Toast.makeText(PondDashboardActivity.this,
+                                "Server error: " + error,
+                                Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
 
     private void saveROIsToServer() {
         List<Map<String, Object>> pondsToSend = new ArrayList<>();
@@ -604,6 +655,19 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             );
         }
     }
+
+    private void previewPDF(File pdfFile) {
+        try {
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", pdfFile);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, "No PDF viewer found.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
     private void scheduleFeedingNotifications(PondModel pond) {
         if ("ADD_BUTTON".equals(pond.getMode())) return;

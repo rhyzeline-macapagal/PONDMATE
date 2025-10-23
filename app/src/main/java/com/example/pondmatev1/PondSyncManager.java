@@ -4,6 +4,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -172,36 +173,6 @@ public class PondSyncManager {
         }).start();
     }
 
-    public static void fetchProductionReportByName(String pondName, Callback callback) {
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_report.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-
-                String postData = "name=" + URLEncoder.encode(pondName, "UTF-8");
-                OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
-                os.flush();
-                os.close();
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder result = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    result.append(line);
-                }
-                reader.close();
-
-                callback.onSuccess(result.toString());
-
-            } catch (Exception e) {
-                callback.onError(e.getMessage());
-            }
-        }).start();
-    }
-
     public static void savePondHistoryWithPDF(PondModel pond, String action, File pdfFile, Callback callback) {
         new Thread(() -> {
             String boundary = "----PondBoundary" + System.currentTimeMillis();
@@ -280,7 +251,6 @@ public class PondSyncManager {
         }).start();
     }
 
-
     public static void updatePondDetails(PondModel pond, Callback callback) {
         new Thread(() -> {
             try {
@@ -331,17 +301,19 @@ public class PondSyncManager {
         }).start();
     }
 
-    public static void fetchPondReportById(String pondId, Callback callback) {
+    public static void fetchPondReportData(String pondName, Callback callback) {
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/get_pond_report.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
 
-                String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8");
+                String data = "name=" + URLEncoder.encode(pondName, "UTF-8");
                 OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
+                os.write(data.getBytes());
                 os.flush();
                 os.close();
 
@@ -356,7 +328,7 @@ public class PondSyncManager {
 
                 callback.onSuccess(result.toString());
             } catch (Exception e) {
-                callback.onError(e.getMessage());
+                callback.onError("Exception: " + e.getMessage());
             }
         }).start();
     }
@@ -375,6 +347,7 @@ public class PondSyncManager {
 
                 DataOutputStream request = new DataOutputStream(conn.getOutputStream());
 
+                // --- Form fields ---
                 writeFormField(request, "pond_id", pond.getId(), boundary);
                 writeFormField(request, "name", pond.getName(), boundary);
 
@@ -384,14 +357,17 @@ public class PondSyncManager {
 
                 writeFormField(request, "pdf_path", pdfPath, boundary);
 
+                // --- File upload ---
                 if (pdfFile != null && pdfFile.exists()) {
                     writeFileField(request, "pdf_file", pdfFile, boundary);
                 }
 
+                // --- End boundary ---
                 request.writeBytes("--" + boundary + "--" + LINE_FEED);
                 request.flush();
                 request.close();
 
+                // --- Read server response ---
                 int responseCode = conn.getResponseCode();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(
                         responseCode >= 200 && responseCode < 300 ? conn.getInputStream() : conn.getErrorStream()
@@ -402,21 +378,44 @@ public class PondSyncManager {
                 reader.close();
 
                 String resp = response.toString().trim();
-                Log.d("SetInactivePond", "Response: " + resp);
+                Log.d("SetInactivePond", "Server response: " + resp);
 
-                if (resp.equalsIgnoreCase("success")) {
-                    runOnUiThreadSafe(() -> callback.onSuccess("Pond set to INACTIVE"));
+                if (resp.startsWith("\uFEFF")) {
+                    resp = resp.substring(1);
+                }
+
+                JSONObject json;
+                try {
+                    json = new JSONObject(resp);
+                } catch (JSONException ex) {
+                    // Try to recover if PHP adds text before JSON
+                    int start = resp.indexOf('{');
+                    int end = resp.lastIndexOf('}');
+                    if (start >= 0 && end >= 0) {
+                        String cleanJson = resp.substring(start, end + 1);
+                        json = new JSONObject(cleanJson);
+                    } else {
+                        throw ex;
+                    }
+                }
+
+                boolean success = json.optBoolean("success", false);
+                String message = json.optString("message", "Unknown response");
+
+                if (success) {
+                    runOnUiThreadSafe(() -> callback.onSuccess(message));
                 } else {
-                    runOnUiThreadSafe(() -> callback.onError("Error: " + resp));
+                    runOnUiThreadSafe(() -> callback.onError("Error: " + message));
                 }
 
                 conn.disconnect();
             } catch (Exception e) {
-                runOnUiThreadSafe(() -> callback.onError("Exception: " + e.getMessage()));
+                runOnUiThreadSafe(() ->
+                        callback.onError("Exception: " + e.getMessage())
+                );
             }
         }).start();
     }
-
 
     public static void fetchPondReport(String pondId, Callback callback) {
         new Thread(() -> {

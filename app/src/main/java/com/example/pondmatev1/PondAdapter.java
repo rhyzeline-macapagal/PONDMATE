@@ -128,70 +128,89 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     private void setPondInactive(ViewHolder holder, PondModel pond) {
         Context context = holder.itemView.getContext();
 
-        new androidx.appcompat.app.AlertDialog.Builder(context)
+        new AlertDialog.Builder(context)
                 .setTitle("Set Pond as Inactive")
                 .setMessage("Are you sure you want to mark \"" + pond.getName() + "\" as INACTIVE?\n\n" +
                         "It will be removed from the active list and moved to Pond History.")
                 .setPositiveButton("Yes", (dialog, which) -> {
-                    try {
-                        // ✅ Create a minimal JSON object to pass to PDF generator
-                        JSONObject json = new JSONObject();
-                        json.put("pond_id", pond.getId());
-                        json.put("name", pond.getName());
-                        json.put("breed", pond.getBreed());
-                        json.put("fish_count", pond.getFishCount());
-                        json.put("cost_per_fish", pond.getCostPerFish());
-                        json.put("date_started", pond.getDateStarted());
-                        json.put("date_harvest", pond.getDateHarvest());
-                        json.put("action", "INACTIVE");
 
-                        // ✅ Generate the same PDF but with INACTIVE watermark/indicator
-                        File pdfFile = PondPDFGenerator.generatePDF(context, json, pond.getId());
+                    // 🟢 Step 1: Fetch full report data first
+                    PondSyncManager.fetchPondReportData(pond.getName(), new PondSyncManager.Callback() {
+                        @Override
+                        public void onSuccess(Object response) {
+                            ((Activity) context).runOnUiThread(() -> {
+                                try {
+                                    String raw = String.valueOf(response);
+                                    JSONObject json = new JSONObject(raw);
 
-                        if (pdfFile != null && pdfFile.exists()) {
-                            // ✅ Upload the INACTIVE PDF and remove from list
-                            PondSyncManager.setPondInactive(pond, pdfFile, new PondSyncManager.Callback() {
-                                @Override
-                                public void onSuccess(Object resp) {
-                                    ((Activity) context).runOnUiThread(() -> {
-                                        Toast.makeText(context, "Pond set as INACTIVE", Toast.LENGTH_SHORT).show();
+                                    // Add "INACTIVE" marker for PDF title/watermark
+                                    json.put("action", "INACTIVE");
 
-                                        // ✅ Remove from active pond list
-                                        int position = holder.getAdapterPosition();
-                                        if (position >= 0 && position < pondList.size()) {
-                                            pondList.remove(position);
-                                            notifyItemRemoved(position);
-                                        }
+                                    // Ensure pond object exists inside JSON
+                                    if (!json.has("pond") || json.optJSONObject("pond") == null) {
+                                        JSONObject pondObj = new JSONObject();
+                                        pondObj.put("id", pond.getId());
+                                        pondObj.put("name", pond.getName());
+                                        json.put("pond", pondObj);
+                                    }
 
-                                        if (context instanceof PondDashboardActivity) {
-                                            ((PondDashboardActivity) context).loadHistory(null);
-                                        }
+                                    // 🟢 Step 2: Generate full PDF from JSON
+                                    File pdfFile = PondPDFGenerator.generatePDF(context, json, pond.getId());
 
-                                        // ✅ If parent listens for deletions, trigger that too
-                                        if (deleteListener != null) {
-                                            deleteListener.onPondDeleteRequest(pond, position);
-                                        }
-                                    });
-                                }
+                                    if (pdfFile != null && pdfFile.exists()) {
+                                        // 🟢 Step 3: Upload & mark as inactive
+                                        PondSyncManager.setPondInactive(pond, pdfFile, new PondSyncManager.Callback() {
+                                            @Override
+                                            public void onSuccess(Object resp) {
+                                                ((Activity) context).runOnUiThread(() -> {
+                                                    Toast.makeText(context, "Pond set as INACTIVE", Toast.LENGTH_SHORT).show();
 
-                                @Override
-                                public void onError(String error) {
-                                    ((Activity) context).runOnUiThread(() ->
-                                            Toast.makeText(context, "Error: " + error, Toast.LENGTH_SHORT).show()
-                                    );
+                                                    int position = holder.getAdapterPosition();
+                                                    if (position >= 0 && position < pondList.size()) {
+                                                        pondList.remove(position);
+                                                        notifyItemRemoved(position);
+                                                    }
+
+                                                    if (context instanceof PondDashboardActivity) {
+                                                        ((PondDashboardActivity) context).loadHistory(null);
+                                                    }
+
+                                                    if (deleteListener != null) {
+                                                        deleteListener.onPondDeleteRequest(pond, position);
+                                                    }
+                                                });
+                                            }
+
+                                            @Override
+                                            public void onError(String error) {
+                                                ((Activity) context).runOnUiThread(() ->
+                                                        Toast.makeText(context, "Error uploading PDF: " + error, Toast.LENGTH_SHORT).show()
+                                                );
+                                            }
+                                        });
+                                    } else {
+                                        Toast.makeText(context, "Failed to generate report PDF", Toast.LENGTH_SHORT).show();
+                                    }
+
+                                } catch (Exception e) {
+                                    Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                                 }
                             });
-                        } else {
-                            Toast.makeText(context, "Failed to generate PDF", Toast.LENGTH_SHORT).show();
                         }
 
-                    } catch (Exception e) {
-                        Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
+                        @Override
+                        public void onError(String error) {
+                            ((Activity) context).runOnUiThread(() ->
+                                    Toast.makeText(context, "Error fetching data: " + error, Toast.LENGTH_SHORT).show()
+                            );
+                        }
+                    });
+
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
 
     private File getExistingPdfForPond(String pondId) {
         // Search both cacheDir and filesDir/pond_pdfs for matching files

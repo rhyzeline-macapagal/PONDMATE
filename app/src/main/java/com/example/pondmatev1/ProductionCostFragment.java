@@ -1,5 +1,6 @@
 package com.example.pondmatev1;
 
+import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -111,8 +112,6 @@ public class ProductionCostFragment extends Fragment {
 
         }
 
-
-
         loadMaintenanceTotal();
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
@@ -137,7 +136,7 @@ public class ProductionCostFragment extends Fragment {
                     return;
                 }
 
-                PondSyncManager.fetchPondReportById(pondId, new PondSyncManager.Callback() {
+                PondSyncManager.fetchPondReportData(pondNameLocal, new PondSyncManager.Callback() {
                     @Override
                     public void onSuccess(Object response) {
                         new Handler(Looper.getMainLooper()).post(() -> {
@@ -334,9 +333,6 @@ public class ProductionCostFragment extends Fragment {
         }).start();
     }
 
-
-
-
     private void loadSalarySummary() {
         new Thread(() -> {
             try {
@@ -349,7 +345,9 @@ public class ProductionCostFragment extends Fragment {
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                try (OutputStream os = conn.getOutputStream()) { os.write("".getBytes()); }
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write("".getBytes());
+                }
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
                     String line = reader.readLine();
                     Log.d("SALARY_DEBUG", "Overall salary: " + line);
@@ -362,7 +360,9 @@ public class ProductionCostFragment extends Fragment {
                 pondConn.setRequestMethod("POST");
                 pondConn.setDoOutput(true);
                 pondConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                try (OutputStream os = pondConn.getOutputStream()) { os.write("".getBytes()); }
+                try (OutputStream os = pondConn.getOutputStream()) {
+                    os.write("".getBytes());
+                }
                 try (BufferedReader pondReader = new BufferedReader(new InputStreamReader(pondConn.getInputStream()))) {
                     String line = pondReader.readLine();
                     Log.d("SALARY_DEBUG", "Pond count: " + line);
@@ -374,21 +374,40 @@ public class ProductionCostFragment extends Fragment {
 
                 double salaryPerPond = pondCount > 0 ? overallSalary / pondCount : 0;
 
-                requireActivity().runOnUiThread(() -> {
-                    this.salaryPerPond = salaryPerPond; // save to class-level variable
-                    tvSummarySalary.setText("₱" + formatPrice(salaryPerPond));
-                    updateTotalCost(currentBreed, currentFishCount);
-                });
+                // ✅ SAFETY CHECK: Fragment must be attached
+                if (!isAdded()) return;
+                Activity activity = getActivity();
+                if (activity == null || activity.isFinishing()) return;
 
+                activity.runOnUiThread(() -> {
+                    try {
+                        this.salaryPerPond = salaryPerPond; // save to class-level variable
+                        if (tvSummarySalary != null) {
+                            tvSummarySalary.setText("₱" + formatPrice(salaryPerPond));
+                        }
+                        updateTotalCost(currentBreed, currentFishCount);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
 
             } catch (Exception e) {
                 e.printStackTrace();
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Failed to load salary per pond", Toast.LENGTH_SHORT).show()
-                );
+
+                if (!isAdded()) return;
+                Activity activity = getActivity();
+                if (activity == null || activity.isFinishing()) return;
+
+                activity.runOnUiThread(() -> {
+                    Context context = getContext();
+                    if (context != null) {
+                        Toast.makeText(context, "Failed to load salary per pond", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         }).start();
     }
+
 
     private void updateTotalCost() {
         updateTotalCost(currentBreed, currentFishCount);

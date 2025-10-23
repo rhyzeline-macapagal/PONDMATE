@@ -55,8 +55,7 @@ public class PondPDFGenerator {
             writer.setPageEvent(new BorderAndWatermarkEvent(action));
             document.open();
 
-            // 🔴 INACTIVE or 🔵 REUSED Banner
-            if (action.equals("INACTIVE") || action.equals("REUSED")) {
+            if (action.equals("INACTIVE")) {
                 BaseColor bannerColor = action.equals("INACTIVE") ? new BaseColor(220, 53, 69) : new BaseColor(0, 123, 255);
                 Font bannerFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, BaseColor.WHITE);
 
@@ -271,7 +270,7 @@ public class PondPDFGenerator {
             canvas.stroke();
 
             // Watermark
-            if (action.equals("INACTIVE") || action.equals("REUSED")) {
+            if (action.equals("INACTIVE")) {
                 Font watermarkFont = new Font(Font.FontFamily.HELVETICA, 60, Font.BOLD, new BaseColor(200, 200, 200, 70));
                 Phrase watermark = new Phrase(action + " POND", watermarkFont);
                 ColumnText.showTextAligned(canvas, Element.ALIGN_CENTER, watermark,
