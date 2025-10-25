@@ -3,13 +3,16 @@ package com.example.pondmatev1;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,7 +38,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
     private ArrayList<CaretakerModel> caretakers = new ArrayList<>();
     private AlertDialog loadingDialog;
 
-    private TextView tvTotalSalary, tvOverallSalary;
+    private TextView tvOverallSalary;
 
     private static final String BASE_URL = "https://pondmate.alwaysdata.net/";
 
@@ -45,7 +48,6 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         setContentView(R.layout.activity_caretaker_dashboard);
         // ✅ Correct mapping
         tvOverallSalary = findViewById(R.id.tvTotalSalary);   // example id: tvOverallSalary
-        tvTotalSalary   = findViewById(R.id.tvSalaryPerPond);
 
         findViewById(R.id.btnAddCaretaker).setOnClickListener(v -> showAddCaretakerDialog());
 
@@ -78,8 +80,6 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         fetchCaretakers();
     }
 
-
-
     // ------------------ ADD CARETAKER ------------------
     private void showAddCaretakerDialog() {
         Dialog dialog = new Dialog(this);
@@ -96,37 +96,164 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         TextView closeDialog = dialog.findViewById(R.id.closeDialog);
         closeDialog.setOnClickListener(v -> dialog.dismiss());
 
+        // ✅ Replace Spinner with Button to trigger multi-select
+        Button btnSelectPonds = dialog.findViewById(R.id.btnSelectPonds);
+        TextView selectedPondsLabel = dialog.findViewById(R.id.tvSelectedPonds); // Add this in your XML
+
+        ArrayList<String> pondNames = new ArrayList<>();
+        ArrayList<Integer> pondIds = new ArrayList<>();
+        ArrayList<Integer> selectedPondIds = new ArrayList<>();
+
+        // 🟢 Fetch active ponds
+        new Thread(() -> {
+            try {
+                URL url = new URL(BASE_URL + "get_active_ponds.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) response.append(line);
+                in.close();
+
+                JSONArray ponds = new JSONArray(response.toString());
+                pondNames.clear();
+                pondIds.clear();
+
+                for (int i = 0; i < ponds.length(); i++) {
+                    JSONObject obj = ponds.getJSONObject(i);
+                    pondNames.add(obj.getString("name"));
+                    pondIds.add(obj.getInt("id"));
+                }
+
+                runOnUiThread(() -> {
+                    btnSelectPonds.setEnabled(true);
+
+                    btnSelectPonds.setOnClickListener(v -> {
+                        boolean[] checkedItems = new boolean[pondNames.size()];
+
+                        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                        builder.setTitle("Select Ponds");
+                        builder.setMultiChoiceItems(pondNames.toArray(new String[0]), checkedItems,
+                                (dialog1, which, isChecked) -> {
+                                    int pondId = pondIds.get(which);
+                                    if (isChecked) {
+                                        selectedPondIds.add(pondId);
+                                    } else {
+                                        selectedPondIds.remove(Integer.valueOf(pondId));
+                                    }
+                                });
+                        builder.setPositiveButton("OK", (d, w) -> {
+                            if (selectedPondIds.isEmpty()) {
+                                selectedPondsLabel.setText("No ponds selected");
+                            } else {
+                                // Join selected names for display
+                                StringBuilder names = new StringBuilder();
+                                for (int i = 0; i < selectedPondIds.size(); i++) {
+                                    int id = selectedPondIds.get(i);
+                                    String name = pondNames.get(pondIds.indexOf(id));
+                                    names.append(name);
+                                    if (i < selectedPondIds.size() - 1) names.append(", ");
+                                }
+                                selectedPondsLabel.setText("Selected: " + names);
+                            }
+                        });
+                        builder.setNegativeButton("Cancel", null);
+                        builder.show();
+                    });
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() ->
+                        Toast.makeText(this, "Failed to fetch ponds: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                );
+            }
+        }).start();
+
         saveBtn.setOnClickListener(v -> {
             String u = username.getText().toString().trim();
             String p = password.getText().toString().trim();
             String n = fullName.getText().toString().trim();
             String a = address.getText().toString().trim();
-            String c = caretaker.getText().toString().trim();
             String s = salary.getText().toString().trim();
 
-            if (u.isEmpty() || p.isEmpty() || n.isEmpty() || a.isEmpty() || c.isEmpty()) {
-                Toast.makeText(this, "All fields are required!", Toast.LENGTH_SHORT).show();
+            if (u.isEmpty() || p.isEmpty() || n.isEmpty() || a.isEmpty() || s.isEmpty()) {
+                Toast.makeText(this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            double salaryValue = 0.0;
-            if (!s.isEmpty()) {
-                try {
-                    salaryValue = Double.parseDouble(s);
-                } catch (NumberFormatException e) {
-                    Toast.makeText(this, "Invalid salary", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+            double salaryValue;
+            try {
+                salaryValue = Double.parseDouble(s);
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Invalid salary value", Toast.LENGTH_SHORT).show();
+                return;
             }
 
-            final double finalSalary = salaryValue;
+            // ✅ Ensure at least one pond selected
+            if (selectedPondIds.isEmpty()) {
+                Toast.makeText(this, "Please select at least one pond", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Convert selected ponds to CSV
+            String joinedPondIds = TextUtils.join(",", selectedPondIds);
 
             new AlertDialog.Builder(this)
                     .setTitle("Confirm Save")
                     .setMessage("Are you sure you want to add this caretaker?")
                     .setPositiveButton("Yes", (dialogInterface, i) -> {
-                        registerCaretaker(u, p, n, a, c, finalSalary);
-                        dialog.dismiss();
+                        new Thread(() -> {
+                            try {
+                                URL url = new URL(BASE_URL + "register_user.php");
+                                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                                conn.setRequestMethod("POST");
+                                conn.setDoOutput(true);
+                                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                                String postData =
+                                        "username=" + URLEncoder.encode(u, "UTF-8") +
+                                                "&password=" + URLEncoder.encode(p, "UTF-8") +
+                                                "&fullname=" + URLEncoder.encode(n, "UTF-8") +
+                                                "&address=" + URLEncoder.encode(a, "UTF-8") +
+                                                "&usertype=" + URLEncoder.encode("Caretaker", "UTF-8") +
+                                                "&salary=" + URLEncoder.encode(String.valueOf(salaryValue), "UTF-8") +
+                                                "&pond_ids=" + URLEncoder.encode(joinedPondIds, "UTF-8");
+
+                                OutputStream os = conn.getOutputStream();
+                                os.write(postData.getBytes());
+                                os.flush();
+                                os.close();
+
+                                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                                StringBuilder response = new StringBuilder();
+                                String line;
+                                while ((line = in.readLine()) != null) response.append(line);
+                                in.close();
+
+                                String result = response.toString().trim();
+
+                                runOnUiThread(() -> {
+                                    if (result.contains("success")) {
+                                        Toast.makeText(this, "Caretaker added successfully!", Toast.LENGTH_SHORT).show();
+                                        dialog.dismiss();
+                                        fetchCaretakers(); // refresh list
+                                    } else if (result.contains("exists")) {
+                                        Toast.makeText(this, "Username already exists", Toast.LENGTH_SHORT).show();
+                                    } else {
+                                        Toast.makeText(this, "Error: " + result, Toast.LENGTH_LONG).show();
+                                    }
+                                });
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                runOnUiThread(() ->
+                                        Toast.makeText(this, "Request failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                                );
+                            }
+                        }).start();
                     })
                     .setNegativeButton("No", null)
                     .show();
@@ -135,7 +262,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void registerCaretaker(String u, String p, String n, String a, String c, double s) {
+    private void registerCaretaker(String u, String p, String n, String a, String c, double s, String pondIds) {
         new Thread(() -> {
             try {
                 URL url = new URL(BASE_URL + "register_user.php");
@@ -149,7 +276,8 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                         "&fullname=" + URLEncoder.encode(n, "UTF-8") +
                         "&address=" + URLEncoder.encode(a, "UTF-8") +
                         "&usertype=" + URLEncoder.encode(c, "UTF-8") +
-                        "&salary=" + URLEncoder.encode(String.valueOf(s), "UTF-8");
+                        "&salary=" + URLEncoder.encode(String.valueOf(s), "UTF-8") +
+                        "&pond_ids=" + URLEncoder.encode(pondIds, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
@@ -228,6 +356,11 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                                     salary
                             );
                             m.setId(obj.getInt("id"));
+
+                            if (obj.has("pond_count") && !obj.isNull("pond_count")) {
+                                m.setPondCount(obj.getInt("pond_count"));
+                            }
+
                             caretakers.add(m);
                         }
                         adapter.notifyDataSetChanged();
@@ -248,9 +381,6 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
             }
         }).start();
     }
-
-    // ------------------ SET SALARY TEXTVIEWS ------------------
-    // ------------------ SET SALARY TEXTVIEWS ------------------
     private void updateSalaryTextViews() {
         double overallSalary = 0.0;
         for (CaretakerModel caretaker : caretakers) {
@@ -262,29 +392,6 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
 
         // ✅ Add label for overall salary
         tvOverallSalary.setText("Overall Caretakers Salary: " + formatCurrency(overallSalary));
-
-        // Fetch pond count from DB and compute salary per pond
-        PondSyncManager.fetchTotalPonds(new PondSyncManager.Callback() {
-            @Override
-            public void onSuccess(Object result) {
-                int pondCount = (int) result;
-                double salaryPerPond = (pondCount > 0) ? (totalSalary / pondCount) : 0.0;
-
-                runOnUiThread(() -> {
-                    // ✅ Add label for salary per pond
-                    tvTotalSalary.setText("Salary per Pond: " + formatCurrency(salaryPerPond));
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                runOnUiThread(() -> {
-                    Toast.makeText(CaretakerDashboardActivity.this,
-                            "Error fetching ponds: " + error,
-                            Toast.LENGTH_SHORT).show();
-                });
-            }
-        });
     }
 
 

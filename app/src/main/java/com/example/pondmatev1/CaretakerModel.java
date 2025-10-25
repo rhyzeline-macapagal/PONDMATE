@@ -8,6 +8,7 @@ public class CaretakerModel {
     private String address;
     private String usertype;  // e.g. "Caretaker"
     private double salary;
+    private int pondCount;
 
     // Empty constructor
     public CaretakerModel() {
@@ -20,6 +21,8 @@ public class CaretakerModel {
         this.address = address;
         this.usertype = usertype;
         this.salary = salary;
+
+
     }
 
     // Getters
@@ -50,6 +53,7 @@ public class CaretakerModel {
     public String getUsertype() {
         return usertype;
     }
+    public int getPondCount() { return pondCount; }
 
     // Setters
     public void setId(int id) {
@@ -75,4 +79,6 @@ public class CaretakerModel {
     public void setUsertype(String usertype) {
         this.usertype = usertype;
     }
+
+    public void setPondCount(int pondCount) { this.pondCount = pondCount;}
 }
