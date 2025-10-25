@@ -247,6 +247,8 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     double mortalityRate = pond.has("mortality_rate") && !pond.isNull("mortality_rate") ? pond.optDouble("mortality_rate") : 0;
                     String imagePath = pond.optString("image_path", null);
                     String pdfPath = pond.optString("pdf_path", null);
+                    String caretakerName = pond.optString("caretaker_name", "Unassigned");
+                    Log.d("LOAD_PONDS", "Caretaker for pond " + name + " = " + caretakerName);
 
                     float actualROI = (float) pond.optDouble("actual_roi", 0);
                     float estimatedROI = (float) pond.optDouble("estimated_roi", 0);
@@ -266,11 +268,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                             null,              // String mode (placeholder)
                             actualROI,         // float actualROI
                             estimatedROI,      // float estimatedROI
-                            pdfPath,           // String pdfPath
-                            0.0                // double mortalityRate (placeholder)
+                            mortalityRate,     // ✅ double comes before
+                            pdfPath                 // double mortalityRate (placeholder)
                     );
 
                     pondModel.setPondArea(pondArea);
+                    pondModel.setCaretakerName(caretakerName);
                     pondModel.setMortalityRate(mortalityRate);
 
                     newPonds.add(pondModel);

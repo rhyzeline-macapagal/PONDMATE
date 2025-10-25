@@ -99,5 +99,15 @@
             android:ellipsize="end"
             android:maxLines="1" />
 
+        <TextView
+            android:id="@+id/tvPonds"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.2"
+            android:gravity="center"
+            android:textColor="#01082D"
+            android:textSize="14sp"/>
+
+
     </LinearLayout>
 </androidx.cardview.widget.CardView>

@@ -11,20 +11,17 @@ public class PondModel {
     private double costPerFish;
     private String dateStarted;
     private String dateHarvest;
+    private String dateStocking;
+    private double pondArea;
     private String imagePath;
     private String mode;
     private String extraData;
     private float actualROI;
     private float estimatedROI;
     private String pdfPath;
-
-
-
-
-    // 🆕 Added fields
-    private double pondArea;      // in square meters or hectares
-    private String dateStocking;  // date of stocking
-    private double mortalityRate; // percentage of fish that died
+    private double mortalityRate;
+    private String caretakers;
+    private String caretakerName;
 
     private List<ActivityItem> activities = new ArrayList<>();
 
@@ -42,11 +39,11 @@ public class PondModel {
         this.dateStocking = dateStocking;
         this.pondArea = pondArea;
         this.imagePath = imagePath;
-        this.mode = mode;
+        this.caretakerName = caretakerName; // ✅ Added
         this.actualROI = actualROI;
         this.estimatedROI = estimatedROI;
+        this.mortalityRate = mortalityRate;
         this.pdfPath = pdfPath;
-        this.mortalityRate = mortalityRate; 
     }
 
 
@@ -68,6 +65,12 @@ public class PondModel {
 
 
     // --- Getters and Setters ---
+    public String getCaretakerName() { return caretakerName; }
+    public void setCaretakerName(String caretakerName) { this.caretakerName = caretakerName; }
+
+    public String getCaretakers() { return caretakers; }
+    public void setCaretakers(String caretakers) { this.caretakers = caretakers; }
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

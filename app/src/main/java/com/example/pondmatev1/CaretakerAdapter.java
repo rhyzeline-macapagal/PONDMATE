@@ -51,6 +51,7 @@ public class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.View
         holder.fullname.setText(model.getFullname());
         holder.address.setText(model.getAddress());
         holder.salary.setText("₱" + model.getSalary());
+        holder.ponds.setText(String.valueOf(model.getPondCount()));
 
         holder.edit.setOnClickListener(v -> listener.onEdit(model));
         holder.delete.setOnClickListener(v -> listener.onDelete(model));
@@ -68,7 +69,7 @@ public class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.View
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView username, password, fullname, address, salary;
+        TextView username, password, fullname, address, salary, ponds; ;
         ImageView edit, delete;
 
         public ViewHolder(@NonNull View itemView) {
@@ -78,6 +79,7 @@ public class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.View
             fullname = itemView.findViewById(R.id.tvFullname);
             address = itemView.findViewById(R.id.tvAddress);
             salary = itemView.findViewById(R.id.tvSalary);
+            ponds = itemView.findViewById(R.id.tvPonds);
             edit = itemView.findViewById(R.id.btnEdit);
             delete = itemView.findViewById(R.id.btnDelete);
         }

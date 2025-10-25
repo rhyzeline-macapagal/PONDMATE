@@ -206,15 +206,16 @@ public class MainActivity extends AppCompatActivity {
                     getIntent().getDoubleExtra("cost_per_fish", 0.0),
                     getIntent().getStringExtra("date_started"),
                     getIntent().getStringExtra("date_harvest"),
-                    getIntent().getStringExtra("date_stocking"), // ✅ pass dateStocking
-                    getIntent().getDoubleExtra("pond_area", 0.0), // ✅ pass pondArea
+                    getIntent().getStringExtra("date_stocking"),
+                    getIntent().getDoubleExtra("pond_area", 0.0),
                     getIntent().getStringExtra("image_path"),
-                    null,
-                    0f,
-                    0f,
-                    null,
-                    0.0
+                    getIntent().getStringExtra("caretaker_name"), //
+                    0f, // actual ROI
+                    0f, // estimated ROI
+                    0.0, // mortality rate
+                    getIntent().getStringExtra("pdf_path") //
             );
+            pond.setCaretakerName(getIntent().getStringExtra("caretaker_name"));
             openPondInfoFragment(pond);
         }
 

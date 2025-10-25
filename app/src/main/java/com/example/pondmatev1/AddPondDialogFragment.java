@@ -180,8 +180,8 @@ public class AddPondDialogFragment extends DialogFragment {
                 null,                  // mode
                 0f,                    // actualROI
                 0f,                    // estimatedROI
-                null,                  // pdfPath
-                0.0                    // mortalityRate
+                0.0,                // double mortalityRate  <--- must be a double, not null
+                null                      // mortalityRate
         );
 
         // ✅ Save to SharedPreferences immediately
