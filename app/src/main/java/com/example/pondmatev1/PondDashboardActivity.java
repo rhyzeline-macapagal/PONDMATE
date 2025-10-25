@@ -24,6 +24,7 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.work.ExistingPeriodicWorkPolicy;
@@ -73,10 +74,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     private HistoryAdapter historyAdapter;
     private ArrayList<HistoryModel> historyList = new ArrayList<>();
     private static final String BASE_URL = "http://pondmate.alwaysdata.net/getPondHistory.php";
+    public static PondDashboardActivity instance;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        instance = this;
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_pond_dashboard);
 
@@ -122,9 +125,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 startActivity(new Intent(PondDashboardActivity.this, FarmgatePriceActivity.class));
                 dialog.dismiss();
             });
-
-
-
             // Show dialog
             dialog.show();
         });
@@ -408,7 +408,10 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
     public void loadHistory(String pondId) {
         new Thread(() -> {
             try {
-                String urlStr = "https://pondmate.alwaysdata.net/getPondHistory.php?pond_id=" + pondId;
+                String urlStr = "https://pondmate.alwaysdata.net/getPondHistory.php";
+                if (pondId != null && !pondId.isEmpty()) {
+                    urlStr += "?pond_id=" + pondId;
+                }
                 URL url = new URL(urlStr);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
@@ -436,6 +439,9 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                         String action = obj.optString("action", "");
                         String date = obj.optString("created_at", "");
                         String pdfPath = obj.optString("pdf_path", "");
+                        if (!pdfPath.isEmpty() && !pdfPath.startsWith("http")) {
+                            pdfPath = "https://pondmate.alwaysdata.net/" + (pdfPath.startsWith("/") ? pdfPath.substring(1) : pdfPath);
+                        }
                         newHistory.add(new HistoryModel(historypondId, pondName, action, date, pdfPath));
                     }
 
@@ -525,6 +531,56 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         }
     }
 
+    public void generateInactivePondReport(String pondId, String pondName) {
+        PondSyncManager.fetchPondReportData (pondName, new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object response) {
+                runOnUiThread(() -> {
+                    try {
+                        String raw = String.valueOf(response);
+                        JSONObject json = new JSONObject(raw);
+
+                        // Mark it as INACTIVE for watermark/title
+                        json.put("action", "INACTIVE");
+
+                        // Ensure pond object exists
+                        if (!json.has("pond") || json.optJSONObject("pond") == null) {
+                            JSONObject pondObj = new JSONObject();
+                            pondObj.put("id", pondId);
+                            pondObj.put("name", pondName);
+                            json.put("pond", pondObj);
+                        }
+
+                        // Use the same generator used in Production Cost Fragment
+                        File pdfFile = PondPDFGenerator.generatePDF(PondDashboardActivity.this, json, pondId);
+
+                        if (pdfFile != null && pdfFile.exists()) {
+                            previewPDF(pdfFile);
+                            Toast.makeText(PondDashboardActivity.this,
+                                    "Inactive pond report generated for " + pondName, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(PondDashboardActivity.this,
+                                    "Failed to generate report", Toast.LENGTH_SHORT).show();
+                        }
+
+                    } catch (Exception e) {
+                        Toast.makeText(PondDashboardActivity.this,
+                                "Error generating report: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                runOnUiThread(() ->
+                        Toast.makeText(PondDashboardActivity.this,
+                                "Server error: " + error,
+                                Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
 
     private void saveROIsToServer() {
         List<Map<String, Object>> pondsToSend = new ArrayList<>();
@@ -568,6 +624,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         }).start();
     }
 
+    public static void refreshHistoryNow() {
+        if (instance != null) {
+            instance.runOnUiThread(() -> instance.loadHistory(""));
+        }
+    }
+
     private void schedulePendingActivityNotifications() {
         for (PondModel pond : pondList) {
             if ("ADD_BUTTON".equals(pond.getMode())) continue; // skip the ADD button
@@ -603,6 +665,19 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
             );
         }
     }
+
+    private void previewPDF(File pdfFile) {
+        try {
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".provider", pdfFile);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, "No PDF viewer found.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
     private void scheduleFeedingNotifications(PondModel pond) {
         if ("ADD_BUTTON".equals(pond.getMode())) return;
