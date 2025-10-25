@@ -22,6 +22,9 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.util.ArrayList;
+import android.content.SharedPreferences;
+import com.google.gson.Gson;
+
 
 public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
 
@@ -110,6 +113,9 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         }
 
         holder.itemView.setOnClickListener(v -> {
+            SharedPreferences prefs = context.getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+            prefs.edit().putString("selected_pond", new Gson().toJson(pond)).apply();
+
             Intent intent = new Intent(context, MainActivity.class);
             intent.putExtra("pond_id", pond.getId());
             intent.putExtra("pond_name", pond.getName());
@@ -120,6 +126,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             intent.putExtra("date_harvest", pond.getDateHarvest());
             intent.putExtra("date_stocking", pond.getDateStocking());
             intent.putExtra("pond_area", pond.getPondArea());
+            intent.putExtra("caretaker_name", pond.getCaretakerName());
 
             context.startActivity(intent);
             if (context instanceof Activity) {

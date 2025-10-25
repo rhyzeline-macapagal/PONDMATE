@@ -20,7 +20,7 @@ import java.util.Locale;
 
 public class PondInfoFragment extends Fragment {
 
-    private TextView tvPondName, tvBreed, tvFishCount, tvCostPerFish, tvDateStarted, tvHarvestDate;
+    private TextView tvPondName, tvBreed, tvFishCount, tvCostPerFish, tvDateStarted, tvHarvestDate, tvCaretaker;
     private TextView tvArea, tvDateStocking, tvMortalityRate;
     private Button btnEdit;
     private PondModel pond;
@@ -48,6 +48,7 @@ public class PondInfoFragment extends Fragment {
         tvDateStocking = view.findViewById(R.id.tvDateStocking);
         tvMortalityRate = view.findViewById(R.id.tvMortalityRate);
         btnEdit = view.findViewById(R.id.btnEditPond);
+        tvCaretaker = view.findViewById(R.id.tvCaretaker);
 
         loadPondData();
         setupEditButton();
@@ -67,6 +68,7 @@ public class PondInfoFragment extends Fragment {
         // --- Basic info ---
         tvPondName.setText(notEmpty(pond.getName()));
         tvBreed.setText(notEmpty(pond.getBreed()));
+        tvCaretaker.setText("Caretaker: " + notEmpty(pond.getCaretakerName()));
 
         tvFishCount.setText(pond.getFishCount() > 0
                 ? String.valueOf(pond.getFishCount())
@@ -100,8 +102,6 @@ public class PondInfoFragment extends Fragment {
             tvMortalityRate.setText("Not yet added");
         }
     }
-
-
 
     private void setupEditButton() {
         String userType = new SessionManager(requireContext()).getUsertype();
