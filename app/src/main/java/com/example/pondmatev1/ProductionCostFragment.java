@@ -24,6 +24,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -37,6 +38,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 
@@ -109,6 +111,10 @@ public class ProductionCostFragment extends Fragment {
             pondName = pond.getName();
             currentBreed = pond.getBreed();
             currentFishCount = pond.getFishCount();
+            handleFingerlingVisibility(view, pond);
+            setupStockFingerlingsButton(view, pond);
+            handleFingerlingStockedStatus(view, pond);
+
 
         }
 
@@ -285,6 +291,133 @@ public class ProductionCostFragment extends Fragment {
             }
         }
     }
+
+    private void setupStockFingerlingsButton(View view, PondModel pond) {
+        Button btnStockFingerlings = view.findViewById(R.id.btnStockFingerlings);
+
+        String stockingDate = pond.getDateStocking();
+
+        if (stockingDate != null && !stockingDate.trim().isEmpty() && !stockingDate.equalsIgnoreCase("null")) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date today = sdf.parse(sdf.format(new Date())); // current date
+                Date pondStockingDate = sdf.parse(stockingDate); // stored date
+
+                if (!today.equals(pondStockingDate)) {
+                    // 🚫 Not stocking day → gray and disabled
+                    btnStockFingerlings.setVisibility(View.VISIBLE);
+                    btnStockFingerlings.setEnabled(false);
+                    btnStockFingerlings.setBackgroundTintList(
+                            ContextCompat.getColorStateList(requireContext(), android.R.color.darker_gray)
+                    );
+
+                    btnStockFingerlings.setOnClickListener(v ->
+                            Toast.makeText(requireContext(),
+                                    "Can't add fingerlings yet — finish pond preparation first.",
+                                    Toast.LENGTH_SHORT
+                            ).show()
+                    );
+
+                } else {
+                    // ✅ Stocking date is today → enable button (blue color)
+                    btnStockFingerlings.setVisibility(View.VISIBLE);
+                    btnStockFingerlings.setEnabled(true);
+                    btnStockFingerlings.setBackgroundTintList(
+                            ContextCompat.getColorStateList(requireContext(), R.color.blue_pond_btn)
+                    );
+
+                    // 🔹 Open your DialogFragment here
+                    btnStockFingerlings.setOnClickListener(v -> {
+                        StockFingerlingsDialog dialog = new StockFingerlingsDialog(pond);
+                        dialog.show(getParentFragmentManager(), "StockFingerlingsDialog");
+                    });
+                }
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+        } else {
+            btnStockFingerlings.setVisibility(View.GONE);
+        }
+
+    }
+
+
+
+
+
+    private void handleFingerlingVisibility(View view, PondModel pond) {
+        // Find the buttons and sections
+        Button btnAddProductionCost = view.findViewById(R.id.btnAddProductionCost);
+        Button btnStockFingerlings = view.findViewById(R.id.btnStockFingerlings);
+        Button btnGenerateReport = view.findViewById(R.id.btnGenerateReport);
+
+        // Identify the major layout sections (cards)
+        LinearLayout pondInfoSection = view.findViewById(R.id.pondInformationSection);
+        LinearLayout productionCostSummary = view.findViewById(R.id.productionCostSummarySection);
+        LinearLayout roiSection = view.findViewById(R.id.roiSection);
+
+        // ✅ Defensive null check
+        if (pond == null) {
+            btnAddProductionCost.setVisibility(View.VISIBLE);
+            btnStockFingerlings.setVisibility(View.VISIBLE);
+            btnGenerateReport.setVisibility(View.GONE);
+
+            pondInfoSection.setVisibility(View.GONE);
+            productionCostSummary.setVisibility(View.GONE);
+            roiSection.setVisibility(View.GONE);
+            return;
+        }
+
+        if (pond.getBreed() == null ||
+                pond.getBreed().trim().isEmpty() ||
+                pond.getBreed().equalsIgnoreCase("null")) {
+            // Show only Add Production Cost and Fingerlings buttons
+            btnAddProductionCost.setVisibility(View.VISIBLE);
+            btnStockFingerlings.setVisibility(View.VISIBLE);
+            btnGenerateReport.setVisibility(View.GONE);
+
+            // Hide all data sections
+            pondInfoSection.setVisibility(View.GONE);
+            productionCostSummary.setVisibility(View.GONE);
+            roiSection.setVisibility(View.GONE);
+
+            Toast.makeText(requireContext(), "Please stock fingerlings first before viewing production cost.", Toast.LENGTH_SHORT).show();
+        } else {
+            // If breed exists, show all content normally
+            btnAddProductionCost.setVisibility(View.VISIBLE);
+            btnStockFingerlings.setVisibility(View.VISIBLE);
+            btnGenerateReport.setVisibility(View.VISIBLE);
+
+            pondInfoSection.setVisibility(View.VISIBLE);
+            productionCostSummary.setVisibility(View.VISIBLE);
+            roiSection.setVisibility(View.VISIBLE);
+        }
+
+
+    }
+
+    private void handleFingerlingStockedStatus(View view, PondModel pond) {
+        Button btnStockFingerlings = view.findViewById(R.id.btnStockFingerlings);
+
+        if (pond != null && pond.getBreed() != null &&
+                !pond.getBreed().trim().isEmpty() &&
+                !pond.getBreed().equalsIgnoreCase("null")) {
+
+            // ✅ Disable the button
+            btnStockFingerlings.setEnabled(false);
+            btnStockFingerlings.setText("Stocking Done");
+            btnStockFingerlings.setBackgroundColor(Color.GRAY);
+
+            Toast.makeText(requireContext(), "Fingerlings already stocked for this pond.", Toast.LENGTH_SHORT).show();
+        } else {
+            // ✅ Enable if no fingerlings yet
+            btnStockFingerlings.setEnabled(true);
+            btnStockFingerlings.setText("Stock Fingerlings");
+            btnStockFingerlings.setBackgroundColor(getResources().getColor(R.color.grayblue)); // replace with your original color
+        }
+    }
+
+
 
     private void fetchTotalFeedCost(String pondId) {
         new Thread(() -> {

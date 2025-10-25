@@ -82,6 +82,8 @@ public class PondSyncManager {
         }).start();
     }
 
+
+
     // 🔹 Update existing feeding schedule
     public static void updateFeedingScheduleOnServer(String pondName,
                                                      String schedOne,
@@ -139,6 +141,60 @@ public class PondSyncManager {
         }).start();
     }
 
+
+    public static void stockFingerlingsOnServer(String pondName,
+                                                String species,
+                                                int fishCount,
+                                                double costPerFish,
+                                                String mortalityRate,
+                                                String harvestDate,
+                                                Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/stock_fingerlings.php"); // ✅ your PHP endpoint
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                Log.d("STOCK_FINGERLINGS", "Updating pond=" + pondName +
+                        ", species=" + species +
+                        ", fishCount=" + fishCount +
+                        ", costPerFish=" + costPerFish +
+                        ", mortalityRate=" + mortalityRate +
+                        ", harvestDate=" + harvestDate);
+
+                // 🔑 Prepare POST data
+                String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
+                        "&species=" + URLEncoder.encode(species, "UTF-8") +
+                        "&fish_count=" + fishCount +
+                        "&cost_per_fish=" + costPerFish +
+                        "&mortality_rate=" + URLEncoder.encode(mortalityRate, "UTF-8") +
+                        "&date_harvest=" + URLEncoder.encode(harvestDate, "UTF-8"); // ✅ removed stocking_date
+
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                    reader.close();
+
+                    runOnUiThreadSafe(() -> callback.onSuccess(response.toString()));
+                } else {
+                    runOnUiThreadSafe(() -> callback.onError("Server returned code: " + responseCode));
+                }
+
+            } catch (Exception e) {
+                runOnUiThreadSafe(() -> callback.onError(e.getMessage()));
+            }
+        }).start();
+    }
 
     public static void uploadMaintenanceToServer(String pond, String description, double cost, Callback callback) {
         new Thread(() -> {

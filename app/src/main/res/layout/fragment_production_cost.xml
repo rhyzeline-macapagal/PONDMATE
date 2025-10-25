@@ -16,7 +16,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="12dp"
+            android:layout_marginBottom="6dp"
             android:weightSum="2">
 
             <Button
@@ -26,7 +26,7 @@
                 android:layout_weight="1"
                 android:text="Expenses"
                 android:textAllCaps="false"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:backgroundTint="#00448D"
                 android:drawableLeft="@drawable/ic_add"
                 android:drawablePadding="5dp"
@@ -42,10 +42,10 @@
                 android:layout_weight="1"
                 android:text="Fingerlings"
                 android:textAllCaps="false"
-                android:textSize="14sp"
-                android:backgroundTint="#00448D"
+                android:textSize="12sp"
+                android:backgroundTint="#5B5B5B"
                 android:drawableLeft="@drawable/ic_add"
-                android:drawablePadding="8dp"
+                android:drawablePadding="5dp"
                 app:cornerRadius="6dp"
                 android:textColor="#FFFFFF"
                 android:elevation="2dp"
@@ -67,10 +67,10 @@
                 android:layout_weight="1"
                 android:text="Generate Report"
                 android:textAllCaps="false"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:backgroundTint="#00448D"
                 android:drawableLeft="@drawable/ic_pdf"
-                android:drawablePadding="8dp"
+                android:drawablePadding="5dp"
                 app:cornerRadius="6dp"
                 android:textColor="#FFFFFF"
                 android:elevation="2dp"
@@ -79,6 +79,7 @@
 
         <!-- Pond Information Card -->
         <LinearLayout
+            android:id="@+id/pondInformationSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -114,7 +115,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Fingerling Type"
+                        android:text="Species"
                         android:textColor="#424242"
                         android:textSize="12sp"
                         android:textStyle="bold"
@@ -142,7 +143,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="No. of Fingerlings"
+                        android:text="Total Stocks"
                         android:textColor="#424242"
                         android:textSize="12sp"
                         android:textStyle="bold"
@@ -179,7 +180,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Amount per Piece"
+                        android:text="Unit Cost"
                         android:textColor="#424242"
                         android:textSize="12sp"
                         android:textStyle="bold"
@@ -207,7 +208,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Total Fingerlings Cost"
+                        android:text="Total Cost"
                         android:textColor="#424242"
                         android:textSize="12sp"
                         android:textStyle="bold"
@@ -271,6 +272,7 @@
 
         <!-- Production Cost Summary Card -->
         <LinearLayout
+            android:id="@+id/productionCostSummarySection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -462,6 +464,7 @@
 
         <!-- ROI Card -->
         <LinearLayout
+            android:id="@+id/roiSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"

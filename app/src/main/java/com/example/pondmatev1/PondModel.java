@@ -39,14 +39,14 @@ public class PondModel {
         this.costPerFish = costPerFish;
         this.dateStarted = dateStarted;
         this.dateHarvest = dateHarvest;
-        this.dateStocking = dateStocking; // ✅ use parameter
-        this.pondArea = pondArea;         // ✅ use parameter
+        this.dateStocking = dateStocking;
+        this.pondArea = pondArea;
         this.imagePath = imagePath;
         this.mode = mode;
         this.actualROI = actualROI;
         this.estimatedROI = estimatedROI;
         this.pdfPath = pdfPath;
-        this.mortalityRate = mortalityRate; // ✅ use parameter
+        this.mortalityRate = mortalityRate; 
     }
 
 
