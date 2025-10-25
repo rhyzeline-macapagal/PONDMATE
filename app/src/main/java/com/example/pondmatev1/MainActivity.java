@@ -1,3 +1,4 @@
+
 package com.example.pondmatev1;
 
 import android.app.AlertDialog;
@@ -133,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(MainActivity.this, FarmgatePriceActivity.class));
                 dialog.dismiss();
             });
-            
+
 
 
             // Show dialog
@@ -199,22 +200,22 @@ public class MainActivity extends AppCompatActivity {
 
         if (getIntent() != null && getIntent().hasExtra("pond_id")) {
             PondModel pond = new PondModel(
-                    getIntent().getStringExtra("pond_id"),
-                    getIntent().getStringExtra("pond_name"),
-                    getIntent().getStringExtra("breed"),
-                    getIntent().getIntExtra("fish_count", 0),
-                    getIntent().getDoubleExtra("cost_per_fish", 0.0),
-                    getIntent().getStringExtra("date_started"),
-                    getIntent().getStringExtra("date_harvest"),
-                    getIntent().getStringExtra("date_stocking"),
-                    getIntent().getDoubleExtra("pond_area", 0.0),
-                    getIntent().getStringExtra("image_path"),
-                    getIntent().getStringExtra("caretaker_name"), //
-                    0f, // actual ROI
-                    0f, // estimated ROI
-                    0.0, // mortality rate
-                    getIntent().getStringExtra("pdf_path") //
-            );
+                                getIntent().getStringExtra("pond_id"),
+                                getIntent().getStringExtra("pond_name"),
+                                getIntent().getStringExtra("breed"),
+                                getIntent().getIntExtra("fish_count", 0),
+                                getIntent().getDoubleExtra("cost_per_fish", 0.0),
+                                getIntent().getStringExtra("date_started"),
+                                getIntent().getStringExtra("date_harvest"),
+                                getIntent().getStringExtra("date_stocking"),
+                                getIntent().getDoubleExtra("pond_area", 0.0),
+                                getIntent().getStringExtra("image_path"),
+                                getIntent().getStringExtra("caretaker_name"), //
+                                0f, // actual ROI
+                                0f, // estimated ROI
+                    getIntent().getStringExtra("pdf_path"), // mortality rate
+                    getIntent().getDoubleExtra("mortality_rate", 0.0)
+                        );
             pond.setCaretakerName(getIntent().getStringExtra("caretaker_name"));
             openPondInfoFragment(pond);
         }

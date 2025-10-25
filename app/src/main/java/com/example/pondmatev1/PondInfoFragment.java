@@ -49,7 +49,6 @@ public class PondInfoFragment extends Fragment {
         tvMortalityRate = view.findViewById(R.id.tvMortalityRate);
         btnEdit = view.findViewById(R.id.btnEditPond);
         tvCaretaker = view.findViewById(R.id.tvCaretaker);
-
         loadPondData();
         setupEditButton();
     }

@@ -268,8 +268,9 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                             null,              // String mode (placeholder)
                             actualROI,         // float actualROI
                             estimatedROI,      // float estimatedROI
-                            mortalityRate,     // ✅ double comes before
-                            pdfPath                 // double mortalityRate (placeholder)
+                            pdfPath,
+                            mortalityRate     // ✅ double comes before
+                                      // double mortalityRate (placeholder)
                     );
 
                     pondModel.setPondArea(pondArea);

@@ -412,8 +412,8 @@ public class ProductionCostFragment extends Fragment {
         } else {
             // ✅ Enable if no fingerlings yet
             btnStockFingerlings.setEnabled(true);
-            btnStockFingerlings.setText("Stock Fingerlings");
-            btnStockFingerlings.setBackgroundColor(getResources().getColor(R.color.grayblue)); // replace with your original color
+            btnStockFingerlings.setText("Fingerlings");
+            btnStockFingerlings.setBackgroundColor(getResources().getColor(R.color.blue_pond_btn)); // replace with your original color
         }
     }
 
@@ -450,10 +450,14 @@ public class ProductionCostFragment extends Fragment {
 
                         // Update UI on main thread
                         requireActivity().runOnUiThread(() -> {
-                            TextView tvSummaryFeeds = requireView().findViewById(R.id.tvSummaryFeeds);
-                            tvSummaryFeeds.setText("₱" + formatPrice(totalFeedCost));
-                            updateTotalCost(); // recalc total after feeds loaded
+                            View view = getView();
+                            if (view != null) {
+                                TextView tvSummaryFeeds = view.findViewById(R.id.tvSummaryFeeds);
+                                tvSummaryFeeds.setText("₱" + formatPrice(totalFeedCost));
+                                updateTotalCost(); // recalc total after feeds loaded
+                            }
                         });
+
                     }
                 } else {
                     Log.e("FeedCost", "Server returned: " + responseCode);
