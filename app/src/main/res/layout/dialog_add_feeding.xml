@@ -1,0 +1,557 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/rounded_dialog_bg"
+        android:minWidth="320dp"
+        android:maxWidth="400dp"
+        android:padding="8dp"
+        android:elevation="12dp">
+
+        <!-- Header Section with Close Button -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="FEEDING SCHEDULE"
+                android:textColor="#01082D"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:letterSpacing="0.02" />
+
+            <TextView
+                android:id="@+id/btnClose"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:text="✖"
+                android:textSize="16sp"
+                android:textColor="#000000"
+                android:layout_alignParentEnd="true"
+                android:gravity="center"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"/>
+        </RelativeLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical"
+            android:fadeScrollbars="true"
+            android:padding="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <!-- Pond Info Section -->
+                <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/rounded_card"
+                android:padding="16dp">
+
+                <!-- Pond Name (centered) -->
+                <TextView
+                    android:id="@+id/tvPondName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Pond A"
+                    android:textColor="#01082D"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:layout_marginBottom="4dp" />
+
+                <!-- Next Sampling (centered below Pond Name) -->
+                <TextView
+                    android:id="@+id/tvNextSampling"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Next Sampling: Oct 25"
+                    android:textColor="#666666"
+                    android:textSize="12sp"
+                    android:gravity="center" />
+
+                <!-- Days of Culture -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Days of Culture:"
+                        android:textColor="#01082D"
+                        android:textSize="14sp"
+                        android:gravity="start" />
+
+                    <TextView
+                        android:id="@+id/tvDaysOfCulture"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="45"
+                        android:textColor="#01082D"
+                        android:textSize="14sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+                <!-- Growth Stage -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Growth Stage:"
+                        android:textColor="#01082D"
+                        android:textSize="14sp"
+                        android:gravity="start" />
+
+                    <TextView
+                        android:id="@+id/tvGrowthStage"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Juvenile"
+                        android:textColor="#01082D"
+                        android:textSize="14sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+                <!-- Total Stocks -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Total Stocks:"
+                        android:textColor="#01082D"
+                        android:textSize="14sp"
+                        android:gravity="start" />
+
+                    <TextView
+                        android:id="@+id/tvTotalStocks"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="1,000"
+                        android:textColor="#01082D"
+                        android:textSize="14sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+                <!-- Mortality -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Mortality Rate:"
+                        android:textColor="#01082D"
+                        android:textSize="14sp"
+                        android:gravity="start" />
+
+                    <TextView
+                        android:id="@+id/tvMortality"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="3%"
+                        android:textColor="#01082D"
+                        android:textSize="14sp"
+                        android:gravity="end" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+                <!-- Feeding Schedule Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/rounded_card"
+                    android:padding="16dp"
+                    android:layout_marginTop="12dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Feeding Schedule"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#01082D"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <!-- First Feeding -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginEnd="8dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="First"
+                                android:textColor="#666666"
+                                android:textSize="12sp"
+                                android:layout_marginBottom="4dp" />
+
+                            <TextView
+                                android:id="@+id/timeoffeeding1"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/textbox_background"
+                                android:gravity="center"
+                                android:hint="00:00"
+                                android:padding="12dp"
+                                android:textColor="#01082D"
+                                android:textColorHint="#888888"
+                                android:textSize="14sp" />
+
+                            <Button
+                                android:id="@+id/btnselecttime1"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:backgroundTint="#00448D"
+                                android:text="Set"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+
+                        <!-- Second Feeding -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal"
+                            android:layout_marginStart="8dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="Second"
+                                android:textColor="#666666"
+                                android:textSize="12sp"
+                                android:layout_marginBottom="4dp" />
+
+                            <TextView
+                                android:id="@+id/timeoffeeding2"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/textbox_background"
+                                android:gravity="center"
+                                android:hint="00:00"
+                                android:padding="12dp"
+                                android:textColor="#01082D"
+                                android:textColorHint="#888888"
+                                android:textSize="14sp" />
+
+                            <Button
+                                android:id="@+id/btnselecttime2"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:backgroundTint="#00448D"
+                                android:text="Set"
+                                android:textColor="#FFFFFF"
+                                android:textSize="12sp"
+                                android:layout_marginTop="4dp" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+
+
+                <!-- Computations Section -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:background="@drawable/rounded_card"
+                    android:padding="16dp"
+                    android:layout_marginTop="12dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Feed Computations"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#01082D"
+                        android:layout_marginBottom="8dp"
+                        android:gravity="center" />
+
+                    <!-- ABW Section -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="ABW (Average Body Weight) = Total Sampled Weight ÷ No. of Samples"
+                        android:textColor="#555555"
+                        android:textSize="13sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Sampled Weight + Number of Samples Side by Side -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="2"
+                        android:layout_marginBottom="8dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_height="wrap_content">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Total Weight (g)"
+                                android:textColor="#01082D"
+                                android:gravity="center"
+                                android:textSize="13sp"
+                                android:layout_marginBottom="4dp" />
+
+                            <EditText
+                                android:id="@+id/etSampledWeight"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:hint="Enter weight"
+                                android:inputType="numberDecimal"
+                                android:gravity="center"
+                                android:textSize="12sp"
+                                android:background="@drawable/textbox_background"
+                                android:textColor="#01082D"
+                                android:textColorHint="#888888" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="No. of Samples"
+                                android:textColor="#01082D"
+                                android:textSize="13sp"
+                                android:gravity="center"
+                                android:layout_marginBottom="4dp" />
+
+                            <EditText
+                                android:id="@+id/etNumSamples"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:hint="Enter number"
+                                android:inputType="number"
+                                android:gravity="center"
+                                android:textSize="12sp"
+                                android:background="@drawable/textbox_background"
+                                android:textColor="#01082D"
+                                android:textColorHint="#888888" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- ABW Result Row (same style as input boxes) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:orientation="horizontal"
+                        android:background="@drawable/textbox_background"
+                        android:paddingHorizontal="12dp"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="ABW:"
+                            android:textColor="#01082D"
+                            android:textStyle="bold"
+                            android:textSize="14sp"
+                            android:gravity="start" />
+
+                        <TextView
+                            android:id="@+id/tvABWResult"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="0.00 g"
+                            android:textColor="#01082D"
+                            android:textStyle="bold"
+                            android:textSize="14sp"
+                            android:gravity="end" />
+                    </LinearLayout>
+
+                    <!-- DFR Section -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="DFR (Daily Feeding Ration) = ABW × Total Stocks × Feeding Rate × Survival Rate"
+                        android:textColor="#555555"
+                        android:textSize="13sp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <!-- Feeding Rate + Survival Rate Side by Side -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="2"
+                        android:layout_marginBottom="8dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_height="wrap_content">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Feeding Rate (%)"
+                                android:textColor="#01082D"
+                                android:gravity="center"
+                                android:textSize="13sp"
+                                android:layout_marginBottom="4dp" />
+
+                            <EditText
+                                android:id="@+id/etFeedingRate"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:hint="Enter rate"
+                                android:inputType="numberDecimal"
+                                android:gravity="center"
+                                android:textSize="12sp"
+                                android:background="@drawable/textbox_background"
+                                android:textColor="#01082D"
+                                android:textColorHint="#888888" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp">
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Survival Rate (%)"
+                                android:gravity="center"
+                                android:textColor="#01082D"
+                                android:textSize="13sp"
+                                android:layout_marginBottom="4dp" />
+
+                            <EditText
+                                android:id="@+id/etSurvivalRate"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:hint="Enter rate"
+                                android:inputType="numberDecimal"
+                                android:gravity="center"
+                                android:textSize="12sp"
+                                android:background="@drawable/textbox_background"
+                                android:textColor="#01082D"
+                                android:textColorHint="#888888" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- DFR Result Row (same design as inputs) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:orientation="horizontal"
+                        android:background="@drawable/textbox_background"
+                        android:paddingHorizontal="12dp"
+                        android:gravity="center_vertical">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="DFR:"
+                            android:textColor="#01082D"
+                            android:textStyle="bold"
+                            android:textSize="14sp"
+                            android:gravity="start" />
+
+                        <TextView
+                            android:id="@+id/tvDFRResult"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:text="0.00 g/day"
+                            android:textColor="#01082D"
+                            android:textStyle="bold"
+                            android:textSize="14sp"
+                            android:gravity="end" />
+                    </LinearLayout>
+
+                </LinearLayout>
+
+
+
+
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+</LinearLayout>

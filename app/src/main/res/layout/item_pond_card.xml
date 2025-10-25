@@ -44,6 +44,7 @@
             android:maxLines="2"
             android:ellipsize="end"
             android:lineSpacingExtra="2dp"/>
+
         <ImageView
             android:id="@+id/stopIcon"
             android:layout_width="24dp"

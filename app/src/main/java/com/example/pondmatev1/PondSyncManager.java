@@ -30,19 +30,20 @@ public class PondSyncManager {
                 conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
+                // Prepare POST data (tailored to your new pond fields)
                 String postData = "name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
-                        "&breed=" + URLEncoder.encode(pond.getBreed(), "UTF-8") +
-                        "&fish_count=" + pond.getFishCount() +
-                        "&cost=" + pond.getCostPerFish() +
-                        "&date_started=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
-                        "&date_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8") +
+                        "&area=" + URLEncoder.encode(String.valueOf(pond.getPondArea()), "UTF-8") +
+                        "&date_created=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
+                        "&stocking_date=" + URLEncoder.encode(pond.getDateStocking(), "UTF-8") +
                         "&image=" + URLEncoder.encode(imageBase64, "UTF-8");
 
+                // Send request
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush();
                 os.close();
 
+                // Read server response
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder sb = new StringBuilder();
                 String line;
@@ -51,16 +52,17 @@ public class PondSyncManager {
                 }
                 reader.close();
 
-                // Parse JSON
+                // Parse JSON response
                 String response = sb.toString();
                 JSONObject json = new JSONObject(response);
-                String status = json.getString("status");
-                String message = json.getString("message");
+                String status = json.optString("status", "error");
+                String message = json.optString("message", "Unknown error");
 
+                // Callback to main thread
                 if (callback != null) {
                     new Handler(Looper.getMainLooper()).post(() -> {
                         if ("success".equalsIgnoreCase(status)) {
-                            callback.onSuccess(response); // send full JSON
+                            callback.onSuccess(response);
                         } else {
                             callback.onError(message);
                         }
@@ -69,7 +71,8 @@ public class PondSyncManager {
 
             } catch (Exception e) {
                 if (callback != null) {
-                    new Handler(Looper.getMainLooper()).post(() -> callback.onError(e.getMessage()));
+                    new Handler(Looper.getMainLooper()).post(() ->
+                            callback.onError("Error: " + e.getMessage()));
                 }
             }
         }).start();

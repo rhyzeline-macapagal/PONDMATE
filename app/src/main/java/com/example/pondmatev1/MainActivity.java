@@ -197,10 +197,8 @@ public class MainActivity extends AppCompatActivity {
             return null;
         });
 
-        // ✅ If pond was passed via Intent
         if (getIntent() != null && getIntent().hasExtra("pond_id")) {
             PondModel pond = new PondModel(
-
                     getIntent().getStringExtra("pond_id"),
                     getIntent().getStringExtra("pond_name"),
                     getIntent().getStringExtra("breed"),
@@ -208,12 +206,18 @@ public class MainActivity extends AppCompatActivity {
                     getIntent().getDoubleExtra("cost_per_fish", 0.0),
                     getIntent().getStringExtra("date_started"),
                     getIntent().getStringExtra("date_harvest"),
+                    getIntent().getStringExtra("date_stocking"), // ✅ pass dateStocking
+                    getIntent().getDoubleExtra("pond_area", 0.0), // ✅ pass pondArea
+                    getIntent().getStringExtra("image_path"),
                     null,
                     0f,
-                    0f
+                    0f,
+                    null,
+                    0.0
             );
             openPondInfoFragment(pond);
         }
+
     }
 
     public void openPondInfoFragment(PondModel pond) {

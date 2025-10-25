@@ -33,7 +33,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Add Maintenance Cost"
+        android:text="Add Expenses"
         android:textStyle="bold"
         android:textSize="22sp"
         android:textColor="#01082D"
@@ -52,7 +52,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Maintenance Type"
+            android:text="Type of Expense"
             android:textColor="#01082D"
             android:textSize="14sp"
             android:textStyle="bold"
@@ -81,7 +81,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Specify if Other"
-            android:visibility="gone"
             android:background="@drawable/rounded_edittext"
             android:padding="12dp"
             android:layout_marginBottom="16dp"

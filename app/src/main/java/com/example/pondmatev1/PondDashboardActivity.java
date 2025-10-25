@@ -224,58 +224,69 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
 
                 JSONArray pondsArray = new JSONArray(response.toString());
                 ArrayList<PondModel> newPonds = new ArrayList<>();
-                if ("owner".equalsIgnoreCase(userType)) newPonds.add(new PondModel("ADD_BUTTON"));
+
+                // Add "ADD" button only for owners
+                if ("owner".equalsIgnoreCase(userType)) {
+                    newPonds.add(new PondModel("ADD_BUTTON"));
+                }
 
                 SharedPreferences activityPrefs = getSharedPreferences("ActivityPrefs", MODE_PRIVATE);
 
                 for (int i = 0; i < pondsArray.length(); i++) {
                     JSONObject pond = pondsArray.getJSONObject(i);
 
-                    String id = pond.getString("pond_id");
-                    String name = pond.getString("name");
-                    String breed = pond.getString("breed");
-                    int fishCount = pond.getInt("fish_count");
-                    double costPerFish = pond.getDouble("cost_per_fish");
-                    String dateStarted = pond.getString("date_started");
-                    String dateHarvest = pond.getString("date_harvest");
-                    String imagePath = pond.getString("image_path");
+                    String id = pond.optString("pond_id", "0");
+                    String name = pond.optString("name", "Not yet added");
+                    String breed = pond.optString("breed", "Not yet added");
+                    int fishCount = pond.has("fish_count") && !pond.isNull("fish_count") ? pond.optInt("fish_count") : 0;
+                    double costPerFish = pond.has("cost_per_fish") && !pond.isNull("cost_per_fish") ? pond.optDouble("cost_per_fish") : 0;
+                    String dateStarted = pond.optString("date_started", "Not yet added");
+                    String dateHarvest = pond.optString("date_harvest", "Not yet added");
+                    String dateStocking = pond.optString("date_stocking", "Not yet added");
+                    double pondArea = pond.has("pond_area") && !pond.isNull("pond_area") ? pond.optDouble("pond_area") : 0;
+                    double mortalityRate = pond.has("mortality_rate") && !pond.isNull("mortality_rate") ? pond.optDouble("mortality_rate") : 0;
+                    String imagePath = pond.optString("image_path", null);
+                    String pdfPath = pond.optString("pdf_path", null);
 
                     float actualROI = (float) pond.optDouble("actual_roi", 0);
                     float estimatedROI = (float) pond.optDouble("estimated_roi", 0);
 
-                    PondModel pondModel = new PondModel(id, name, breed, fishCount, costPerFish,
-                            dateStarted, dateHarvest, imagePath, actualROI, estimatedROI);
+                    // Create PondModel
+                    PondModel pondModel = new PondModel(
+                            id,                // String id
+                            name,              // String name
+                            breed,             // String breed
+                            fishCount,         // int fishCount
+                            costPerFish,       // double costPerFish
+                            dateStarted,       // String dateStarted
+                            dateHarvest,       // String dateHarvest
+                            dateStocking,              // String dateStocking (placeholder)
+                            0.0,               // double pondArea (placeholder)
+                            imagePath,         // String imagePath
+                            null,              // String mode (placeholder)
+                            actualROI,         // float actualROI
+                            estimatedROI,      // float estimatedROI
+                            pdfPath,           // String pdfPath
+                            0.0                // double mortalityRate (placeholder)
+                    );
 
-                    // Load activities for this pond
-                    Map<String, ?> allPrefs = activityPrefs.getAll();
-                    List<ActivityItem> pondActivities = new ArrayList<>();
-                    for (String key : allPrefs.keySet()) {
-                        if (key.startsWith(id + "_")) {
-                            String[] parts = key.split("_", 3);
-                            if (parts.length == 3) {
-                                String scheduledDate = parts[1];
-                                String activityName = parts[2];
-                                pondActivities.add(new ActivityItem(activityName, "Unknown", scheduledDate));
-                            }
-                        }
-                    }
-                    pondModel.setActivities(pondActivities);
+                    pondModel.setPondArea(pondArea);
+                    pondModel.setMortalityRate(mortalityRate);
+
                     newPonds.add(pondModel);
                 }
 
-                // ✅ Hide loading after everything is parsed
-                runOnUiThread(() -> {
 
+                // ✅ Update UI thread safely
+                runOnUiThread(() -> {
                     pondList.clear();
                     pondList.addAll(newPonds);
                     pondAdapter.notifyDataSetChanged();
                     renderChartData();
-
                 });
 
-                // ✅ Schedule notifications for each pond
+                // ✅ Schedule notifications for activities and feeding
                 schedulePendingActivityNotifications();
-
                 for (PondModel pond : pondList) {
                     scheduleFeedingNotifications(pond);
                 }
@@ -284,13 +295,12 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 Log.e("LOAD_PONDS", "Error: " + e.getMessage(), e);
                 runOnUiThread(this::hideLoadingDialog);
             } finally {
-                runOnUiThread(this::hideLoadingDialog); // ✅ always close
+                runOnUiThread(this::hideLoadingDialog); // always close
             }
         }).start();
-
     }
 
-    private void renderChartData() {
+        private void renderChartData() {
         Map<String, Float> roiMap = new LinkedHashMap<>();
         dateRangeMap.clear();
 

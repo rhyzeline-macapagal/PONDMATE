@@ -74,7 +74,7 @@
                     android:text="POND A"
                     android:textColor="#01082D"
                     android:inputType="text"
-                    android:textSize="18sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:background="@android:color/transparent"
                     android:minHeight="30dp"/>
@@ -108,7 +108,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Breed"
+                        android:text="Species"
                         android:textColor="#01082D"
                         android:textSize="14sp"
                         tools:ignore="HardcodedText" />
@@ -119,13 +119,14 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center"
+                    android:minHeight="30dp"
                     android:text="TILAPIA"
                     android:textColor="#01082D"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:minHeight="30dp"/>
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
+
 
         <!-- ✅ Grid 1X2 - Fish Count and Cost per Fish -->
         <LinearLayout
@@ -176,7 +177,7 @@
                     android:gravity="center"
                     android:text="1000"
                     android:textColor="#01082D"
-                    android:textSize="18sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:minHeight="30dp"/>
             </LinearLayout>
@@ -222,7 +223,7 @@
                     android:gravity="center"
                     android:text="₱4.50"
                     android:textColor="#01082D"
-                    android:textSize="18sp"
+                    android:textSize="14sp"
                     android:inputType="numberDecimal"
                     android:textStyle="bold"
                     android:background="@android:color/transparent"
@@ -230,52 +231,213 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ✅ Date Started - Full Width -->
+        <!-- ✅ Grid 1x2 - Pond Area and Mortality Rate -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
             android:layout_marginBottom="8dp"
-            android:background="@drawable/cardviewpi"
-            android:orientation="vertical"
-            android:padding="12dp">
+            android:weightSum="2">
 
+            <!-- 🌊 Pond Area -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/cardviewpi"
+                android:orientation="vertical"
+                android:padding="12dp">
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginEnd="8dp"
-                    android:src="@drawable/ic_startdate"
-                    app:tint="#01082D" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="8dp"
+                        android:src="@drawable/area"
+                        app:tint="#01082D" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Pond Area"
+                        android:textColor="#01082D"
+                        android:textSize="14sp" />
+                </LinearLayout>
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:id="@+id/tvPondArea"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Date Started"
+                    android:gravity="center"
+                    android:text="500 sq.m"
                     android:textColor="#01082D"
                     android:textSize="14sp"
-                    tools:ignore="HardcodedText" />
+                    android:textStyle="bold"
+                    android:minHeight="30dp" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/tvDateStarted"
-                android:layout_width="match_parent"
+            <!-- ☠️ Mortality Rate -->
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="Jan. 01, 2025"
-                android:textColor="#01082D"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:minHeight="30dp"/>
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/cardviewpi"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="8dp"
+                        android:src="@drawable/ic_percent"
+                        app:tint="#01082D" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Mortality Rate"
+                        android:textColor="#01082D"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvMortalityRate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="5%"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:minHeight="30dp" />
+            </LinearLayout>
         </LinearLayout>
 
+        <!-- ✅ Grid 1x2 - Date of Stocking and Date Created -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp"
+            android:weightSum="2">
+
+            <!-- 📅 Date of Stocking -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:background="@drawable/cardviewpi"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="8dp"
+                        android:src="@drawable/ic_calendar"
+                        app:tint="#01082D" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Date Created"
+                        android:textColor="#01082D"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvDateStarted"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="Jan. 15, 2025"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:minHeight="30dp" />
+            </LinearLayout>
+
+            <!-- 🗓️ Date Created -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/cardviewpi"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginEnd="8dp"
+                        android:src="@drawable/ic_calendar"
+                        app:tint="#01082D" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Stocking Date"
+                        android:textColor="#01082D"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvDateStocking"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="Dec. 01, 2024"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:minHeight="30dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+
+        <!-- ✅ Date Started - Full Width -->
+
         <!-- ✅ Harvest Date - Full Width -->
+        <!-- ✅ Pond Area - Full Width -->
+
+        <!-- ✅ Grid 1x2 - Date of Stocking and Date Created -->
+
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -295,14 +457,14 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_marginEnd="8dp"
-                    android:src="@drawable/ic_harvest"
+                    android:src="@drawable/ic_fc"
                     app:tint="#01082D" />
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Harvest Date"
+                    android:text="Estimated Date of Harvest"
                     android:textColor="#01082D"
                     android:textSize="14sp"
                     tools:ignore="HardcodedText" />
@@ -313,53 +475,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="Jul. 10, 2025"
+                android:text="January 2, 2025"
                 android:textColor="#01082D"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:minHeight="30dp"/>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/cardviewpi"
-            android:orientation="vertical"
-            android:padding="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:layout_marginBottom="8dp">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginEnd="8dp"
-                    android:src="@drawable/ic_percent"
-                    app:tint="#01082D" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Mortality Rate"
-                    android:textColor="#01082D"
-                    android:textSize="14sp"
-                    tools:ignore="HardcodedText" />
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tvMortalityRate"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="%"
-                android:textColor="#01082D"
-                android:textSize="18sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 android:minHeight="30dp"/>
         </LinearLayout>
@@ -368,8 +486,8 @@
         <!-- ✏️ Edit Button -->
         <Button
             android:id="@+id/btnEditPond"
-            android:layout_width="200dp"
-            android:layout_height="48dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:layout_marginTop="8dp"
             android:backgroundTint="#00448D"

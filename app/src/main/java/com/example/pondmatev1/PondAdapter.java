@@ -100,7 +100,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 new androidx.appcompat.app.AlertDialog.Builder(context)
                         .setTitle("Stop Pond")
                         .setMessage("Choose what you want to do with this pond:")
-                        .setPositiveButton("Reuse Pond", (dialog, which) -> reusePond(holder, pond))
+                        //.setPositiveButton("Reuse Pond", (dialog, which) -> reusePond(holder, pond))
                         .setNegativeButton("Delete Pond", (dialog, which) -> deletePond(holder, pond))
                         .setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss())
                         .show();
@@ -118,115 +118,119 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             intent.putExtra("cost_per_fish", pond.getCostPerFish());
             intent.putExtra("date_started", pond.getDateStarted());
             intent.putExtra("date_harvest", pond.getDateHarvest());
+            intent.putExtra("date_stocking", pond.getDateStocking());
+            intent.putExtra("pond_area", pond.getPondArea());
+
             context.startActivity(intent);
             if (context instanceof Activity) {
                 ((Activity) context).overridePendingTransition(R.anim.fade_in, 0);
             }
         });
+
     }
 
-    private void reusePond(ViewHolder holder, PondModel pond) {
-        ReusePondDialog reuseDialog = new ReusePondDialog();
-        reuseDialog.setPond(pond);
-
-        reuseDialog.setOnPondReusedListener(updatedPond -> {
-            // Keep original pond ID and name
-            updatedPond.setId(pond.getId());
-            updatedPond.setName(pond.getName());
-
-            // Step 1: Update pond details in database
-            PondSyncManager.updatePondDetails(updatedPond, new PondSyncManager.Callback() {
-                @Override
-                public void onSuccess(Object result) {
-                    // Step 2: Fetch current pond report
-                    PondSyncManager.fetchPondReport(updatedPond.getId(), new PondSyncManager.Callback() {
-                        @Override
-                        public void onSuccess(Object result) {
-                            try {
-                                JSONObject pondReport = (JSONObject) result;
-
-                                // Step 3: Generate PDF
-                                File generatedPDF = PondPDFGenerator.generatePDF(context, pondReport, "REUSED");
-                                if (generatedPDF == null) throw new Exception("PDF generation failed");
-
-                                // Update pond model locally
-                                updatedPond.setExtraData("REUSED"); // set action column
-
-                                // Step 4: Save history with PDF
-                                PondSyncManager.savePondHistoryWithPDF(updatedPond, "REUSED", generatedPDF, new PondSyncManager.Callback() {
-                                    @Override
-                                    public void onSuccess(Object result) {
-                                        new Handler(Looper.getMainLooper()).post(() -> {
-                                            try {
-                                                JSONObject response = new JSONObject(result.toString());
-                                                if (response.optString("status").equals("success")) {
-                                                    // Use server PDF path
-                                                    String serverPdfPath = response.optString("pdf_path");
-                                                    if (!serverPdfPath.isEmpty()) {
-                                                        updatedPond.setPdfPath(serverPdfPath);
-                                                    }
-
-                                                    int adapterPos = holder.getAdapterPosition();
-                                                    if (adapterPos >= 0 && adapterPos < pondList.size()) {
-                                                        pondList.set(adapterPos, updatedPond);
-                                                        notifyItemChanged(adapterPos);
-                                                    }
-
-                                                    com.google.android.material.snackbar.Snackbar.make(
-                                                            holder.itemView,
-                                                            "Pond reused successfully!",
-                                                            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
-                                                    ).show();
-
-                                                    if (context instanceof PondDashboardActivity) {
-                                                        ((PondDashboardActivity) context).loadHistory(updatedPond.getId());
-                                                    }
-                                                } else {
-                                                    String message = response.optString("message", "Unknown error");
-                                                    Toast.makeText(context, "Save failed: " + message, Toast.LENGTH_SHORT).show();
-                                                }
-                                            } catch (JSONException e) {
-                                                e.printStackTrace();
-                                                Toast.makeText(context, "Invalid server response", Toast.LENGTH_SHORT).show();
-                                            }
-                                        });
-                                    }
-                                    @Override
-                                    public void onError(String error) {
-                                        new Handler(Looper.getMainLooper()).post(() ->
-                                                Toast.makeText(context, "Error saving history: " + error, Toast.LENGTH_SHORT).show()
-                                        );
-                                    }
-                                });
-
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                new Handler(Looper.getMainLooper()).post(() ->
-                                        Toast.makeText(context, "Error generating PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                                );
-                            }
-                        }
-
-                        @Override
-                        public void onError(String error) {
-                            new Handler(Looper.getMainLooper()).post(() ->
-                                    Toast.makeText(context, "Error fetching pond report: " + error, Toast.LENGTH_SHORT).show()
-                            );
-                        }
-                    });
-                }
-
-                @Override
-                public void onError(String error) {
-                    new Handler(Looper.getMainLooper()).post(() ->
-                            Toast.makeText(context, "Update failed: " + error, Toast.LENGTH_SHORT).show()
-                    );
-                }
-            });
-        });
-
-        reuseDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ReusePondDialog");
-    }
+//    private void reusePond(ViewHolder holder, PondModel pond) {
+//        ReusePondDialog reuseDialog = new ReusePondDialog();
+//        reuseDialog.setPond(pond);
+//
+//        reuseDialog.setOnPondReusedListener(updatedPond -> {
+//            // Keep original pond ID and name
+//            updatedPond.setId(pond.getId());
+//            updatedPond.setName(pond.getName());
+//
+//            // Step 1: Update pond details in database
+//            PondSyncManager.updatePondDetails(updatedPond, new PondSyncManager.Callback() {
+//                @Override
+//                public void onSuccess(Object result) {
+//                    // Step 2: Fetch current pond report
+//                    PondSyncManager.fetchPondReport(updatedPond.getId(), new PondSyncManager.Callback() {
+//                        @Override
+//                        public void onSuccess(Object result) {
+//                            try {
+//                                JSONObject pondReport = (JSONObject) result;
+//
+//                                // Step 3: Generate PDF
+//                                File generatedPDF = PondPDFGenerator.generatePDF(context, pondReport, "REUSED");
+//                                if (generatedPDF == null) throw new Exception("PDF generation failed");
+//
+//                                // Update pond model locally
+//                                updatedPond.setExtraData("REUSED"); // set action column
+//
+//                                // Step 4: Save history with PDF
+//                                PondSyncManager.savePondHistoryWithPDF(updatedPond, "REUSED", generatedPDF, new PondSyncManager.Callback() {
+//                                    @Override
+//                                    public void onSuccess(Object result) {
+//                                        new Handler(Looper.getMainLooper()).post(() -> {
+//                                            try {
+//                                                JSONObject response = new JSONObject(result.toString());
+//                                                if (response.optString("status").equals("success")) {
+//                                                    // Use server PDF path
+//                                                    String serverPdfPath = response.optString("pdf_path");
+//                                                    if (!serverPdfPath.isEmpty()) {
+//                                                        updatedPond.setPdfPath(serverPdfPath);
+//                                                    }
+//
+//                                                    int adapterPos = holder.getAdapterPosition();
+//                                                    if (adapterPos >= 0 && adapterPos < pondList.size()) {
+//                                                        pondList.set(adapterPos, updatedPond);
+//                                                        notifyItemChanged(adapterPos);
+//                                                    }
+//
+//                                                    com.google.android.material.snackbar.Snackbar.make(
+//                                                            holder.itemView,
+//                                                            "Pond reused successfully!",
+//                                                            com.google.android.material.snackbar.Snackbar.LENGTH_SHORT
+//                                                    ).show();
+//
+//                                                    if (context instanceof PondDashboardActivity) {
+//                                                        ((PondDashboardActivity) context).loadHistory(updatedPond.getId());
+//                                                    }
+//                                                } else {
+//                                                    String message = response.optString("message", "Unknown error");
+//                                                    Toast.makeText(context, "Save failed: " + message, Toast.LENGTH_SHORT).show();
+//                                                }
+//                                            } catch (JSONException e) {
+//                                                e.printStackTrace();
+//                                                Toast.makeText(context, "Invalid server response", Toast.LENGTH_SHORT).show();
+//                                            }
+//                                        });
+//                                    }
+//                                    @Override
+//                                    public void onError(String error) {
+//                                        new Handler(Looper.getMainLooper()).post(() ->
+//                                                Toast.makeText(context, "Error saving history: " + error, Toast.LENGTH_SHORT).show()
+//                                        );
+//                                    }
+//                                });
+//
+//                            } catch (Exception e) {
+//                                e.printStackTrace();
+//                                new Handler(Looper.getMainLooper()).post(() ->
+//                                        Toast.makeText(context, "Error generating PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+//                                );
+//                            }
+//                        }
+//
+//                        @Override
+//                        public void onError(String error) {
+//                            new Handler(Looper.getMainLooper()).post(() ->
+//                                    Toast.makeText(context, "Error fetching pond report: " + error, Toast.LENGTH_SHORT).show()
+//                            );
+//                        }
+//                    });
+//                }
+//
+//                @Override
+//                public void onError(String error) {
+//                    new Handler(Looper.getMainLooper()).post(() ->
+//                            Toast.makeText(context, "Update failed: " + error, Toast.LENGTH_SHORT).show()
+//                    );
+//                }
+//            });
+//        });
+//
+//        reuseDialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "ReusePondDialog");
+//    }
 
     private void deletePond(ViewHolder holder, PondModel pond) {
         PondSyncManager.fetchPondReport(pond.getId(), new PondSyncManager.Callback() {

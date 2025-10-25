@@ -724,16 +724,14 @@ public class ProductionCostFragment extends Fragment {
         Button btnCancel = dialogView.findViewById(R.id.btnCancelMaintenance);
         TextView btnClose = dialogView.findViewById(R.id.btnClose);
 
-        List<String> types = Arrays.asList("Water Change", "Water Monitoring", "Waste Removal", "Algae Control",
-                "Cleaning Ponds & Filters", "Leak Repair", "Inspection",
-                "Pump & Pipe Maintenance", "Parasite Treatment", "Net or Screen Repair", "Others");
+        List<String> types = Arrays.asList("Supplies & Material", "Repairs & Maintenance", "Salaries", "Miscellaneous Expenses", "Labor", "Others");
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, types);
         spinnerType.setAdapter(adapter);
 
         spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selected = parent.getItemAtPosition(position).toString();
-                etOtherType.setVisibility(selected.equals("Other") ? View.VISIBLE : View.GONE);
+                etOtherType.setVisibility(selected.equals("Others") ? View.VISIBLE : View.GONE);
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
@@ -743,7 +741,7 @@ public class ProductionCostFragment extends Fragment {
 
         btnAdd.setOnClickListener(v -> {
             String selectedType = spinnerType.getSelectedItem().toString();
-            String description = selectedType.equals("Other") ? etOtherType.getText().toString().trim() : selectedType;
+            String description = selectedType.equals("Others") ? etOtherType.getText().toString().trim() : selectedType;
             String costStr = etCost.getText().toString().trim();
 
             if (description.isEmpty() || costStr.isEmpty()) {

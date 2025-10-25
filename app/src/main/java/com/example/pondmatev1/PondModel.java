@@ -18,14 +18,20 @@ public class PondModel {
     private float estimatedROI;
     private String pdfPath;
 
+
+
+
+    // 🆕 Added fields
+    private double pondArea;      // in square meters or hectares
+    private String dateStocking;  // date of stocking
+    private double mortalityRate; // percentage of fish that died
+
     private List<ActivityItem> activities = new ArrayList<>();
 
-
-
-    // Full constructor
+    // --- Constructors ---
     public PondModel(String id, String name, String breed, int fishCount, double costPerFish,
-                     String dateStarted, String dateHarvest, String imagePath,
-                     float actualROI, float estimatedROI) {
+                     String dateStarted, String dateHarvest, String dateStocking, double pondArea,
+                     String imagePath, String mode, float actualROI, float estimatedROI, String pdfPath, double mortalityRate) {
         this.id = id;
         this.name = name;
         this.breed = breed;
@@ -33,31 +39,33 @@ public class PondModel {
         this.costPerFish = costPerFish;
         this.dateStarted = dateStarted;
         this.dateHarvest = dateHarvest;
+        this.dateStocking = dateStocking; // ✅ use parameter
+        this.pondArea = pondArea;         // ✅ use parameter
         this.imagePath = imagePath;
+        this.mode = mode;
         this.actualROI = actualROI;
         this.estimatedROI = estimatedROI;
+        this.pdfPath = pdfPath;
+        this.mortalityRate = mortalityRate; // ✅ use parameter
     }
 
-    public PondModel(String id, String name, String breed, int fishCount, double costPerFish,
-                     String dateStarted, String dateHarvest, String imagePath,
-                     String extraData, String pdfPath) {
-        this.id = id;
+
+
+    public PondModel(String name, double pondArea, String dateStarted, String dateStocking, String imagePath) {
         this.name = name;
-        this.breed = breed;
-        this.fishCount = fishCount;
-        this.costPerFish = costPerFish;
+        this.pondArea = pondArea;
         this.dateStarted = dateStarted;
-        this.dateHarvest = dateHarvest;
+        this.dateStocking = dateStocking;
         this.imagePath = imagePath;
-        this.extraData = extraData;
-        this.pdfPath = pdfPath;
-        this.actualROI = 0f;
-        this.estimatedROI = 0f;
+        this.mortalityRate = 0.0;
     }
 
     public PondModel(String mode) {
         this.mode = mode;
+        this.mortalityRate = 0.0;
     }
+
+
 
     // --- Getters and Setters ---
     public String getId() { return id; }
@@ -99,13 +107,16 @@ public class PondModel {
     public String getPdfPath() { return pdfPath; }
     public void setPdfPath(String pdfPath) { this.pdfPath = pdfPath; }
 
-    public List<ActivityItem> getActivities() {
-        return activities;
-    }
+    public List<ActivityItem> getActivities() { return activities; }
+    public void setActivities(List<ActivityItem> activities) { this.activities = activities; }
 
-    public void setActivities(List<ActivityItem> activities) {
-        this.activities = activities;
-    }
+    public double getPondArea() { return pondArea; }
+    public void setPondArea(double pondArea) { this.pondArea = pondArea; }
 
+    public String getDateStocking() { return dateStocking; }
+    public void setDateStocking(String dateStocking) { this.dateStocking = dateStocking; }
 
+    // 🆕 Mortality Rate
+    public double getMortalityRate() { return mortalityRate; }
+    public void setMortalityRate(double mortalityRate) { this.mortalityRate = mortalityRate; }
 }
