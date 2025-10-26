@@ -36,8 +36,7 @@
             android:layout_toEndOf="@id/appLogo"
             android:text="PONDMATE"
             android:textColor="#BAADE1FB"
-            android:textSize="18sp"
-            android:fontFamily="sans-serif-medium" />
+            android:textSize="18sp" />
 
         <ImageView
             android:id="@+id/adminIcon"
@@ -108,9 +107,9 @@
                 android:layout_gravity="center"
                 android:textAllCaps="true"
                 android:text="POND NAME"
-                android:textSize="24sp"
-                android:textColor="#01082D"
-                android:fontFamily="sans-serif-medium" />
+                android:textSize="22sp"
+                android:textColor="#01082D" />
+
         </FrameLayout>
 
         <!-- Invisible spacer to balance the back button -->

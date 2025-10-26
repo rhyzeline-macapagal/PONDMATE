@@ -196,6 +196,92 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void uploadBlindFeedLog(String pondName,
+                                          String feedType,
+                                          double quantity,
+                                          double cost,
+                                          String feedingDate,
+                                          String recordAt, // 👈 added this
+                                          Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/add_blind_feeding.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
+                        "&feed_type=" + URLEncoder.encode(feedType, "UTF-8") +
+                        "&quantity=" + quantity +
+                        "&cost=" + cost +
+                        "&feeding_date=" + URLEncoder.encode(feedingDate, "UTF-8") +
+                        "&recorded_at=" + URLEncoder.encode(recordAt, "UTF-8"); // 👈 added
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                    reader.close();
+
+                    runOnUiThreadSafe(() -> callback.onSuccess(response.toString()));
+                } else {
+                    runOnUiThreadSafe(() -> callback.onError("Server returned code: " + responseCode));
+                }
+
+            } catch (Exception e) {
+                runOnUiThreadSafe(() -> callback.onError(e.getMessage()));
+            }
+        }).start();
+    }
+
+    public static void fetchBlindFeedLogs(String pondName, Callback callback) {
+        new Thread(() -> {
+            try {
+                Log.d("FETCH_FEED_LOGS", "Fetching feed logs for pond=" + pondName);
+
+                URL url = new URL("https://pondmate.alwaysdata.net/get_blind_feed_logs.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST"); // can use POST or GET; POST is safer
+                conn.setDoOutput(true);
+
+                // 🧩 Send the pond_name parameter
+                String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8");
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                    reader.close();
+
+                    Log.d("FETCH_FEED_LOGS", "Response: " + response);
+                    callback.onSuccess(response.toString());
+                } else {
+                    callback.onError("Server returned code: " + responseCode);
+                }
+
+                conn.disconnect();
+            } catch (Exception e) {
+                Log.e("FETCH_FEED_LOGS", "Error: " + e.getMessage());
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+
+
     public static void uploadMaintenanceToServer(String pond, String description, double cost, Callback callback) {
         new Thread(() -> {
             try {

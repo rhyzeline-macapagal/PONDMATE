@@ -88,7 +88,7 @@ public class ProductionCostFragment extends Fragment {
     private String pondName = "";
     private String currentBreed = "";
     private int currentFishCount = 0;
-    Button btnDownload;
+    Button btnDownload, btnFeedLogs;
 
     File generatedPdfFile;
 
@@ -114,8 +114,6 @@ public class ProductionCostFragment extends Fragment {
             handleFingerlingVisibility(view, pond);
             setupStockFingerlingsButton(view, pond);
             handleFingerlingStockedStatus(view, pond);
-
-
         }
 
         loadMaintenanceTotal();
@@ -127,10 +125,13 @@ public class ProductionCostFragment extends Fragment {
         }
 
         tvSummarySalary = view.findViewById(R.id.tvSummarySalary);
+        btnFeedLogs = view.findViewById(R.id.btnFeedLogs);
+
 
         loadSalarySummary();
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
+        btnFeedLogs.setOnClickListener(v -> showFeedLogs());
         Button btnGenerateReport = view.findViewById(R.id.btnGenerateReport);
         btnGenerateReport.setOnClickListener(v -> {
             if (pondJson != null) {
@@ -290,6 +291,11 @@ public class ProductionCostFragment extends Fragment {
                 etEstimatedRevenue.setText("");
             }
         }
+    }
+
+    private void showFeedLogs() {
+        BlindFeedingFragment feedLogsDialog = new BlindFeedingFragment();
+        feedLogsDialog.show(getParentFragmentManager(), "feedLogsDialog");
     }
 
     private void setupStockFingerlingsButton(View view, PondModel pond) {
