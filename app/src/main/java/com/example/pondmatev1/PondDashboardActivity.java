@@ -38,6 +38,7 @@ import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -184,6 +185,8 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 ExistingPeriodicWorkPolicy.KEEP, // Keep the existing one if already enqueued
                 pendingActivityWork
         );
+
+
     }
 
     @Override
@@ -287,6 +290,17 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     pondList.addAll(newPonds);
                     pondAdapter.notifyDataSetChanged();
                     renderChartData();
+
+                    // --- Pass pondList to fragment ---
+                    String pondsJson = new Gson().toJson(pondList);
+                    CycleChartFragment cycleChartFragment = new CycleChartFragment();
+                    Bundle args = new Bundle();
+                    args.putString("pondsJson", pondsJson);
+                    cycleChartFragment.setArguments(args);
+                    getSupportFragmentManager()
+                            .beginTransaction()
+                            .replace(R.id.cycleChartContainer, cycleChartFragment)
+                            .commit();
                 });
 
                 // ✅ Schedule notifications for activities and feeding

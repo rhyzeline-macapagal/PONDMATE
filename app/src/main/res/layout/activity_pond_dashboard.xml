@@ -69,81 +69,109 @@
 
     </RelativeLayout>
 
-    <LinearLayout
-        android:id="@+id/containerLayout"
+    <!-- Scrollable Content -->
+    <ScrollView
+        android:id="@+id/scrollView"
         android:layout_below="@id/topBar"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="5dp"
-        android:background="#A6C4F1FF">
+        android:fillViewport="true">
 
-        <!-- My Ponds -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginBottom="2dp"
-            android:text="My Ponds"
-            android:textColor="#01082D"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/pondRecyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="180dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@android:color/transparent" />
-
-        <!-- ROI Chart -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Return on Investments"
-            android:textColor="#01082D"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <FrameLayout
+        <LinearLayout
+            android:id="@+id/containerLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="8dp"
-            android:background="#FFFFFF"
-            android:elevation="4dp"
-            android:padding="5dp">
+            android:orientation="vertical"
+            android:padding="5dp"
+            android:background="#A6C4F1FF">
 
-            <com.github.mikephil.charting.charts.BarChart
-                android:id="@+id/roiBarChart"
+            <!-- My Ponds -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginBottom="2dp"
+                android:text="My Ponds"
+                android:textColor="#01082D"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/pondRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:background="@android:color/transparent" />
+
+            <!-- ROI Chart -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="16dp"
+                android:text="Return on Investments"
+                android:textColor="#01082D"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="300dp"
-                android:visibility="visible" />
+                android:layout_margin="8dp"
+                android:background="#FFFFFF"
+                android:elevation="4dp"
+                android:padding="5dp">
 
-        </FrameLayout>
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/roiBarChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="visible" />
 
-        <!-- Pond History -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Pond History"
-            android:textColor="#01082D"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            </FrameLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/HistoryRecyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            android:background="@android:color/transparent"
-            android:clipToPadding="false"
-            android:nestedScrollingEnabled="true" />
+            <!-- Production Cycle Chart -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="16dp"
+                android:text="Production Cycle"
+                android:textColor="#01082D"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
-    </LinearLayout>
+            <FrameLayout
+                android:id="@+id/cycleChartContainer"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:layout_margin="8dp"
+                android:background="#FFFFFF"
+                android:elevation="4dp"
+                android:padding="5dp" />
+
+            <!-- Pond History -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="16dp"
+                android:text="Pond History"
+                android:textColor="#01082D"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/HistoryRecyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="true" />
+
+        </LinearLayout>
+    </ScrollView>
 
 </RelativeLayout>
