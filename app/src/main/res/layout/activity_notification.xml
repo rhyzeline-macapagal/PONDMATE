@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:fitsSystemWindows="true"
-    android:background="#A7D8F5">
+    android:background="#A6C4F1FF">
 
     <!-- Top bar -->
     <LinearLayout

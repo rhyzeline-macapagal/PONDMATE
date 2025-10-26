@@ -29,10 +29,18 @@ import androidx.fragment.app.DialogFragment;
 
 import com.google.gson.Gson;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Locale;
 
@@ -45,21 +53,18 @@ public class AddPondDialogFragment extends DialogFragment {
     private ImageView ivPondImage;
     private Button btnCaptureImage;
     private Bitmap capturedImageBitmap;
-
     private static final int REQUEST_IMAGE_CAPTURE = 1001;
-
     private String rawDateForDB = "";
     private String rawStockingDateForDB = "";
-
-    public interface OnPondAddedListener {
-        void onPondAdded(PondModel pondModel);
-    }
-
+    public interface OnPondAddedListener { void onPondAdded(PondModel pondModel);}
     private OnPondAddedListener listener;
-
     public void setOnPondAddedListener(OnPondAddedListener listener) {
         this.listener = listener;
     }
+    private ArrayList<String> caretakerNames = new ArrayList<>();
+    private ArrayList<String> caretakerIds = new ArrayList<>();
+    private ArrayList<String> selectedCaretakerIds = new ArrayList<>();
+
 
     @Nullable
     @Override
@@ -77,6 +82,14 @@ public class AddPondDialogFragment extends DialogFragment {
         ivPondImage = view.findViewById(R.id.ivPondImage);
         btnCaptureImage = view.findViewById(R.id.btnCaptureImage);
         TextView btnClose = view.findViewById(R.id.btnClose);
+
+        Button btnSelectCaretakers = view.findViewById(R.id.btnSelectCaretakers);
+        TextView tvSelectedCaretakers = view.findViewById(R.id.tvSelectedCaretakers);
+
+        btnSelectCaretakers.setEnabled(false);
+        btnSelectCaretakers.setText("Loading caretakers...");
+
+        loadCaretakersFromServer(btnSelectCaretakers, tvSelectedCaretakers);
 
         // ✅ Close dialog
         btnClose.setOnClickListener(v -> dismiss());
@@ -143,7 +156,6 @@ public class AddPondDialogFragment extends DialogFragment {
     private void savePond(String name, String imageBase64) {
         showLoadingDialog();
 
-        // ✅ Get pond area from EditText
         double pondArea = 0;
         String areaText = etPondArea.getText().toString().trim();
         if (!areaText.isEmpty()) {
@@ -154,7 +166,6 @@ public class AddPondDialogFragment extends DialogFragment {
             }
         }
 
-        // ✅ Ensure dates are not null
         if (rawDateForDB == null || rawDateForDB.isEmpty()) {
             rawDateForDB = new SimpleDateFormat("yyyy-MM-dd", Locale.US)
                     .format(Calendar.getInstance().getTime());
@@ -215,6 +226,11 @@ public class AddPondDialogFragment extends DialogFragment {
                     // ✅ Save full pond again after server response
                     prefs.edit().putString("selected_pond", new Gson().toJson(pond)).apply();
 
+                    // 🟩 Assign caretakers to this new pond
+                    for (String caretakerId : selectedCaretakerIds) {
+                        assignCaretakerToPond(String.valueOf(pondId), caretakerId);
+                    }
+
                     // ✅ Notify listener
                     if (listener != null) listener.onPondAdded(pond);
 
@@ -233,10 +249,6 @@ public class AddPondDialogFragment extends DialogFragment {
             }
         });
     }
-
-
-
-
 
     private void showLoadingDialog() {
         if (loadingDialog != null && loadingDialog.isShowing()) return;
@@ -265,6 +277,154 @@ public class AddPondDialogFragment extends DialogFragment {
         bitmap.compress(Bitmap.CompressFormat.JPEG, 75, byteArrayOutputStream);
         byte[] byteArray = byteArrayOutputStream.toByteArray();
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
+    }
+
+    private void loadCaretakersFromServer(Button btnSelectCaretakers, TextView tvSelectedCaretakers) {
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_caretakers.php");
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+
+                StringBuilder response = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                }
+
+                JSONArray caretakersArray = new JSONArray(response.toString());
+
+                caretakerNames.clear();
+                caretakerIds.clear();
+
+                for (int i = 0; i < caretakersArray.length(); i++) {
+                    JSONObject obj = caretakersArray.getJSONObject(i);
+                    caretakerNames.add(obj.getString("fullname"));
+                    caretakerIds.add(obj.getString("id"));
+                }
+
+                // ✅ Safe UI update — only if fragment is attached
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        btnSelectCaretakers.setEnabled(true);
+                        btnSelectCaretakers.setText("Assign Caretakers");
+
+                        btnSelectCaretakers.setOnClickListener(v -> {
+                            boolean[] checkedItems = new boolean[caretakerNames.size()];
+
+                            new AlertDialog.Builder(requireContext())
+                                    .setTitle("Select Caretakers")
+                                    .setMultiChoiceItems(caretakerNames.toArray(new String[0]), checkedItems,
+                                            (dialog, which, isChecked) -> {
+                                                String id = caretakerIds.get(which);
+                                                if (isChecked) selectedCaretakerIds.add(id);
+                                                else selectedCaretakerIds.remove(id);
+                                            })
+                                    .setPositiveButton("OK", (dialog, which) -> {
+                                        if (selectedCaretakerIds.isEmpty()) {
+                                            tvSelectedCaretakers.setText("No caretakers selected");
+                                        } else {
+                                            StringBuilder selectedNames = new StringBuilder();
+                                            for (String id : selectedCaretakerIds) {
+                                                int idx = caretakerIds.indexOf(id);
+                                                if (idx >= 0)
+                                                    selectedNames.append(caretakerNames.get(idx)).append(", ");
+                                            }
+
+                                            if (selectedNames.length() > 2)
+                                                selectedNames.setLength(selectedNames.length() - 2); // remove last ", "
+
+                                            tvSelectedCaretakers.setText("Selected: " + selectedNames);
+                                        }
+                                    })
+                                    .setNegativeButton("Cancel", null)
+                                    .show();
+                        });
+                    });
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        btnSelectCaretakers.setEnabled(false);
+                        btnSelectCaretakers.setText("Failed to load caretakers");
+                        Toast.makeText(requireContext(), "Failed to load caretakers.", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }).start();
+    }
+
+    private void assignCaretakerToPond(String pondId, String caretakerId) {
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/assign_caretaker_to_pond.php");
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8") +
+                        "&caretaker_id=" + URLEncoder.encode(caretakerId, "UTF-8");
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(postData.getBytes());
+                }
+
+                // Read response
+                StringBuilder response = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                }
+
+                String resp = response.toString().trim();
+                JSONObject json = new JSONObject(resp);
+
+                String status = json.optString("status", "error");
+                int pondCount = json.optInt("pond_count", 0);
+
+                // ✅ Safely update UI only if fragment is still attached
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        if ("success".equalsIgnoreCase(status)) {
+                            Toast.makeText(getActivity(),
+                                    "Caretaker assigned! Now handling " + pondCount + " pond(s).",
+                                    Toast.LENGTH_LONG).show();
+                        } else if ("exists".equalsIgnoreCase(status)) {
+                            Toast.makeText(getActivity(),
+                                    "Caretaker already assigned to this pond.",
+                                    Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(getActivity(),
+                                    "Failed to assign caretaker. Server said: " + status,
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() ->
+                            Toast.makeText(getActivity(),
+                                    "Failed to assign caretaker: " + e.getMessage(),
+                                    Toast.LENGTH_SHORT).show()
+                    );
+                }
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }).start();
     }
 
     @Override

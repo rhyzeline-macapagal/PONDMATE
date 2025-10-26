@@ -277,6 +277,41 @@
                         android:stateListAnimator="@null"/>
                 </LinearLayout>
 
+                <TextView
+                    android:id="@+id/tvCaretakerLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Assign Caretakers"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:layout_marginTop="12dp"
+                    android:textSize="16sp"/>
+
+                <Button
+                    android:id="@+id/btnSelectCaretakers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Select Caretakers"
+                    android:backgroundTint="#00448D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="8dp"
+                    android:paddingHorizontal="20dp"
+                    android:letterSpacing="0.02"
+                    app:cornerRadius="6dp"
+                    android:elevation="2dp"/>
+
+                <TextView
+                    android:id="@+id/tvSelectedCaretakers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="No caretakers selected"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="12dp"/>
+
+
                 <!-- Save Button -->
                 <Button
                     android:id="@+id/btnSavePond"
