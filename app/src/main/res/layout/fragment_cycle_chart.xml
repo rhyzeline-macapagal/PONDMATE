@@ -35,4 +35,42 @@
         android:paddingBottom="16dp"
         android:paddingTop="16dp"/>
 
+    <!-- Embedded Marker for showing phase info inside chart -->
+    <LinearLayout
+        android:id="@+id/markerContainer"
+        android:orientation="vertical"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@android:color/white"
+        android:elevation="6dp"
+        android:padding="12dp"
+        android:visibility="gone"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true">
+
+        <TextView
+            android:id="@+id/markerText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:textSize="14sp"
+            android:text=""/>
+
+        <TextView
+            android:id="@+id/markerLifeStage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:textSize="14sp"
+            android:text="Fish Life Stage: Undetermined"/>
+
+        <TextView
+            android:id="@+id/markerProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/black"
+            android:textSize="14sp"
+            android:text="Progress: 0%"/>
+    </LinearLayout>
+
 </RelativeLayout>

@@ -27,6 +27,11 @@ public class PondModel {
     private String caretakers;
     private String caretakerName;
 
+
+
+
+
+
     private List<ActivityItem> activities = new ArrayList<>();
 
     // --- Constructors ---
@@ -46,6 +51,7 @@ public class PondModel {
         this.caretakerName = caretakerName;
         this.actualROI = actualROI;
         this.estimatedROI = estimatedROI;
+
         this.mortalityRate = mortalityRate;
         this.pdfPath = pdfPath;
     }

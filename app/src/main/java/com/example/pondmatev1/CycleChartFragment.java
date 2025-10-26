@@ -4,14 +4,12 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-
+import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
@@ -34,10 +32,12 @@ public class CycleChartFragment extends Fragment {
     private BarChart cycleBarChart;
     private ProgressBar progressBarChart;
     private TextView noDataText;
+    private LinearLayout markerContainer;
+    private TextView markerText, markerLifeStage, markerProgress;
 
     private List<PondModel> ponds;
 
-    // Production phases as Y-axis labels
+    // Production phases on Y-axis
     private final String[] phases = new String[]{
             "Pond Prep", "Stocking", "Daily Maint",
             "Pre-Starter", "Starter", "Grower", "Finisher", "Harvest"
@@ -53,10 +53,14 @@ public class CycleChartFragment extends Fragment {
         progressBarChart = root.findViewById(R.id.progressBarChart);
         noDataText = root.findViewById(R.id.noDataText);
 
+        markerContainer = root.findViewById(R.id.markerContainer);
+        markerText = root.findViewById(R.id.markerText);
+        markerLifeStage = root.findViewById(R.id.markerLifeStage);
+        markerProgress = root.findViewById(R.id.markerProgress);
+
         cycleBarChart.getDescription().setEnabled(false);
         cycleBarChart.getAxisRight().setEnabled(false);
 
-        // Load ponds passed from the dashboard
         loadPondsFromArguments();
 
         return root;
@@ -82,10 +86,10 @@ public class CycleChartFragment extends Fragment {
         }
 
         noDataText.setVisibility(View.GONE);
-        showPondsChart(ponds);
+        showPondsChart();
     }
 
-    private void showPondsChart(List<PondModel> ponds) {
+    private void showPondsChart() {
         List<BarEntry> entries = new ArrayList<>();
         List<String> pondNames = new ArrayList<>();
 
@@ -96,7 +100,6 @@ public class CycleChartFragment extends Fragment {
             long startMillis = parseDateToMillis(pond.getDateStarted());
             long now = System.currentTimeMillis();
             long totalCycleMillis = 180L * 24 * 60 * 60 * 1000; // 6 months
-
             float progress = (float) Math.min((now - startMillis) / (double) totalCycleMillis, 1.0);
             entries.add(new BarEntry(i, progress * phases.length));
         }
@@ -110,6 +113,7 @@ public class CycleChartFragment extends Fragment {
 
         cycleBarChart.setData(barData);
 
+        // X Axis
         XAxis xAxis = cycleBarChart.getXAxis();
         xAxis.setGranularity(1f);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
@@ -124,6 +128,7 @@ public class CycleChartFragment extends Fragment {
             }
         });
 
+        // Y Axis
         YAxis yAxisLeft = cycleBarChart.getAxisLeft();
         yAxisLeft.setAxisMinimum(0f);
         yAxisLeft.setAxisMaximum(phases.length);
@@ -140,20 +145,46 @@ public class CycleChartFragment extends Fragment {
 
         cycleBarChart.setFitBars(true);
 
+        // Show marker inside fragment on bar click
         cycleBarChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
             @Override
             public void onValueSelected(com.github.mikephil.charting.data.Entry e, Highlight h) {
-                int index = (int) e.getX();
-                float progress = e.getY() / phases.length * 100;
-                if (index >= 0 && index < pondNames.size()) {
-                    Toast.makeText(requireContext(),
-                            pondNames.get(index) + " - " + String.format("%.1f%% completed", progress),
-                            Toast.LENGTH_SHORT).show();
+                int pondIndex = (int) e.getX();
+                float yValue = e.getY();
+                if (pondIndex < 0 || pondIndex >= ponds.size()) return;
+
+                PondModel pond = ponds.get(pondIndex);
+                int phaseIndex = Math.min((int) yValue, phases.length - 1);
+
+                // Pond Name & Phase
+                markerText.setText(pond.getName() + " - " + phases[phaseIndex]);
+
+                // Fish Life Stage
+                String lifeStage;
+                if (phaseIndex == 0) {
+                    lifeStage = "Not Applicable, wait for stocking"; // Pond Prep
+                } else if (phaseIndex == 1) {
+                    lifeStage = "Fingerlings"; // Stocking
+                } else if (phaseIndex <= 4) {
+                    lifeStage = "Juvenile"; // Pre-Starter, Starter
+                } else if (phaseIndex <= 6) {
+                    lifeStage = "Adult"; // Grower, Finisher
+                } else {
+                    lifeStage = "Not Applicable, already harvested"; // Harvest
                 }
+                markerLifeStage.setText("Fish Life Stage: " + lifeStage);
+
+                // Completion %
+                float progressPercent = Math.min((yValue / phases.length) * 100f, 100f);
+                markerProgress.setText(String.format(Locale.US, "Progress: %.1f%%", progressPercent));
+
+                markerContainer.setVisibility(View.VISIBLE);
             }
 
             @Override
-            public void onNothingSelected() {}
+            public void onNothingSelected() {
+                markerContainer.setVisibility(View.GONE);
+            }
         });
 
         cycleBarChart.invalidate();
