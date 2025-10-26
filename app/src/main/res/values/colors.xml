@@ -6,6 +6,7 @@
     <color name="lightgreen">#D0F0C0</color>
     <color name="green">#A9E792</color>
     <color name="grayblue">#DEFAF4</color>
+    <color name="gray">#A9A9A9</color>
     <color name="lightblue">#BFF2F4</color>
     <color name="blue">#AAE5EF</color>
     <color name="activity_background_blue">#E3F2FD</color>
@@ -17,6 +18,8 @@
     <color name="background_light">#F8F9FA</color>
     <color name="text_primary">#01082D</color>
     <color name="text_secondary">#666666</color>
+    <color name="blue_pond_btn">#00448D</color>
+
 
 
 

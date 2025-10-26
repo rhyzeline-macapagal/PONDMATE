@@ -127,6 +127,8 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             intent.putExtra("date_stocking", pond.getDateStocking());
             intent.putExtra("pond_area", pond.getPondArea());
             intent.putExtra("caretaker_name", pond.getCaretakerName());
+            intent.putExtra("mortality_rate", pond.getMortalityRate());
+
 
             context.startActivity(intent);
             if (context instanceof Activity) {

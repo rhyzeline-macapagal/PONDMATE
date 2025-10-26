@@ -164,8 +164,6 @@ public class AddPondDialogFragment extends DialogFragment {
                     .format(Calendar.getInstance().getTime());
         }
 
-
-        // ✅ Fully initialized PondModel
         PondModel pond = new PondModel(
                 null,                  // id
                 name,                  // name
@@ -180,9 +178,10 @@ public class AddPondDialogFragment extends DialogFragment {
                 null,                  // mode
                 0f,                    // actualROI
                 0f,                    // estimatedROI
-                0.0,                // double mortalityRate  <--- must be a double, not null
-                null                      // mortalityRate
+                null,                  // pdfPath
+                0.0                    // mortalityRate
         );
+
 
         // ✅ Save to SharedPreferences immediately
         SharedPreferences prefs = requireContext()

@@ -25,6 +25,9 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="33">
         <activity
+            android:name=".Notifs"
+            android:exported="false" />
+        <activity
             android:name=".FarmgatePriceActivity"
             android:exported="false" />
         <activity
