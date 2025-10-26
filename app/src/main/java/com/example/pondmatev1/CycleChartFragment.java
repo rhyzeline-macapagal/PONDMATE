@@ -4,9 +4,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -35,6 +35,9 @@ public class CycleChartFragment extends Fragment {
     private ProgressBar progressBarChart;
     private TextView noDataText;
 
+    private LinearLayout markerContainer;
+    private TextView markerText;
+
     private List<PondModel> ponds;
 
     // Production phases as Y-axis labels
@@ -53,10 +56,13 @@ public class CycleChartFragment extends Fragment {
         progressBarChart = root.findViewById(R.id.progressBarChart);
         noDataText = root.findViewById(R.id.noDataText);
 
+        // Marker container and text
+        markerContainer = root.findViewById(R.id.markerContainer);
+        markerText = root.findViewById(R.id.markerText);
+
         cycleBarChart.getDescription().setEnabled(false);
         cycleBarChart.getAxisRight().setEnabled(false);
 
-        // Load ponds passed from the dashboard
         loadPondsFromArguments();
 
         return root;
@@ -107,9 +113,9 @@ public class CycleChartFragment extends Fragment {
 
         BarData barData = new BarData(dataSet);
         barData.setBarWidth(0.5f);
-
         cycleBarChart.setData(barData);
 
+        // X Axis setup
         XAxis xAxis = cycleBarChart.getXAxis();
         xAxis.setGranularity(1f);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
@@ -124,6 +130,7 @@ public class CycleChartFragment extends Fragment {
             }
         });
 
+        // Y Axis setup
         YAxis yAxisLeft = cycleBarChart.getAxisLeft();
         yAxisLeft.setAxisMinimum(0f);
         yAxisLeft.setAxisMaximum(phases.length);
@@ -140,23 +147,50 @@ public class CycleChartFragment extends Fragment {
 
         cycleBarChart.setFitBars(true);
 
+        // Handle clicks on bars
         cycleBarChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
             @Override
             public void onValueSelected(com.github.mikephil.charting.data.Entry e, Highlight h) {
                 int index = (int) e.getX();
-                float progress = e.getY() / phases.length * 100;
-                if (index >= 0 && index < pondNames.size()) {
-                    Toast.makeText(requireContext(),
-                            pondNames.get(index) + " - " + String.format("%.1f%% completed", progress),
-                            Toast.LENGTH_SHORT).show();
+                float progressPercent = e.getY() / phases.length * 100;
+
+                if (index >= 0 && index < ponds.size()) {
+                    PondModel pond = ponds.get(index);
+
+                    // Determine life stage
+                    String lifeStage = getLifeStage(progressPercent);
+
+                    // Determine current phase
+                    String currentPhase = getCurrentPhase(progressPercent);
+
+                    markerContainer.setVisibility(View.VISIBLE);
+                    markerText.setText(
+                            pond.getName() + "\n" +
+                                    "Phase: " + currentPhase + "\n" +
+                                    "Life Stage: " + lifeStage + "\n" +
+                                    String.format(Locale.US, "Completion: %.1f%%", progressPercent)
+                    );
                 }
             }
 
             @Override
-            public void onNothingSelected() {}
+            public void onNothingSelected() {
+                markerContainer.setVisibility(View.GONE);
+            }
         });
 
         cycleBarChart.invalidate();
+    }
+
+    private String getLifeStage(float progressPercent) {
+        if (progressPercent < 33) return "Fingerlings";
+        else if (progressPercent < 66) return "Juvenile";
+        else return "Adult";
+    }
+
+    private String getCurrentPhase(float progressPercent) {
+        int phaseIndex = Math.min((int) (progressPercent / 100 * phases.length), phases.length - 1);
+        return phases[phaseIndex];
     }
 
     private long parseDateToMillis(String dateStr) {
@@ -164,7 +198,7 @@ public class CycleChartFragment extends Fragment {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
             return sdf.parse(dateStr).getTime();
         } catch (Exception e) {
-            return 0;
+            return System.currentTimeMillis();
         }
     }
 }
