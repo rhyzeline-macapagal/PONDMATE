@@ -92,6 +92,9 @@ public class ProductionCostFragment extends Fragment {
 
     File generatedPdfFile;
 
+    // keep selected months in a field so other methods can reference if needed
+    private int selectedCycleMonths = 6;
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -103,8 +106,8 @@ public class ProductionCostFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-        String pondJson = prefs.getString("selected_pond", null);
+        SharedPreferences pondPrefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = pondPrefs.getString("selected_pond", null);
 
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
@@ -114,6 +117,8 @@ public class ProductionCostFragment extends Fragment {
             handleFingerlingVisibility(view, pond);
             setupStockFingerlingsButton(view, pond);
             handleFingerlingStockedStatus(view, pond);
+
+
         }
 
         loadMaintenanceTotal();
@@ -128,7 +133,26 @@ public class ProductionCostFragment extends Fragment {
         btnFeedLogs = view.findViewById(R.id.btnFeedLogs);
 
 
-        loadSalarySummary();
+        // --- view bindings (same as before) ---
+        tvBreed = view.findViewById(R.id.fishbreedpcostdisplay);
+        tvCount = view.findViewById(R.id.numoffingerlings);
+        tvAmountPerPiece = view.findViewById(R.id.amtperpiece);
+        tvTotalCost = view.findViewById(R.id.amtoffingerlings);
+
+        tvSummaryFingerlings = view.findViewById(R.id.tvSummaryFingerlings);
+        tvSummaryFeeds = view.findViewById(R.id.tvSummaryFeeds);
+        tvSummaryMaintenance = view.findViewById(R.id.tvSummaryMaintenance);
+        tvSummaryTotal = view.findViewById(R.id.tvSummaryTotal);
+
+        tvCapital = view.findViewById(R.id.tvROICapital);
+        tvROIAmount = view.findViewById(R.id.tvROIAmount);
+        tvROI = view.findViewById(R.id.tvROI);
+        tvActualSales = view.findViewById(R.id.etActualSales);
+
+        etEstimatedRevenue = view.findViewById(R.id.etEstimatedRevenue);
+        tvEstimatedRoI = view.findViewById(R.id.tvEstimatedROI);
+        tvRoIDifference = view.findViewById(R.id.tvROIDifference);
+
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
         btnFeedLogs.setOnClickListener(v -> showFeedLogs());
@@ -179,27 +203,54 @@ public class ProductionCostFragment extends Fragment {
             }
         });
 
-        // --- view bindings (same as before) ---
-        tvBreed = view.findViewById(R.id.fishbreedpcostdisplay);
-        tvCount = view.findViewById(R.id.numoffingerlings);
-        tvAmountPerPiece = view.findViewById(R.id.amtperpiece);
-        tvTotalCost = view.findViewById(R.id.amtoffingerlings);
+        // Spinner setup with persistence
+        Spinner spinnerMonths = view.findViewById(R.id.spinnerMonths);
 
-        tvSummaryFingerlings = view.findViewById(R.id.tvSummaryFingerlings);
-        tvSummaryFeeds = view.findViewById(R.id.tvSummaryFeeds);
-        tvSummaryMaintenance = view.findViewById(R.id.tvSummaryMaintenance);
-        tvSummaryTotal = view.findViewById(R.id.tvSummaryTotal);
+        // Read saved value (default 6)
+        int savedMonths = pondPrefs.getInt("selected_cycle_months", 6);
+        selectedCycleMonths = savedMonths;
 
-        tvCapital = view.findViewById(R.id.tvROICapital);
-        tvROIAmount = view.findViewById(R.id.tvROIAmount);
-        tvROI = view.findViewById(R.id.tvROI);
-        tvActualSales = view.findViewById(R.id.etActualSales);
+        // Ensure adapter is present (if you set spinner entries in XML you don't need to set adapter here)
+        // Defer the selection until the spinner is ready
+        spinnerMonths.post(() -> {
+            int index = Math.max(0, Math.min(savedMonths - 1, spinnerMonths.getCount() - 1));
+            try {
+                // use the two-arg setSelection to avoid re-triggering animations where available
+                spinnerMonths.setSelection(index, false);
+            } catch (NoSuchMethodError nsme) {
+                spinnerMonths.setSelection(index);
+            }
+            // Load salary for the saved value once spinner set
+            loadSalarySummary(savedMonths);
+        });
 
-        etEstimatedRevenue = view.findViewById(R.id.etEstimatedRevenue);
-        tvEstimatedRoI = view.findViewById(R.id.tvEstimatedROI);
-        tvRoIDifference = view.findViewById(R.id.tvROIDifference);
+        spinnerMonths.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            boolean firstCall = true;
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
+                try {
+                    String selectedLabel = parent.getItemAtPosition(position).toString();
+                    int selectedMonths = Integer.parseInt(selectedLabel.split(" ")[0]); // gets the number before "month(s)"
 
+                    Log.d("PRODUCTION_COST", "Selected months: " + selectedMonths);
 
+                    // Save to prefs
+                    SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                    prefs.edit().putInt("selected_cycle_months", selectedMonths).apply();
+
+                    // Update field and reload summary
+                    selectedCycleMonths = selectedMonths;
+                    loadSalarySummary(selectedMonths);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { }
+        });
+
+        // fill UI with pond data
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
 
@@ -226,14 +277,11 @@ public class ProductionCostFragment extends Fragment {
 
             updateTotalCost();
             calculateEstimatedROI(totalCost);
-
         }
-
 
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             pondName = pond.getName();
-
         }
         TextView feederTypeTv = view.findViewById(R.id.feedtypefeeders);
 
@@ -296,6 +344,29 @@ public class ProductionCostFragment extends Fragment {
     private void showFeedLogs() {
         BlindFeedingFragment feedLogsDialog = new BlindFeedingFragment();
         feedLogsDialog.show(getParentFragmentManager(), "feedLogsDialog");
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // re-apply saved months selection in case fragment was recreated/resumed
+        try {
+            View root = getView();
+            if (root == null) return;
+            Spinner spinnerMonths = root.findViewById(R.id.spinnerMonths);
+            SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+            int savedMonths = prefs.getInt("selected_cycle_months", selectedCycleMonths);
+            int index = Math.max(0, Math.min(savedMonths - 1, spinnerMonths.getCount() - 1));
+            spinnerMonths.post(() -> {
+                try {
+                    spinnerMonths.setSelection(index, false);
+                } catch (NoSuchMethodError nsme) {
+                    spinnerMonths.setSelection(index);
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void setupStockFingerlingsButton(View view, PondModel pond) {
@@ -476,81 +547,61 @@ public class ProductionCostFragment extends Fragment {
         }).start();
     }
 
-    private void loadSalarySummary() {
+    private void loadSalarySummary(int months) {
         new Thread(() -> {
             try {
-                double overallSalary = 0;
-                int pondCount = 0;
+                SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                String pondJson = prefs.getString("selected_pond", null);
+                if (pondJson == null) return;
 
-                // --- Fetch overall salary ---
-                URL url = new URL("https://pondmate.alwaysdata.net/get_overall_salary.php");
+                PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                String pondId = pond.getId();
+
+                if (pondId == null || pondId.trim().isEmpty()) return;
+
+                // 🔹 Call the new PHP endpoint
+                URL url = new URL("https://pondmate.alwaysdata.net/get_salary_by_pond.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8") +
+                        "&months=" + URLEncoder.encode(String.valueOf(months), "UTF-8");
+
                 try (OutputStream os = conn.getOutputStream()) {
-                    os.write("".getBytes());
-                }
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
-                    String line = reader.readLine();
-                    Log.d("SALARY_DEBUG", "Overall salary: " + line);
-                    overallSalary = Double.parseDouble(line.trim());
+                    os.write(postData.getBytes());
                 }
 
-                // --- Fetch total pond count ---
-                URL pondUrl = new URL("https://pondmate.alwaysdata.net/get_total_pond.php");
-                HttpURLConnection pondConn = (HttpURLConnection) pondUrl.openConnection();
-                pondConn.setRequestMethod("POST");
-                pondConn.setDoOutput(true);
-                pondConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                try (OutputStream os = pondConn.getOutputStream()) {
-                    os.write("".getBytes());
-                }
-                try (BufferedReader pondReader = new BufferedReader(new InputStreamReader(pondConn.getInputStream()))) {
-                    String line = pondReader.readLine();
-                    Log.d("SALARY_DEBUG", "Pond count: " + line);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) response.append(line);
+                reader.close();
 
-                    // Parse JSON properly
-                    JSONObject pondJson = new JSONObject(line.trim());
-                    pondCount = pondJson.getInt("count");
-                }
+                JSONObject json = new JSONObject(response.toString());
+                if (json.getString("status").equals("success")) {
+                    double caretakerCost = json.getDouble("caretaker_cost_share");
 
-                double salaryPerPond = pondCount > 0 ? overallSalary / pondCount : 0;
-
-                // ✅ SAFETY CHECK: Fragment must be attached
-                if (!isAdded()) return;
-                Activity activity = getActivity();
-                if (activity == null || activity.isFinishing()) return;
-
-                activity.runOnUiThread(() -> {
-                    try {
-                        this.salaryPerPond = salaryPerPond; // save to class-level variable
+                    if (!isAdded()) return;
+                    requireActivity().runOnUiThread(() -> {
+                        salaryPerPond = caretakerCost;
                         if (tvSummarySalary != null) {
-                            tvSummarySalary.setText("₱" + formatPrice(salaryPerPond));
+                            tvSummarySalary.setText("₱" + formatPrice(caretakerCost));
                         }
                         updateTotalCost(currentBreed, currentFishCount);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
+                    });
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();
-
                 if (!isAdded()) return;
-                Activity activity = getActivity();
-                if (activity == null || activity.isFinishing()) return;
-
-                activity.runOnUiThread(() -> {
-                    Context context = getContext();
-                    if (context != null) {
-                        Toast.makeText(context, "Failed to load salary per pond", Toast.LENGTH_SHORT).show();
-                    }
-                });
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Failed to load caretaker salary", Toast.LENGTH_SHORT).show()
+                );
             }
         }).start();
     }
-
 
     private void updateTotalCost() {
         updateTotalCost(currentBreed, currentFishCount);
@@ -560,8 +611,6 @@ public class ProductionCostFragment extends Fragment {
         double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
         double feeds = parseDouble(tvSummaryFeeds.getText().toString());
         double maintenance = parseDouble(tvSummaryMaintenance.getText().toString());
-
-
 
         totalCost = fingerlings + feeds + maintenance + salaryPerPond;
 
@@ -643,7 +692,6 @@ public class ProductionCostFragment extends Fragment {
         }
     }
 
-
     PdfPCell headerCell(String text) {
         PdfPCell cell = new PdfPCell(new Phrase(text));
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -682,7 +730,6 @@ public class ProductionCostFragment extends Fragment {
             return time24; // fallback to original if parsing fails
         }
     }
-
 
     private void previewPDF(File pdfFile) {
         if (pdfFile == null || !pdfFile.exists()) {

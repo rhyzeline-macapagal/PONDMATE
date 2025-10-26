@@ -420,6 +420,7 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- Third Row: Feed Type & Cycle Duration -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -430,7 +431,6 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:layout_gravity="center"
                     android:orientation="vertical"
                     android:layout_marginEnd="8dp">
 
@@ -442,6 +442,7 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="4dp" />
+
                     <TextView
                         android:id="@+id/feedtypefeeders"
                         android:layout_width="match_parent"
@@ -451,7 +452,6 @@
                         android:textColor="#212121"
                         android:textSize="14sp"
                         android:gravity="center_vertical" />
-
                 </LinearLayout>
 
                 <LinearLayout
@@ -459,7 +459,29 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
-                    android:layout_marginStart="8dp"/>
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Salary Duration"
+                        android:textColor="#424242"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerMonths"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/textbox_background"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:textColor="#212121"
+                        android:textSize="14sp"
+                        android:entries="@array/production_months"
+                        android:spinnerMode="dropdown" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
