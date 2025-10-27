@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/rounded_dialog_bg">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/btnClose"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:text="✖"
+            android:textSize="16sp"
+            android:textColor="#666666"
+            android:layout_alignParentEnd="true"
+            android:gravity="center"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"/>
+    </RelativeLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Edit Record"
+        android:textStyle="bold"
+        android:textSize="22sp"
+        android:textColor="#01082D"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"
+        android:letterSpacing="0.02" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/rounded_dialog_bg"
+        android:padding="16dp"
+        android:elevation="6dp"
+        android:layout_marginBottom="24dp">
+
+        <!-- Feed Type + Quantity in one row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <!-- Feed Type -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Feed Type"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp"/>
+
+                <Spinner
+                    android:id="@+id/spinnerFeedType"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:textSize="12sp"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="8dp"/>
+
+                <EditText
+                    android:id="@+id/etOtherFeedType"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="Specify if Other"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="12dp"
+                    android:layout_marginTop="4dp"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
+            <!-- Quantity -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Quantity (kg)"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp"/>
+
+                <EditText
+                    android:id="@+id/etFeedQuantity"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="0.0"
+                    android:textSize="12sp"
+
+                    android:inputType="numberDecimal"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="12dp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Feeding Date + Cost in one row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="2"
+            android:layout_marginTop="12dp">
+
+            <!-- Feeding Date -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Feeding Date"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp"/>
+
+                <EditText
+                    android:id="@+id/etFeedDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="Select Date"
+                    android:focusable="false"
+                    android:textSize="12sp"
+                    android:clickable="true"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="12dp"/>
+            </LinearLayout>
+
+            <!-- Cost -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cost (₱)"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp"/>
+
+                <EditText
+                    android:id="@+id/etFeedCost"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:hint="₱0.00"
+                    android:textSize="12sp"
+
+                    android:inputType="numberDecimal"
+                    android:background="@drawable/rounded_edittext"
+                    android:padding="12dp"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="16dp">
+
+            <Button
+                android:id="@+id/btnCancelFeed"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="Cancel"
+                android:textColor="@android:color/black"
+                android:backgroundTint="#BADED8D8"/>
+
+            <Space android:layout_width="12dp" android:layout_height="wrap_content"/>
+
+            <Button
+                android:id="@+id/btnAddFeed"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:text="Save"
+                android:textColor="@android:color/white"
+                android:backgroundTint="#00448D"/>
+        </LinearLayout>
+    </LinearLayout>
+
+
+</LinearLayout>

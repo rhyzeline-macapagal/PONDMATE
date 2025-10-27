@@ -200,14 +200,16 @@ public class BlindFeedingFragment extends DialogFragment {
                         int childCount = tableFeedLogs.getChildCount();
                         if (childCount > 1) tableFeedLogs.removeViews(1, childCount - 1);
 
-                        // Add rows for each log
                         for (int i = 0; i < logs.size(); i++) {
                             JsonObject log = logs.get(i).getAsJsonObject();
                             TableRow row = new TableRow(getContext());
+
                             addCell(row, log.get("feeding_date").getAsString());
                             addCell(row, log.get("feed_type").getAsString());
                             addCell(row, log.get("quantity").getAsString());
                             addCell(row, "₱" + log.get("cost").getAsString());
+
+
                             tableFeedLogs.addView(row);
                         }
 
@@ -225,6 +227,11 @@ public class BlindFeedingFragment extends DialogFragment {
             }
         });
     }
+
+
+
+
+
 
     private void addCell(TableRow row, String text) {
         TextView tv = new TextView(getContext());

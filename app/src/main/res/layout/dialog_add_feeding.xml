@@ -18,7 +18,6 @@
         android:padding="8dp"
         android:elevation="12dp">
 
-        <!-- Header Section with Close Button -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -128,13 +127,13 @@
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"
-                        android:text="Growth Stage:"
+                        android:text="Life Stage:"
                         android:textColor="#01082D"
                         android:textSize="14sp"
                         android:gravity="start" />
 
                     <TextView
-                        android:id="@+id/tvGrowthStage"
+                        android:id="@+id/tvLifeStage"
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"

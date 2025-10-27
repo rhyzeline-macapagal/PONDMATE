@@ -54,22 +54,37 @@
         </LinearLayout>
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="12dp"
-            android:weightSum="1">
-
+            android:layout_marginBottom="6dp"
+            android:weightSum="2">
 
             <Button
                 android:id="@+id/btnFeedLogs"
                 android:layout_width="0dp"
                 android:layout_height="60dp"
                 android:layout_weight="1"
-                android:text="Feed Record"
+                android:text="Blind Feeding"
+
                 android:textAllCaps="false"
                 android:textSize="12sp"
-                android:textAlignment="textStart"
+                android:backgroundTint="#00448D"
+                android:drawableLeft="@drawable/ic_add"
+                android:drawablePadding="5dp"
+                app:cornerRadius="6dp"
+                android:textColor="#FFFFFF"
+                android:elevation="2dp"
+                android:layout_marginEnd="6dp"/>
+
+            <Button
+                android:id="@+id/btnSampling"
+                android:layout_width="0dp"
+                android:layout_height="60dp"
+                android:layout_weight="1"
+                android:text="Sampling"
+                android:textAllCaps="false"
+                android:textSize="12sp"
                 android:backgroundTint="#00448D"
                 android:drawableLeft="@drawable/ic_add"
                 android:drawablePadding="5dp"
@@ -78,6 +93,9 @@
                 android:elevation="2dp"
                 android:layout_marginStart="6dp"/>
         </LinearLayout>
+
+
+
 
         <LinearLayout
             android:id="@+id/productionCostSummarySection"

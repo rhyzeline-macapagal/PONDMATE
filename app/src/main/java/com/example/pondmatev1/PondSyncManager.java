@@ -1037,4 +1037,84 @@ public class PondSyncManager {
 
 
 
+    // ✅ Add Blind Feed Log
+    public static void addBlindFeedLog(String pondName, String feedType, double quantity, double cost, String feedingDate, String recordedAt, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/add_blind_feed_log.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData =
+                        "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
+                                "&feed_type=" + URLEncoder.encode(feedType, "UTF-8") +
+                                "&quantity=" + URLEncoder.encode(String.valueOf(quantity), "UTF-8") +
+                                "&cost=" + URLEncoder.encode(String.valueOf(cost), "UTF-8") +
+                                "&feeding_date=" + URLEncoder.encode(feedingDate, "UTF-8") +
+                                "&recorded_at=" + URLEncoder.encode(recordedAt, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    result.append(line);
+                }
+
+                reader.close();
+                conn.disconnect();
+
+                callback.onSuccess(result.toString());
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    // ✅ Update Blind Feed Log
+
+
+
+    // ✅ Delete Blind Feed Log
+//    public static void deleteBlindFeedLog(int id, Callback callback) {
+//        new Thread(() -> {
+//            try {
+//                URL url = new URL("https://pondmate.alwaysdata.net/delete_blind_feed_log.php");
+//                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+//                conn.setRequestMethod("POST");
+//                conn.setDoOutput(true);
+//
+//                String postData = "id=" + URLEncoder.encode(String.valueOf(id), "UTF-8");
+//
+//                OutputStream os = conn.getOutputStream();
+//                os.write(postData.getBytes());
+//                os.flush();
+//                os.close();
+//
+//                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+//                StringBuilder result = new StringBuilder();
+//                String line;
+//
+//                while ((line = reader.readLine()) != null) {
+//                    result.append(line);
+//                }
+//
+//                reader.close();
+//                conn.disconnect();
+//
+//                callback.onSuccess(result.toString());
+//            } catch (Exception e) {
+//                callback.onError(e.getMessage());
+//            }
+//        }).start();
+//    }
+
+
+
 }
