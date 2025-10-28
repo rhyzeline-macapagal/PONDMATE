@@ -115,8 +115,10 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:spinnerMode="dropdown"
-                                android:padding="4dp"
-                                android:background="@android:color/transparent"/>
+                                android:gravity="center"
+                                android:padding="2dp"
+
+                                android:background="@android:drawable/edit_text"/>
                         </LinearLayout>
                     </LinearLayout>
 
@@ -174,13 +176,16 @@
                             android:background="@drawable/textbox_background"
                             android:padding="2dp">
 
-                            <Spinner
+                            <AutoCompleteTextView
                                 android:id="@+id/spinnerMortality"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:spinnerMode="dropdown"
-                                android:background="@android:color/transparent"
-                                android:padding="4dp" />
+                                android:inputType="numberDecimal"
+                                android:hint="Enter (%)"
+                                android:padding="4dp"
+                                android:gravity="center"
+                                android:background="@android:drawable/edit_text"
+                                android:textSize="12sp" />
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>

@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -34,7 +35,7 @@ import java.util.Locale;
 public class StockFingerlingsDialog extends DialogFragment {
 
     private PondModel pond;
-    private Spinner spinnerSpecies, spinnerMortality;
+    private Spinner spinnerSpecies;
     private EditText etFishCount, etUnitCost;
     private TextView tvTotalFingerlingsCost, tvDateStocking, tvPondName, btnClose, tvPondArea;
     private Button btnSavePond;
@@ -42,6 +43,10 @@ public class StockFingerlingsDialog extends DialogFragment {
     private String rawStockingDate = "";
     private String rawHarvestDate = "";
     private double rawPondArea = 0;
+
+    // replace Spinner with AutoCompleteTextView
+    private AutoCompleteTextView spinnerMortality;
+
 
     public StockFingerlingsDialog(PondModel pond) {
         this.pond = pond;
@@ -145,7 +150,7 @@ public class StockFingerlingsDialog extends DialogFragment {
         );
         spinnerSpecies.setAdapter(speciesAdapter);
 
-        // ✅ Populate Mortality Spinner (5% - 10%)
+        // ✅ Populate Mortality AutoComplete (5% - 10%)
         List<String> mortalityList = new ArrayList<>();
         for (int i = 5; i <= 10; i++) {
             mortalityList.add(i + "%");
@@ -153,10 +158,24 @@ public class StockFingerlingsDialog extends DialogFragment {
 
         ArrayAdapter<String> mortalityAdapter = new ArrayAdapter<>(
                 requireContext(),
-                android.R.layout.simple_spinner_dropdown_item,
+                android.R.layout.simple_dropdown_item_1line,
                 mortalityList
         );
         spinnerMortality.setAdapter(mortalityAdapter);
+
+// ✅ Default value (optional)
+        spinnerMortality.setText("5%", false);
+
+// ✅ Allow user to type freely and auto-format with %
+        spinnerMortality.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String text = spinnerMortality.getText().toString().trim();
+                if (!text.endsWith("%") && !text.isEmpty()) {
+                    spinnerMortality.setText(text + "%");
+                }
+            }
+        });
+
 
         // ✅ Set default species selection → ensures updateUnitCostBasedOnSpecies() works
         spinnerSpecies.setSelection(0); // "Bangus" first
@@ -202,7 +221,7 @@ public class StockFingerlingsDialog extends DialogFragment {
                                 spinnerSpecies.getSelectedItem().toString(),
                                 Integer.parseInt(etFishCount.getText().toString()),
                                 Double.parseDouble(etUnitCost.getText().toString()),
-                                spinnerMortality.getSelectedItem().toString(),
+                                spinnerMortality.getText().toString().trim(),
                                 rawHarvestDate,
                                 new PondSyncManager.Callback() {
                                     @Override

@@ -281,6 +281,70 @@ public class PondSyncManager {
     }
 
 
+    public static void uploadSamplingRecord(
+            String pondName,
+            int daysOfCulture,
+            String growthStage,
+            int totalStocks,
+            double mortalityRate,
+            String feedingOne,
+            String feedingTwo,
+            double abw,
+            double feedingRate,
+            double survivalRate,
+            double dfr,
+            double dfrFeed,
+            String createdAt,
+            String updatedAt,
+            Callback callback
+    ) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/add_sampling.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+
+                String postData =
+                        "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
+                                "&days_of_culture=" + daysOfCulture +
+                                "&growth_stage=" + URLEncoder.encode(growthStage, "UTF-8") +
+                                "&total_stocks=" + totalStocks +
+                                "&mortality_rate=" + mortalityRate +
+                                "&feeding_one=" + URLEncoder.encode(feedingOne, "UTF-8") +
+                                "&feeding_two=" + URLEncoder.encode(feedingTwo, "UTF-8") +
+                                "&abw=" + abw +
+                                "&feeding_rate=" + feedingRate +
+                                "&survival_rate=" + survivalRate +
+                                "&dfr=" + dfr +
+                                "&dfr_feed=" + dfrFeed +
+                                "&created_at=" + URLEncoder.encode(createdAt, "UTF-8") +
+                                "&updated_at=" + URLEncoder.encode(updatedAt, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                    reader.close();
+
+                    runOnUiThreadSafe(() -> callback.onSuccess(response.toString()));
+                } else {
+                    runOnUiThreadSafe(() -> callback.onError("Server returned code: " + responseCode));
+                }
+
+            } catch (Exception e) {
+                runOnUiThreadSafe(() -> callback.onError(e.getMessage()));
+            }
+        }).start();
+    }
+
 
     public static void uploadMaintenanceToServer(String pond, String description, double cost, Callback callback) {
         new Thread(() -> {

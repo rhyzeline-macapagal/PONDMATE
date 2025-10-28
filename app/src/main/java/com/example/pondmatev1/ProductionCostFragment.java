@@ -88,7 +88,7 @@ public class ProductionCostFragment extends Fragment {
     private String pondName = "";
     private String currentBreed = "";
     private int currentFishCount = 0;
-    Button btnDownload, btnFeedLogs;
+    Button btnDownload, btnFeedLogs, btnSampling;
 
     File generatedPdfFile;
 
@@ -150,6 +150,11 @@ public class ProductionCostFragment extends Fragment {
         etEstimatedRevenue = view.findViewById(R.id.etEstimatedRevenue);
         tvEstimatedRoI = view.findViewById(R.id.tvEstimatedROI);
         tvRoIDifference = view.findViewById(R.id.tvROIDifference);
+
+        Button btnSampling = view.findViewById(R.id.btnSampling);
+        btnSampling.setOnClickListener(v -> openSamplingDialog());
+
+
 
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
@@ -343,6 +348,12 @@ public class ProductionCostFragment extends Fragment {
             }
         }
     }
+
+    private void openSamplingDialog() {
+        SamplingDialog dialog = new SamplingDialog();
+        dialog.show(getParentFragmentManager(), "SamplingDialog");
+    }
+
 
     private void showFeedLogs() {
         BlindFeedingFragment feedLogsDialog = new BlindFeedingFragment();
