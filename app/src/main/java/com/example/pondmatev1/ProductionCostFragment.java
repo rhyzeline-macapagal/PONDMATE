@@ -182,10 +182,15 @@ public class ProductionCostFragment extends Fragment {
                     }
                     @Override
                     public void onError(String error) {
-                        new Handler(Looper.getMainLooper()).post(() ->
-                                Toast.makeText(getContext(), "Network Error: " + error, Toast.LENGTH_SHORT).show()
-                        );
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            // ✅ Show error in Toast
+                            Toast.makeText(getContext(), "Network Error: " + error, Toast.LENGTH_SHORT).show();
+
+                            // ✅ Also log the error in Logcat
+                            Log.e("NETERROR", "Network Error: " + error);
+                        });
                     }
+
                 });
             } else {
                 Toast.makeText(getContext(), "No pond selected", Toast.LENGTH_SHORT).show();

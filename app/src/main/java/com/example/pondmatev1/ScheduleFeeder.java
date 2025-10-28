@@ -97,7 +97,6 @@ public class ScheduleFeeder extends Fragment {
         Createbtn = view.findViewById(R.id.btnEditSchedule);
         timeFS = view.findViewById(R.id.tvFirstFeeding);
         timeFS1 = view.findViewById(R.id.tvSecondFeeding);
-        timeFS2 = view.findViewById(R.id.tvThirdFeeding);
         feedqttycont = view.findViewById(R.id.tvFeedQty);
         Fweight = view.findViewById(R.id.tvFeedPrice);
 

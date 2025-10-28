@@ -38,7 +38,7 @@
             android:id="@+id/btnEditSchedule"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Edit"
+            android:text="Add"
             android:textAllCaps="false"
             android:textColor="@android:color/white"
             android:backgroundTint="#2196F3"
@@ -316,32 +316,6 @@
                     </LinearLayout>
 
                     <!-- Third Feeding -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:gravity="center_horizontal"
-                        android:layout_marginStart="8dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Third"
-                            android:textColor="#666666"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:id="@+id/tvThirdFeeding"
-                            android:layout_width="match_parent"
-                            android:layout_height="40dp"
-                            android:background="@drawable/textbox_background"
-                            android:gravity="center"
-                            android:text="00:00"
-                            android:textColor="#01082D"
-                            android:textSize="14sp"
-                            android:layout_marginTop="4dp" />
-                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
         </androidx.cardview.widget.CardView>

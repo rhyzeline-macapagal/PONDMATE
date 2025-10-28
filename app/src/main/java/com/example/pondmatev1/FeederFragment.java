@@ -58,10 +58,10 @@ public class FeederFragment extends Fragment {
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
                 case 0:
-                    tab.setText("Controls");
+                    tab.setText("Schedule");
                     break;
                 case 1:
-                    tab.setText("Schedule");
+                    tab.setText("Controls");
                     break;
                 default:
                     tab.setText("Tab " + (position + 1));
