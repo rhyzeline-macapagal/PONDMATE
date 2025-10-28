@@ -543,14 +543,14 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Est. Revenue"
+                            android:text="Est. Gross Sales"
                             android:textColor="#424242"
                             android:textSize="12sp"
                             android:textStyle="bold"
                             android:layout_marginBottom="4dp" />
 
                         <EditText
-                            android:id="@+id/etEstimatedRevenue"
+                            android:id="@+id/tvEstimatedRevenue"
                             android:layout_width="match_parent"
                             android:layout_height="36dp"
                             android:background="@drawable/textbox_background"
@@ -594,182 +594,7 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Divider -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#E0E0E0"
-                android:layout_marginBottom="12dp" />
 
-            <!-- Actual ROI Section Header -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Actual ROI"
-                android:textColor="#1A237E"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp" />
-
-            <!-- Revenue Input -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="12dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Revenue (Harvest)"
-                    android:textColor="#424242"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
-
-                <TextView
-                    android:id="@+id/etActualSales"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:background="@drawable/textbox_background"
-                    android:padding="12dp"
-                    android:hint="₱"
-                    android:textColorHint="#212121"
-                    android:inputType="numberDecimal"
-                    android:textColor="#212121"
-                    android:textSize="15sp" />
-            </LinearLayout>
-
-            <!-- Capital & ROI Amount in Two Columns -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="12dp"
-                android:weightSum="2">
-
-                <!-- Capital -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginEnd="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Capital"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/tvROICapital"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:padding="8dp"
-                        android:text="₱"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:gravity="center_vertical" />
-                </LinearLayout>
-
-                <!-- ROI Amount -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="ROI (Amount)"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/tvROIAmount"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:padding="8dp"
-                        android:text="₱"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:gravity="center_vertical" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Actual ROI Percentage - Highlighted -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:background="#E8F5E8"
-                android:padding="12dp"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Actual ROI (%)"
-                    android:textColor="#1B5E20"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvROI"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/textbox_background"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="8dp"
-                    android:text="%"
-                    android:textColor="#1B5E20"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:minWidth="70dp"
-                    android:gravity="center" />
-            </LinearLayout>
-
-            <!-- Comparison Section (Optional) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:background="#FFF3E0"
-                android:padding="8dp"
-                android:layout_marginTop="8dp"
-                android:gravity="center_vertical">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="vs Estimated"
-                    android:textColor="#E65100"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvROIDifference"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="--"
-                    android:textColor="#E65100"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:minWidth="50dp"
-                    android:gravity="center" />
-            </LinearLayout>
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
