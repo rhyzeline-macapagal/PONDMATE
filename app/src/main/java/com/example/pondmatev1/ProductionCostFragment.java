@@ -89,7 +89,7 @@ public class ProductionCostFragment extends Fragment {
     private String currentBreed = "";
     private int currentFishCount = 0;
     Button btnDownload, btnFeedLogs, btnSampling;
-    Button  btnFeedLogs;
+
 
     File generatedPdfFile;
 
