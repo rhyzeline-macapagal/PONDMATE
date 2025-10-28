@@ -36,8 +36,6 @@ public class PondInfoFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
-        // 🔹 Initialize views
         tvPondName = view.findViewById(R.id.tvPondName);
         tvBreed = view.findViewById(R.id.tvBreed);
         tvFishCount = view.findViewById(R.id.tvFishCount);
@@ -60,7 +58,6 @@ public class PondInfoFragment extends Fragment {
             pond = new Gson().fromJson(pondJson, PondModel.class);
             displayPondData(pond);
         }
-
     }
 
     private void displayPondData(PondModel pond) {
@@ -84,14 +81,10 @@ public class PondInfoFragment extends Fragment {
             tvArea.setText("Not yet added");
         }
 
-        // --- Date stocking ---
         tvDateStocking.setText(notEmptyDate(pond.getDateStocking()));
-
-        // --- Date started & harvest ---
         tvDateStarted.setText(notEmptyDate(pond.getDateStarted()));
         tvHarvestDate.setText(notEmptyDate(pond.getDateHarvest()));
 
-        // --- Mortality ---
         double mortality = pond.getMortalityRate();
         if (mortality > 0) {
             tvMortalityRate.setText(String.format(Locale.US, "%.2f%%", mortality));
@@ -99,6 +92,25 @@ public class PondInfoFragment extends Fragment {
             updateMortalityData(pond.getFishCount());
         } else {
             tvMortalityRate.setText("Not yet added");
+        }
+
+        // ✅ Save pond data for ROI computation
+        try {
+            SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+
+            editor.putString("pond_name", pond.getName());
+            editor.putString("pond_breed", pond.getBreed());
+            editor.putFloat("pond_area", (float) pond.getPondArea());
+            editor.putInt("pond_fingerlings", pond.getFishCount());
+            editor.putFloat("pond_mortality_rate", (float) pond.getMortalityRate());
+
+            // Optional: if you’re tracking culture period later, save it too
+            // editor.putString("pond_culture_period", pond.getCulturePeriod());
+
+            editor.apply();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -113,20 +125,17 @@ public class PondInfoFragment extends Fragment {
                 pond = updatedPond;
                 displayPondData(updatedPond);
 
-                // Upload updated pond to server
                 PondSyncManager.uploadPondToServer(updatedPond, "", new PondSyncManager.Callback() {
                     @Override
                     public void onSuccess(Object result) {
                         Toast.makeText(getContext(), "Pond updated successfully!", Toast.LENGTH_SHORT).show();
                     }
-
                     @Override
                     public void onError(String error) {
                         Toast.makeText(getContext(), "Failed to update pond: " + error, Toast.LENGTH_LONG).show();
                     }
                 });
 
-                // Update SharedPreferences
                 SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
                 prefs.edit().putString("selected_pond", new Gson().toJson(updatedPond)).apply();
             });
@@ -134,7 +143,6 @@ public class PondInfoFragment extends Fragment {
         });
     }
 
-    // --- Helpers ---
     private String notEmpty(String value) {
         if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {
             return "Not yet added";
@@ -148,7 +156,6 @@ public class PondInfoFragment extends Fragment {
         }
         return formatDateDisplay(date);
     }
-
 
     private void updateMortalityData(int fishCount) {
         if (fishCount > 0) {

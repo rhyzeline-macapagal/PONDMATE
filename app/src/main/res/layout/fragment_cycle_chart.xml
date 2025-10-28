@@ -1,76 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/fragment_cycle_chart_root"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="16dp"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:background="#F8FAFC">
 
-    <!-- Progress Bar while loading -->
+
     <ProgressBar
         android:id="@+id/progressBarChart"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_centerInParent="true"
-        android:visibility="gone"
+        style="?android:attr/progressBarStyle"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
 
-    <!-- No Data Text -->
     <TextView
         android:id="@+id/noDataText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="No ponds available"
+        android:text="No pond data available."
         android:textSize="16sp"
-        android:textColor="@android:color/darker_gray"
-        android:layout_centerInParent="true"
-        android:visibility="gone"/>
-
-    <!-- Bar Chart -->
-    <com.github.mikephil.charting.charts.BarChart
-        android:id="@+id/cycleBarChart"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/progressBarChart"
-        android:clipToPadding="false"
-        android:paddingBottom="16dp"
-        android:paddingTop="16dp"/>
-
-    <!-- Embedded Marker for showing phase info inside chart -->
-    <LinearLayout
-        android:id="@+id/markerContainer"
-        android:orientation="vertical"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@android:color/white"
-        android:elevation="6dp"
-        android:padding="12dp"
+        android:textColor="#94A3B8"
+        android:layout_gravity="center"
         android:visibility="gone"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentEnd="true">
+        android:padding="20dp"/>
 
-        <TextView
-            android:id="@+id/markerText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@android:color/black"
-            android:textSize="14sp"
-            android:text=""/>
-
-        <TextView
-            android:id="@+id/markerLifeStage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@android:color/black"
-            android:textSize="14sp"
-            android:text="Fish Life Stage: Undetermined"/>
-
-        <TextView
-            android:id="@+id/markerProgress"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@android:color/black"
-            android:textSize="14sp"
-            android:text="Progress: 0%"/>
-    </LinearLayout>
-
-</RelativeLayout>
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/pondRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbars="vertical"/>
+</LinearLayout>

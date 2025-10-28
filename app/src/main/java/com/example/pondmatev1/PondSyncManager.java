@@ -510,6 +510,51 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void fetchFarmgatePrice(String breed, Callback callback) {
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/fetchFarmgatePrices.php");
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+                // Build JSON body
+                JSONObject jsonBody = new JSONObject();
+                jsonBody.put("breed", breed);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(jsonBody.toString().getBytes("UTF-8"));
+                    os.flush();
+                }
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode != HttpURLConnection.HTTP_OK) {
+                    Log.e("ROI_DEBUG", "Error fetching farmgate price: HTTP " + responseCode);
+                    callback.onError("HTTP " + responseCode);
+                    return;
+                }
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) response.append(line);
+                reader.close();
+
+                Log.d("ROI_DEBUG", "Farmgate API Response: " + response);
+
+                callback.onSuccess(response.toString());
+
+            } catch (Exception e) {
+                Log.e("ROI_DEBUG", "Exception fetching farmgate price", e);
+                callback.onError(e.getMessage());
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }).start();
+    }
+
     public static void fetchPondReportData(String pondName, Callback callback) {
         new Thread(() -> {
             try {

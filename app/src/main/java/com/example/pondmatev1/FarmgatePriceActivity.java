@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import android.content.SharedPreferences;
 
 public class FarmgatePriceActivity extends AppCompatActivity {
 
@@ -106,7 +107,7 @@ public class FarmgatePriceActivity extends AppCompatActivity {
                             row.addView(tvPrice);
                             row.addView(tvUpdated);
 
-                            btnEdit.setOnClickListener(v -> showEditDialog(id, price, tvPrice));
+                            btnEdit.setOnClickListener(v -> showEditDialog(id, price, tvPrice, breed));
 
                             tableFarmgate.addView(row);
                         }
@@ -126,27 +127,20 @@ public class FarmgatePriceActivity extends AppCompatActivity {
         });
     }
 
-    private void showEditDialog(int priceId, String oldPrice, TextView tvPrice) {
+    private void showEditDialog(int priceId, String oldPrice, TextView tvPrice, String breed) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Update Farmgate Price");
 
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        input.setText("₱" + oldPrice); // Show peso sign in the input
-        input.setSelection(input.getText().length()); // Cursor after the number
+        input.setText("₱" + oldPrice);
+        input.setSelection(input.getText().length());
 
-        // Prevent deleting the peso sign
         input.addTextChangedListener(new android.text.TextWatcher() {
             private boolean isEditing = false;
-
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (isEditing) return;
-
                 isEditing = true;
                 if (!s.toString().startsWith("₱")) {
                     input.setText("₱");
@@ -154,10 +148,7 @@ public class FarmgatePriceActivity extends AppCompatActivity {
                 }
                 isEditing = false;
             }
-
-            @Override
-            public void afterTextChanged(android.text.Editable s) {
-            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
         });
 
         builder.setView(input);
@@ -188,6 +179,13 @@ public class FarmgatePriceActivity extends AppCompatActivity {
                                 runOnUiThread(() -> {
                                     Toast.makeText(FarmgatePriceActivity.this, "Updated successfully", Toast.LENGTH_SHORT).show();
                                     tvPrice.setText("₱" + String.format("%.2f", newPrice));
+
+                                    // ✅ Save locally for ROI computation
+                                    SharedPreferences prefs = getSharedPreferences("POND_PREF", MODE_PRIVATE);
+                                    SharedPreferences.Editor editor = prefs.edit();
+                                    editor.putFloat("farmgate_price", (float) newPrice);
+                                    editor.putString("farmgate_breed", breed.trim().toLowerCase());
+                                    editor.apply();
                                 });
                             }
 
