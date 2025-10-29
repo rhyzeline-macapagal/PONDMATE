@@ -1,183 +1,212 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:padding="24dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
-    <!-- Title Section -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Edit Caretaker Information"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="#01082D"
-        android:gravity="center"
-        android:layout_marginBottom="24dp"
-        android:letterSpacing="0.02"/>
 
-    <!-- Form Fields Container -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:layout_marginBottom="24dp">
-
-        <!-- Username Field -->
+        android:padding="24dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <!-- Title Section -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Username"
-            android:textColor="#01082D"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="6dp"
-            android:layout_marginStart="4dp" />
-
-        <EditText
-            android:id="@+id/etEditUsername"
-            android:hint="Username"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#01082D"
-            android:textColorHint="#888888"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/textbox_background"
-            android:minHeight="48dp"
-            android:inputType="textPersonName" />
-
-        <!-- Password Field -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Password"
-            android:textColor="#01082D"
-            android:textSize="14sp"
+            android:text="Edit Caretaker Information"
+            android:textSize="20sp"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp"
-            android:layout_marginStart="4dp" />
+            android:textColor="#01082D"
+            android:gravity="center"
+            android:layout_marginBottom="24dp"
+            android:letterSpacing="0.02"/>
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        <!-- Form Fields Container -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:boxStrokeColor="#00448D"
-            app:hintTextColor="#01082D"
-            app:passwordToggleEnabled="true">
+            android:orientation="vertical"
+            android:layout_marginBottom="24dp">
+
+            <!-- Username Field -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Username"
+                android:textColor="#01082D"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:layout_marginStart="4dp" />
 
             <EditText
-                android:id="@+id/etEditPassword"
+                android:id="@+id/etEditUsername"
+                android:hint="Username"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-
                 android:textColor="#01082D"
                 android:textColorHint="#888888"
-                android:inputType="textPassword"
                 android:textSize="16sp"
                 android:padding="12dp"
                 android:layout_marginBottom="16dp"
                 android:background="@drawable/textbox_background"
-                android:minHeight="48dp" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:minHeight="48dp"
+                android:inputType="textPersonName" />
 
+            <!-- Password Field -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Password"
+                android:textColor="#01082D"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:layout_marginStart="4dp" />
 
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:boxStrokeColor="#00448D"
+                app:hintTextColor="#01082D"
+                app:passwordToggleEnabled="true">
 
+                <EditText
+                    android:id="@+id/etEditPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
 
-        <!-- Full Name Field -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Full Name"
-            android:textColor="#01082D"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="6dp"
-            android:layout_marginStart="4dp" />
+                    android:textColor="#01082D"
+                    android:textColorHint="#888888"
+                    android:inputType="textPassword"
+                    android:textSize="16sp"
+                    android:padding="12dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/textbox_background"
+                    android:minHeight="48dp" />
+            </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
-            android:id="@+id/etEditFullname"
-            android:hint="Full Name"
+            <!-- Full Name Field -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Full Name"
+                android:textColor="#01082D"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:layout_marginStart="4dp" />
+
+            <EditText
+                android:id="@+id/etEditFullname"
+                android:hint="Full Name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#01082D"
+                android:textColorHint="#888888"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/textbox_background"
+                android:minHeight="48dp"
+                android:inputType="textPersonName" />
+
+            <!-- Address Field -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Address"
+                android:textColor="#01082D"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:layout_marginStart="4dp" />
+
+            <EditText
+                android:id="@+id/etEditAddress"
+                android:hint="Address"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#01082D"
+                android:textColorHint="#888888"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/textbox_background"
+                android:minHeight="48dp"
+                android:inputType="textPostalAddress"
+                android:minLines="2" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Salary"
+                android:textColor="#01082D"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:layout_marginStart="4dp" />
+
+            <EditText
+                android:id="@+id/etEditSalary"
+                android:hint="Salary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#01082D"
+                android:inputType="numberDecimal"
+                android:textColorHint="#888888"
+                android:textSize="16sp"
+                android:padding="12dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/textbox_background"
+                android:minHeight="48dp"
+                android:minLines="2" />
+
+            <!-- Assigned Ponds Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Assigned Ponds"
+                android:textColor="#01082D"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginTop="12dp"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvCaretakerPonds"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:paddingVertical="6dp"/>
+
+            <Button
+                android:id="@+id/btnSavePondAssignments"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:text="Save Pond Assignments"
+                android:textAllCaps="false"
+                android:backgroundTint="#00448D"
+                android:textColor="@android:color/white"
+                android:layout_marginTop="12dp"/>
+        </LinearLayout>
+
+        <!-- Save Button -->
+        <Button
+            android:id="@+id/btnSaveCaretaker"
+            android:text="Save Changes"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#01082D"
-            android:textColorHint="#888888"
+            android:layout_height="56dp"
             android:textSize="16sp"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/textbox_background"
-            android:minHeight="48dp"
-            android:inputType="textPersonName" />
-
-        <!-- Address Field -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Address"
-            android:textColor="#01082D"
-            android:textSize="14sp"
             android:textStyle="bold"
-            android:layout_marginBottom="6dp"
-            android:layout_marginStart="4dp" />
-
-        <EditText
-            android:id="@+id/etEditAddress"
-            android:hint="Address"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#01082D"
-            android:textColorHint="#888888"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/textbox_background"
-            android:minHeight="48dp"
-            android:inputType="textPostalAddress"
-            android:minLines="2" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Salary"
-            android:textColor="#01082D"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="6dp"
-            android:layout_marginStart="4dp" />
-
-        <EditText
-            android:id="@+id/etEditSalary"
-            android:hint="Salary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#01082D"
-            android:inputType="numberDecimal"
-            android:textColorHint="#888888"
-            android:textSize="16sp"
-            android:padding="12dp"
-            android:layout_marginBottom="8dp"
-            android:background="@drawable/textbox_background"
-            android:minHeight="48dp"
-            android:minLines="2" />
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            android:backgroundTint="#00448D"
+            android:letterSpacing="0.02"
+            app:cornerRadius="8dp"
+            android:elevation="2dp"
+            android:stateListAnimator="@null"/>
     </LinearLayout>
-
-    <!-- Save Button -->
-    <Button
-        android:id="@+id/btnSaveCaretaker"
-        android:text="Save Changes"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textAllCaps="false"
-        android:textColor="@android:color/white"
-        android:backgroundTint="#00448D"
-        android:letterSpacing="0.02"
-        app:cornerRadius="8dp"
-        android:elevation="2dp"
-        android:stateListAnimator="@null"/>
-
-</LinearLayout>
+</ScrollView>

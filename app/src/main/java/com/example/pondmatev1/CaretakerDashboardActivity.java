@@ -30,11 +30,15 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class CaretakerDashboardActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private CaretakerAdapter adapter;
+    CaretakerPondAdapter pondAdapter;
     private ArrayList<CaretakerModel> caretakers = new ArrayList<>();
     private AlertDialog loadingDialog;
 
@@ -90,21 +94,20 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         EditText password = dialog.findViewById(R.id.editPassword);
         EditText fullName = dialog.findViewById(R.id.editFullName);
         EditText address = dialog.findViewById(R.id.editAddress);
-        TextView caretaker = dialog.findViewById(R.id.tvCaretaker);
         EditText salary = dialog.findViewById(R.id.editSalary);
         Button saveBtn = dialog.findViewById(R.id.saveCaretakerBtn);
         TextView closeDialog = dialog.findViewById(R.id.closeDialog);
         closeDialog.setOnClickListener(v -> dialog.dismiss());
 
-        // ✅ Replace Spinner with Button to trigger multi-select
+        // ✅ Multi-select ponds
         Button btnSelectPonds = dialog.findViewById(R.id.btnSelectPonds);
-        TextView selectedPondsLabel = dialog.findViewById(R.id.tvSelectedPonds); // Add this in your XML
+        TextView selectedPondsLabel = dialog.findViewById(R.id.tvSelectedPonds);
 
         ArrayList<String> pondNames = new ArrayList<>();
         ArrayList<Integer> pondIds = new ArrayList<>();
+        Set<String> selectedCaretakerIds = new HashSet<>();
         ArrayList<Integer> selectedPondIds = new ArrayList<>();
 
-        // 🟢 Fetch active ponds
         new Thread(() -> {
             try {
                 URL url = new URL(BASE_URL + "get_active_ponds.php");
@@ -127,42 +130,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                     pondIds.add(obj.getInt("id"));
                 }
 
-                runOnUiThread(() -> {
-                    btnSelectPonds.setEnabled(true);
-
-                    btnSelectPonds.setOnClickListener(v -> {
-                        boolean[] checkedItems = new boolean[pondNames.size()];
-
-                        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                        builder.setTitle("Select Ponds");
-                        builder.setMultiChoiceItems(pondNames.toArray(new String[0]), checkedItems,
-                                (dialog1, which, isChecked) -> {
-                                    int pondId = pondIds.get(which);
-                                    if (isChecked) {
-                                        selectedPondIds.add(pondId);
-                                    } else {
-                                        selectedPondIds.remove(Integer.valueOf(pondId));
-                                    }
-                                });
-                        builder.setPositiveButton("OK", (d, w) -> {
-                            if (selectedPondIds.isEmpty()) {
-                                selectedPondsLabel.setText("No ponds selected");
-                            } else {
-                                // Join selected names for display
-                                StringBuilder names = new StringBuilder();
-                                for (int i = 0; i < selectedPondIds.size(); i++) {
-                                    int id = selectedPondIds.get(i);
-                                    String name = pondNames.get(pondIds.indexOf(id));
-                                    names.append(name);
-                                    if (i < selectedPondIds.size() - 1) names.append(", ");
-                                }
-                                selectedPondsLabel.setText("Selected: " + names);
-                            }
-                        });
-                        builder.setNegativeButton("Cancel", null);
-                        builder.show();
-                    });
-                });
+                runOnUiThread(() -> btnSelectPonds.setEnabled(true));
 
             } catch (Exception e) {
                 e.printStackTrace();
@@ -171,6 +139,45 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                 );
             }
         }).start();
+
+        btnSelectPonds.setOnClickListener(v -> {
+            boolean[] checkedItems = new boolean[pondNames.size()];
+
+            // ✅ Mark already selected ponds as checked
+            for (int i = 0; i < pondIds.size(); i++) {
+                checkedItems[i] = selectedPondIds.contains(pondIds.get(i));
+            }
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Select Ponds");
+            builder.setMultiChoiceItems(pondNames.toArray(new String[0]), checkedItems,
+                    (dialog1, which, isChecked) -> {
+                        int id = pondIds.get(which);
+                        if (isChecked) {
+                            if (!selectedPondIds.contains(id)) {
+                                selectedPondIds.add(id); // ✅ no duplicates now
+                            }
+                        } else {
+                            selectedPondIds.remove(Integer.valueOf(id));
+                        }
+                    });
+
+            builder.setPositiveButton("OK", (d, w) -> {
+                if (selectedPondIds.isEmpty()) {
+                    selectedPondsLabel.setText("No ponds selected");
+                } else {
+                    StringBuilder names = new StringBuilder();
+                    for (int i = 0; i < selectedPondIds.size(); i++) {
+                        int id = selectedPondIds.get(i);
+                        names.append(pondNames.get(pondIds.indexOf(id)));
+                        if (i < selectedPondIds.size() - 1) names.append(", ");
+                    }
+                    selectedPondsLabel.setText("Selected: " + names);
+                }
+            });
+            builder.setNegativeButton("Cancel", null);
+            builder.show();
+        });
 
         saveBtn.setOnClickListener(v -> {
             String u = username.getText().toString().trim();
@@ -192,18 +199,16 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                 return;
             }
 
-            // ✅ Ensure at least one pond selected
             if (selectedPondIds.isEmpty()) {
                 Toast.makeText(this, "Please select at least one pond", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Convert selected ponds to CSV
             String joinedPondIds = TextUtils.join(",", selectedPondIds);
 
             new AlertDialog.Builder(this)
                     .setTitle("Confirm Save")
-                    .setMessage("Are you sure you want to add this caretaker?")
+                    .setMessage("Add this caretaker?")
                     .setPositiveButton("Yes", (dialogInterface, i) -> {
                         new Thread(() -> {
                             try {
@@ -218,7 +223,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                                                 "&password=" + URLEncoder.encode(p, "UTF-8") +
                                                 "&fullname=" + URLEncoder.encode(n, "UTF-8") +
                                                 "&address=" + URLEncoder.encode(a, "UTF-8") +
-                                                "&usertype=" + URLEncoder.encode("Caretaker", "UTF-8") +
+                                                "&usertype=Caretaker" +
                                                 "&salary=" + URLEncoder.encode(String.valueOf(salaryValue), "UTF-8") +
                                                 "&pond_ids=" + URLEncoder.encode(joinedPondIds, "UTF-8");
 
@@ -228,18 +233,14 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                                 os.close();
 
                                 BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                                StringBuilder response = new StringBuilder();
-                                String line;
-                                while ((line = in.readLine()) != null) response.append(line);
+                                String result = in.readLine();
                                 in.close();
-
-                                String result = response.toString().trim();
 
                                 runOnUiThread(() -> {
                                     if (result.contains("success")) {
-                                        Toast.makeText(this, "Caretaker added successfully!", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(this, "Caretaker added!", Toast.LENGTH_SHORT).show();
                                         dialog.dismiss();
-                                        fetchCaretakers(); // refresh list
+                                        fetchCaretakers();
                                     } else if (result.contains("exists")) {
                                         Toast.makeText(this, "Username already exists", Toast.LENGTH_SHORT).show();
                                     } else {
@@ -444,9 +445,11 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         EditText etPassword = view.findViewById(R.id.etEditPassword);
         EditText etAddress = view.findViewById(R.id.etEditAddress);
         EditText etSalary = view.findViewById(R.id.etEditSalary);
-        Button btnSave = view.findViewById(R.id.btnSaveCaretaker);
+        RecyclerView rvPonds = view.findViewById(R.id.rvCaretakerPonds);
+        Button btnSaveInfo = view.findViewById(R.id.btnSaveCaretaker);
+        Button btnSavePonds = view.findViewById(R.id.btnSavePondAssignments);
 
-        // Prefill existing data
+        // Prefill
         etFullname.setText(caretaker.getFullname());
         etUsername.setText(caretaker.getUsername());
         etPassword.setText(caretaker.getPassword());
@@ -456,51 +459,66 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialog.show();
 
-        btnSave.setOnClickListener(v -> {
-            String newFullname = etFullname.getText().toString().trim();
-            String newUsername = etUsername.getText().toString().trim();
-            String newPassword = etPassword.getText().toString().trim();
-            String newAddress = etAddress.getText().toString().trim();
-            String sSalary = etSalary.getText().toString().trim();
+        // ✅ Load ponds list into recycler
+        loadAssignedPonds(caretaker.getId(), rvPonds);
 
-            if (newFullname.isEmpty() || newUsername.isEmpty() || newPassword.isEmpty() || newAddress.isEmpty()) {
-                Toast.makeText(this, "All fields are required!", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            double salaryValue = 0.0;
-            if (!sSalary.isEmpty()) {
-                try {
-                    salaryValue = Double.parseDouble(sSalary);
-                } catch (NumberFormatException e) {
-                    Toast.makeText(this, "Invalid salary", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-            }
-
-            final double finalSalary = salaryValue;
-
-            new AlertDialog.Builder(this)
-                    .setTitle("Confirm Save")
-                    .setMessage("Are you sure you want to save changes to this caretaker?")
-                    .setPositiveButton("Yes", (dialogInterface, i) -> {
-                        editCaretaker(
-                                caretaker.getId(),
-                                newUsername,
-                                newPassword,
-                                newFullname,
-                                newAddress,
-                                caretaker.getUsertype(),
-                                finalSalary,
-                                dialog
-                        );
-                    })
-                    .setNegativeButton("No", null)
-                    .show();
+        // ✅ Save caretaker info (NO changes to pond assignment here)
+        btnSaveInfo.setOnClickListener(v -> {
+            editCaretaker(
+                    caretaker.getId(),
+                    etUsername.getText().toString().trim(),
+                    etPassword.getText().toString().trim(),
+                    etFullname.getText().toString().trim(),
+                    etAddress.getText().toString().trim(),
+                    caretaker.getUsertype(),
+                    Double.parseDouble(etSalary.getText().toString().trim()),
+                    dialog
+            );
         });
+
+        // ✅ Save pond assignments only
+        btnSavePonds.setOnClickListener(v -> saveCaretakerPonds(caretaker.getId()));
     }
+
     private String formatCurrency(double amount) {
         return "₱" + String.format("%,.2f", amount);
+    }
+
+    private void loadAssignedPonds(int caretakerId, RecyclerView rv) {
+        new Thread(() -> {
+            try {
+                URL url = new URL(BASE_URL + "get_all_ponds_with_assignment.php?caretaker_id=" + caretakerId);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) response.append(line);
+                in.close();
+
+                JSONArray arr = new JSONArray(response.toString());
+                ArrayList<PondModel> ponds = new ArrayList<>();
+
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject o = arr.getJSONObject(i);
+
+                    PondModel p = new PondModel(o.getString("name")); // <-- Exists in your constructors
+                    p.setId(String.valueOf(o.getInt("id"))); // Store ID as String
+                    p.setAssigned(o.getBoolean("assigned"));
+                    ponds.add(p);
+                }
+
+                runOnUiThread(() -> {
+                    pondAdapter = new CaretakerPondAdapter(ponds);
+                    rv.setLayoutManager(new LinearLayoutManager(this));
+                    rv.setAdapter(pondAdapter);
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     private void editCaretaker(int id, String newUsername, String newPassword,
@@ -551,4 +569,38 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
             }
         }).start();
     }
+
+    private void saveCaretakerPonds(int caretakerId) {
+
+        List<PondModel> selected = pondAdapter.getSelectedPonds();
+        StringBuilder ids = new StringBuilder();
+
+        for (PondModel p : selected) {
+            if (ids.length() > 0) ids.append(",");
+            ids.append(p.getId());
+        }
+
+        new Thread(() -> {
+            try {
+                URL url = new URL(BASE_URL + "update_caretaker_ponds.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String data = "caretaker_id=" + caretakerId + "&pond_ids=" + ids;
+                conn.getOutputStream().write(data.getBytes());
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                String response = in.readLine();
+                in.close();
+
+                runOnUiThread(() -> Toast.makeText(this, response, Toast.LENGTH_SHORT).show());
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
 }

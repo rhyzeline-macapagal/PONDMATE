@@ -303,13 +303,16 @@
                     app:cornerRadius="6dp"
                     android:elevation="2dp"/>
 
-                <TextView
-                    android:id="@+id/tvSelectedCaretakers"
+                <com.google.android.flexbox.FlexboxLayout
+                    android:id="@+id/caretakerChipContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="No caretakers selected"
-                    android:textSize="14sp"
-                    android:layout_marginBottom="12dp"/>
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="12dp"
+                    app:flexWrap="wrap"
+                    app:alignItems="center"
+                    app:justifyContent="flex_start"
+                    />
 
 
                 <!-- Save Button -->
