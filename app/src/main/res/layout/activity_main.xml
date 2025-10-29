@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#A6C4F1FF"
+    android:background="#A6FFFFFF"
     tools:context=".MainActivity">
 
     <!-- 🔵 Top Bar -->
@@ -73,11 +73,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/topBar"
-        android:background="#A6C4F1FF"
+        android:background="#A6FFFFFF"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
+        android:paddingTop="12dp">
 
         <!-- 🔙 Back Button -->
         <ImageButton
@@ -129,7 +128,7 @@
         android:layout_height="match_parent"
         android:layout_below="@id/pondHeader"
         android:layout_above="@id/bottomNavigation"
-        android:background="#A6C4F1FF">
+        android:background="#A6FFFFFF">
 
     </FrameLayout>
 
@@ -148,5 +147,5 @@
         app:mbn_defaultIconColor="#266CA9"
         app:mbn_hasAnimation="true"
         app:mbn_rippleColor="#FAF7F0"
-        app:mbn_selectedIconColor="#ADE1FB" />
+        app:mbn_selectedIconColor="#D0DBE0" />
 </RelativeLayout>
