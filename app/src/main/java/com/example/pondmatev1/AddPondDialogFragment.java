@@ -193,14 +193,12 @@ public class AddPondDialogFragment extends DialogFragment {
                 0.0                    // mortalityRate
         );
 
-
-        // ✅ Save to SharedPreferences immediately
         SharedPreferences prefs = requireContext()
                 .getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         prefs.edit().putString("selected_pond", new Gson().toJson(pond)).apply();
 
         // ✅ Upload to server
-        PondSyncManager.uploadPondToServer(pond, imageBase64, new PondSyncManager.Callback() {
+        PondSyncManager.uploadPondToServer(requireContext(), pond, imageBase64, new PondSyncManager.Callback() {
             @Override
             public void onSuccess(Object result) {
                 hideLoadingDialog();

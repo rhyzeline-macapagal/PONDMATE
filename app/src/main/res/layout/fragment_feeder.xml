@@ -33,7 +33,7 @@
                     android:layout_height="wrap_content"
                     android:text="Fish Feeder Control"
                     android:textColor="#FFFFFF"
-                    android:textSize="20sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -41,7 +41,7 @@
                     android:layout_height="wrap_content"
                     android:text="Manage your aquaculture feeding system"
                     android:textColor="#FFFFFF"
-                    android:textSize="14sp"
+                    android:textSize="12sp"
                     android:layout_marginTop="2dp" />
             </LinearLayout>
         </LinearLayout>

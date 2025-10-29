@@ -125,7 +125,7 @@ public class PondInfoFragment extends Fragment {
                 pond = updatedPond;
                 displayPondData(updatedPond);
 
-                PondSyncManager.uploadPondToServer(updatedPond, "", new PondSyncManager.Callback() {
+                PondSyncManager.uploadPondToServer(requireContext(),updatedPond, "", new PondSyncManager.Callback() {
                     @Override
                     public void onSuccess(Object result) {
                         Toast.makeText(getContext(), "Pond updated successfully!", Toast.LENGTH_SHORT).show();

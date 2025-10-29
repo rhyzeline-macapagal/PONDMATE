@@ -102,12 +102,37 @@ public class SamplingDialog extends DialogFragment {
 
 
                 // Compute days of culture
+                // 🧮 Compute days of culture and life stage based on species
                 if (pond.getDateStocking() != null && !pond.getDateStocking().isEmpty()) {
                     try {
                         Date stockingDate = sdf.parse(pond.getDateStocking());
                         long days = (new Date().getTime() - stockingDate.getTime()) / (1000 * 60 * 60 * 24);
+                        if (days < 1) days = 1; // ensure starts at Day 1
+
                         tvDaysOfCulture.setText(days + " days");
-                        tvLifeStage.setText(days <= 30 ? "Fingerling" : days <= 90 ? "Juvenile" : "Adult");
+
+                        String species = pond.getBreed() != null ? pond.getBreed().toLowerCase() : "";
+
+                        String lifeStage;
+
+                        if (species.contains("tilapia")) {
+                            if (days <= 60) lifeStage = "Fingerling";
+                            else if (days <= 90) lifeStage = "Juvenile";
+                            else if (days <= 180) lifeStage = "Sub-adult / Adult (Harvest)";
+                            else lifeStage = "Post-harvest";
+                        }
+                        else if (species.contains("milkfish") || species.contains("bangus")) {
+                            if (days <= 70) lifeStage = "Fingerling";
+                            else if (days <= 90) lifeStage = "Juvenile";
+                            else if (days <= 180) lifeStage = "Sub-adult / Adult (Harvest)";
+                            else lifeStage = "Post-harvest";
+                        }
+                        else {
+                            lifeStage = "Unknown Species";
+                        }
+
+                        tvLifeStage.setText(lifeStage);
+
                     } catch (ParseException e) {
                         tvDaysOfCulture.setText("N/A");
                         tvLifeStage.setText("N/A");

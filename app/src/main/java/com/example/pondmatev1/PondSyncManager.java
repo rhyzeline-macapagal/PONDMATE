@@ -1,5 +1,6 @@
 package com.example.pondmatev1;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -24,30 +25,36 @@ import java.util.Locale;
 
 public class PondSyncManager {
 
-    // Upload pond directly to server
-    public static void uploadPondToServer(PondModel pond, String imageBase64, Callback callback) {
+
+    public static void uploadPondToServer(Context context, PondModel pond, String imageBase64, Callback callback) {
         new Thread(() -> {
             try {
+                // ✅ Prepare connection
                 URL url = new URL("https://pondmate.alwaysdata.net/add_pond.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-                // Prepare POST data (tailored to your new pond fields)
+                // ✅ Get logged-in username
+                SessionManager session = new SessionManager(context);
+                String ownerUsername = session.getUsername();
+
+                // ✅ Build POST data
                 String postData = "name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
                         "&area=" + URLEncoder.encode(String.valueOf(pond.getPondArea()), "UTF-8") +
                         "&date_created=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
                         "&stocking_date=" + URLEncoder.encode(pond.getDateStocking(), "UTF-8") +
-                        "&image=" + URLEncoder.encode(imageBase64, "UTF-8");
+                        "&image=" + URLEncoder.encode(imageBase64, "UTF-8") +
+                        "&owner_username=" + URLEncoder.encode(ownerUsername, "UTF-8"); // 🟩 Added
 
-                // Send request
+                // ✅ Send request
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush();
                 os.close();
 
-                // Read server response
+                // ✅ Read server response
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder sb = new StringBuilder();
                 String line;
@@ -56,13 +63,13 @@ public class PondSyncManager {
                 }
                 reader.close();
 
-                // Parse JSON response
+                // ✅ Parse JSON response
                 String response = sb.toString();
                 JSONObject json = new JSONObject(response);
                 String status = json.optString("status", "error");
                 String message = json.optString("message", "Unknown error");
 
-                // Callback to main thread
+                // ✅ Handle response on main thread
                 if (callback != null) {
                     new Handler(Looper.getMainLooper()).post(() -> {
                         if ("success".equalsIgnoreCase(status)) {
@@ -889,7 +896,6 @@ public class PondSyncManager {
             }
         }).start();
     }
-
 
 
 
