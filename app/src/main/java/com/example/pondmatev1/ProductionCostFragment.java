@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
@@ -26,6 +27,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -75,24 +78,18 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ProductionCostFragment extends Fragment {
-
     TextView tvBreed, tvCount, tvAmountPerPiece, tvTotalCost;
     TextView tvSummaryFingerlings, tvSummaryFeeds, tvSummaryMaintenance, tvSummaryTotal;
     TextView tvEstimatedRoI;
     TextView tvSummarySalary;
-    //private TextView tvEstimatedRevenue;
-
     private double salaryPerPond = 0.0;
 
     private double totalCost = 0.0;
     private String pondName = "";
     private String currentBreed = "";
     private int currentFishCount = 0;
-    Button btnDownload, btnFeedLogs, btnSampling;
-
-
+    Button btnDownload, btnFeedLogs, btnSampling, btnViewROIBreakdown;
     File generatedPdfFile;
-
     private int selectedCycleMonths = 6;
 
     @Nullable
@@ -141,14 +138,12 @@ public class ProductionCostFragment extends Fragment {
         tvSummaryTotal = view.findViewById(R.id.tvSummaryTotal);
 
         tvEstimatedRoI = view.findViewById(R.id.tvEstimatedROI);
-        //tvEstimatedRevenue = view.findViewById(R.id.tvEstimatedRevenue);
+        btnViewROIBreakdown = view.findViewById(R.id.btnViewROIBreakdown);
 
         computeEstimatedROI();
 
         Button btnSampling = view.findViewById(R.id.btnSampling);
         btnSampling.setOnClickListener(v -> openSamplingDialog());
-
-
 
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
@@ -193,10 +188,9 @@ public class ProductionCostFragment extends Fragment {
                             Toast.makeText(getContext(), "Network Error: " + error, Toast.LENGTH_SHORT).show();
 
                             // ✅ Also log the error in Logcat
-                            Log.e("NETERROR", "Network Error: " + error);
+                            Log.e("NET ERROR", "Network Error: " + error);
                         });
                     }
-
                 });
             } else {
                 Toast.makeText(getContext(), "No pond selected", Toast.LENGTH_SHORT).show();
@@ -212,11 +206,19 @@ public class ProductionCostFragment extends Fragment {
             int index = Math.max(0, Math.min(savedMonths - 1, spinnerMonths.getCount() - 1));
             try {
                 spinnerMonths.setSelection(index, false);
-            } catch (NoSuchMethodError nsme) {
+            } catch (NoSuchMethodError name) {
                 spinnerMonths.setSelection(index);
             }
-
             loadSalarySummary(savedMonths);
+        });
+
+        btnViewROIBreakdown.setOnClickListener(v -> {
+            if (ROIHelper.lastBreakdown == null) {
+                Toast.makeText(getContext(), "ROI not calculated yet.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            showROIBreakdownDialog(ROIHelper.lastBreakdown);
         });
 
         spinnerMonths.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -242,7 +244,6 @@ public class ProductionCostFragment extends Fragment {
             public void onNothingSelected(AdapterView<?> parent) { }
         });
 
-        // fill UI with pond data
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
 
@@ -309,16 +310,10 @@ public class ProductionCostFragment extends Fragment {
 
         if (!pondName.isEmpty()) {
             SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-           // float savedActualROI = sp.getFloat(pondName + "_roi", -1f);
             float savedEstimatedROI = sp.getFloat(pondName + "_roi_diff", -1f);
-            //String savedActualSales = sp.getString(pondName + "_actual_sales", "");
-            //String savedEstimatedRevenue = sp.getString(pondName + "_estimated_revenue", "");
-
 
             if (savedEstimatedROI != -1f) {
                 tvEstimatedRoI.setText(formatPrice(savedEstimatedROI) + "%");
-                //tvRoIDifference.setText(formatPrice(savedEstimatedROI) + "%");
-                //etEstimatedRevenue.setText("");
             }
         }
     }
@@ -327,7 +322,6 @@ public class ProductionCostFragment extends Fragment {
         SamplingDialog dialog = new SamplingDialog();
         dialog.show(getParentFragmentManager(), "SamplingDialog");
     }
-
 
     private void showFeedLogs() {
         BlindFeedingFragment feedLogsDialog = new BlindFeedingFragment();
@@ -348,7 +342,7 @@ public class ProductionCostFragment extends Fragment {
             spinnerMonths.post(() -> {
                 try {
                     spinnerMonths.setSelection(index, false);
-                } catch (NoSuchMethodError nsme) {
+                } catch (NoSuchMethodError name) {
                     spinnerMonths.setSelection(index);
                 }
             });
@@ -796,18 +790,15 @@ public class ProductionCostFragment extends Fragment {
         Log.d("ROI_DEBUG", "Starting computeEstimatedROI()...");
 
         try {
-            // ----- 1. Load pond data -----
             SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
             String pondJson = prefs.getString("selected_pond", null);
             if (pondJson == null) {
-                Log.w("ROI_DEBUG", "❌ No pond data found in SharedPreferences.");
                 tvEstimatedRoI.setText("—");
                 return;
             }
 
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             if (pond == null) {
-                Log.e("ROI_DEBUG", "❌ PondModel deserialization failed.");
                 tvEstimatedRoI.setText("—");
                 return;
             }
@@ -817,41 +808,30 @@ public class ProductionCostFragment extends Fragment {
             double survivalRate = 100 - mortalityRate;
             String breed = pond.getBreed();
 
-            Log.d("ROI_DEBUG", "✅ Loaded pond data: Fingerlings=" + fingerlingsCount +
-                    ", Mortality=" + mortalityRate +
-                    ", Survival=" + survivalRate +
-                    ", Breed=" + breed);
-
-            // ----- 2. Fetch farmgate price from DB -----
             PondSyncManager.fetchFarmgatePrice(breed, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object result) {
+
                     try {
                         JSONObject json = new JSONObject(result.toString());
-                        if (!json.has("status") || !json.getString("status").equals("success")) {
-                            requireActivity().runOnUiThread(() -> tvEstimatedRoI.setText("—"));
+                        if (!json.optString("status").equals("success")) {
+                            updateROIText("—");
                             return;
                         }
 
                         double farmGatePrice = json.optDouble("price", 0.0);
                         if (farmGatePrice <= 0) {
-                            requireActivity().runOnUiThread(() -> tvEstimatedRoI.setText("—"));
+                            updateROIText("—");
                             return;
                         }
 
-                        Log.d("ROI_DEBUG", "💰 Farmgate Price = ₱" + farmGatePrice);
-
-                        // ----- 3. Compute harvest & gross sales -----
+                        // Harvest & Revenue Projection
                         double totalHarvestKg = (fingerlingsCount * (survivalRate / 100.0)) / 4.0;
                         double grossSales = totalHarvestKg * farmGatePrice;
 
-                        Log.d("ROI_DEBUG", "🐟 Harvest Weight = " + totalHarvestKg + " kg");
-                        Log.d("ROI_DEBUG", "💵 Gross Sales = ₱" + grossSales);
-
-                        // ----- 4. User-entered & fixed base costs -----
+                        // Fixed Costs (6 months cycle)
                         double fingerlingsCost = getDoubleFromText(tvSummaryFingerlings);
                         double salaryCost = getDoubleFromText(tvSummarySalary);
-
                         double supplies = 1000 * 6;
                         double misc = 1000 * 6;
                         double harvesting = grossSales * 0.02;
@@ -859,54 +839,154 @@ public class ProductionCostFragment extends Fragment {
                         double maintenance = grossSales * 0.02;
 
                         double baseCost = fingerlingsCost + salaryCost + supplies + misc + harvesting + caretaker + maintenance;
-                        Log.d("ROI_DEBUG", "🧱 Base Cost (excluding feeds & fertilizer) = ₱" + baseCost);
 
-                        // ----- 5. Compute total cost using allocation ratios -----
-                        // Feeds = 60% of total cost
-                        // Fertilizer = 3.06% of total cost
-                        // BaseCost = 36.94% of total cost → T = Base / 0.3694
+                        // Allocations (based on standard fish farming cost ratios)
                         double totalCost = baseCost / 0.3694;
                         double feedCost = totalCost * 0.60;
                         double fertilizerCost = totalCost * 0.0306;
 
-                        Log.d("ROI_DEBUG", "🥬 Feed Cost (60%) = ₱" + feedCost);
-                        Log.d("ROI_DEBUG", "🌾 Fertilizer Cost (3.06%) = ₱" + fertilizerCost);
-
-                        // ----- 6. Total expenses -----
                         double totalExpenses = baseCost + feedCost + fertilizerCost;
-                        Log.d("ROI_DEBUG", "💸 Total Expenses = ₱" + totalExpenses);
-
-                        // ----- 7. ROI -----
                         if (totalExpenses <= 0) {
-                            requireActivity().runOnUiThread(() -> tvEstimatedRoI.setText("—"));
+                            updateROIText("—");
                             return;
                         }
 
                         double estimatedROI = ((grossSales - totalExpenses) / totalExpenses) * 100;
-                        Log.d("ROI_DEBUG", "📈 Estimated ROI = " + estimatedROI + "%");
 
-                        requireActivity().runOnUiThread(() ->
-                                tvEstimatedRoI.setText(String.format(Locale.US, "%.2f%%", estimatedROI))
-                        );
+                        // Round numbers
+                        totalHarvestKg = round(totalHarvestKg);
+                        grossSales = round(grossSales);
+                        feedCost = round(feedCost);
+                        fertilizerCost = round(fertilizerCost);
+                        totalExpenses = round(totalExpenses);
+                        estimatedROI = round(estimatedROI);
+
+                        // Save breakdown for viewing
+                        ROIBreakdown b = new ROIBreakdown();
+                        b.fingerlingsCount = fingerlingsCount;
+                        b.mortalityRate = mortalityRate;
+                        b.survivalRate = survivalRate;
+                        b.farmGatePrice = farmGatePrice;
+                        b.totalHarvestKg = totalHarvestKg;
+                        b.grossSales = grossSales;
+
+                        b.fingerlingsCost = fingerlingsCost;
+                        b.salaryCost = salaryCost;
+                        b.supplies = supplies;
+                        b.misc = misc;
+                        b.harvesting = harvesting;
+                        b.caretaker = caretaker;
+                        b.maintenance = maintenance;
+
+                        b.feedCost = feedCost;
+                        b.fertilizerCost = fertilizerCost;
+                        b.totalExpenses = totalExpenses;
+                        b.estimatedROI = estimatedROI;
+
+                        ROIHelper.lastBreakdown = b;
+
+                        updateROIText(String.format(Locale.US, "%.2f%%", estimatedROI));
 
                     } catch (Exception e) {
-                        Log.e("ROI_DEBUG", "❌ Error parsing farmgate JSON", e);
-                        requireActivity().runOnUiThread(() -> tvEstimatedRoI.setText("—"));
+                        updateROIText("—");
                     }
                 }
 
                 @Override
                 public void onError(String error) {
-                    Log.e("ROI_DEBUG", "❌ Error fetching farmgate price: " + error);
-                    requireActivity().runOnUiThread(() -> tvEstimatedRoI.setText("—"));
+                    updateROIText("—");
                 }
             });
 
         } catch (Exception e) {
-            Log.e("ROI_DEBUG", "❌ Error computing ROI", e);
             tvEstimatedRoI.setText("—");
         }
     }
+
+    private void updateROIText(String value) {
+        requireActivity().runOnUiThread(() -> tvEstimatedRoI.setText(value));
+    }
+
+    private double round(double v) {
+        return Math.round(v * 100.0) / 100.0;
+    }
+
+    private void showROIBreakdownDialog(ROIBreakdown b) {
+        View view = getLayoutInflater().inflate(R.layout.dialog_roi_breakdown, null);
+        TableLayout table = view.findViewById(R.id.tableROI);
+
+        addRow(table, "Fingerlings Stocked:", String.format("%.0f pcs", b.fingerlingsCount));
+        addRow(table, "Mortality Rate:", String.format("%.2f%%", b.mortalityRate));
+        addRow(table, "Survival Rate:", String.format("%.2f%%", b.survivalRate));
+
+        addSpacer(table);
+        addHeader(table, "PROJECTED SALES");
+        addRow(table, "Harvest Weight:", String.format("%.2f kg", b.totalHarvestKg));
+        addRow(table, "Farm-Gate Price:", String.format("₱%.2f/kg", b.farmGatePrice));
+        addRow(table, "Gross Revenue:", String.format("₱%.2f", b.grossSales));
+
+        addSpacer(table);
+        addHeader(table, "FIXED COSTS (6 months)");
+        addRow(table, "Fingerlings Cost:", formatPeso(b.fingerlingsCost));
+        addRow(table, "Caretaker Salary:", formatPeso(b.salaryCost));
+        addRow(table, "Supplies & Materials:", formatPeso(b.supplies));
+        addRow(table, "Misc. Expenses:", formatPeso(b.misc));
+        addRow(table, "Harvesting (2%):", formatPeso(b.harvesting));
+        addRow(table, "Caretaker Incentives (5%):", formatPeso(b.caretaker));
+        addRow(table, "Maintenance (2%):", formatPeso(b.maintenance));
+
+        addSpacer(table);
+        addHeader(table, "VARIABLE COSTS");
+        addRow(table, "Feeds (60%):", formatPeso(b.feedCost));
+        addRow(table, "Fertilizer (3.06%):", formatPeso(b.fertilizerCost));
+
+        addSpacer(table);
+        addHeader(table, "TOTAL & ROI");
+        addRow(table, "TOTAL EXPENSES:", formatPeso(b.totalExpenses));
+        addRow(table, "ESTIMATED ROI:", String.format("%.2f%%", b.estimatedROI));
+
+        new AlertDialog.Builder(requireContext())
+                .setView(view)
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    private void addRow(TableLayout table, String label, String value) {
+        TableRow row = new TableRow(requireContext());
+
+        TextView tvLabel = new TextView(requireContext());
+        tvLabel.setText(label);
+        tvLabel.setTextSize(14);
+
+        TextView tvValue = new TextView(requireContext());
+        tvValue.setText(value);
+        tvValue.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
+        tvValue.setTextSize(14);
+
+        row.addView(tvLabel);
+        row.addView(tvValue);
+
+        table.addView(row);
+    }
+
+    private void addHeader(TableLayout table, String text) {
+        TextView header = new TextView(requireContext());
+        header.setText(text);
+        header.setTypeface(header.getTypeface(), Typeface.BOLD);
+        header.setPadding(0, 16, 0, 4);
+        table.addView(header);
+    }
+
+    private void addSpacer(TableLayout table) {
+        View spacer = new View(requireContext());
+        spacer.setMinimumHeight(12);
+        table.addView(spacer);
+    }
+
+    private String formatPeso(double value) {
+        return String.format("₱%.2f", value);
+    }
+
 
     private double getDoubleFromText(TextView textView) {
         if (textView == null) {
