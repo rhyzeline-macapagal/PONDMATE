@@ -165,32 +165,6 @@
                 android:background="@drawable/textbox_background"
                 android:minHeight="48dp"
                 android:minLines="2" />
-
-            <!-- Assigned Ponds Section -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Assigned Ponds"
-                android:textColor="#01082D"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:layout_marginTop="12dp"/>
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvCaretakerPonds"
-                android:layout_width="match_parent"
-                android:layout_height="200dp"
-                android:paddingVertical="6dp"/>
-
-            <Button
-                android:id="@+id/btnSavePondAssignments"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:text="Save Pond Assignments"
-                android:textAllCaps="false"
-                android:backgroundTint="#00448D"
-                android:textColor="@android:color/white"
-                android:layout_marginTop="12dp"/>
         </LinearLayout>
 
         <!-- Save Button -->

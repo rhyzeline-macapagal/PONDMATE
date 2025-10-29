@@ -37,7 +37,7 @@
         android:textSize="20sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:background="#2196F3"
+        android:background="#001C4F"
         android:textColor="@android:color/white" />
 
     <!-- Add Caretaker Button -->
@@ -45,10 +45,11 @@
         android:id="@+id/btnAddCaretaker"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="+ Caretaker"
+        android:text="Caretaker"
         android:layout_gravity="end"
         android:layout_margin="12dp"
         android:backgroundTint="#00448D"
+        android:drawableLeft="@drawable/ic_add"
         android:gravity="center"
         android:textColor="#FFFFFF"
         android:paddingStart="12dp"
@@ -80,7 +81,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:background="#2196F3"
+                    android:background="#001C4F"
                     android:padding="8dp"
                     android:elevation="4dp">
 
@@ -164,7 +165,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
-                    android:background="#C0E6F8"
+                    android:background="#D7EBF6"
                     android:overScrollMode="always"
                     android:scrollbars="vertical"/>
             </LinearLayout>
@@ -179,7 +180,7 @@
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="#01082D"
-            android:background="#E3F2FD" />
+            android:background="#D7EBF6FF" />
 
     </LinearLayout>
 

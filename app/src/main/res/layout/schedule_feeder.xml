@@ -4,8 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="8dp"
-    android:scrollbars="vertical"
-    android:background="@drawable/rounded_dialog_bg">
+    android:scrollbars="vertical">
 
 
     <LinearLayout
@@ -32,18 +31,20 @@
             android:textColor="#666666"
             android:textSize="12sp"
             android:layout_gravity="center"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="8dp" />
 
         <Button
             android:id="@+id/btnEditSchedule"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add"
+            android:text="Schedule"
             android:textAllCaps="false"
             android:textColor="@android:color/white"
-            android:backgroundTint="#2196F3"
+            android:backgroundTint="#00448D"
+            android:drawableLeft="@drawable/ic_add"
             android:layout_gravity="end"
-            android:layout_marginBottom="16dp"
+            app:cornerRadius="6dp"
+            android:layout_marginBottom="4dp"
             android:paddingHorizontal="20dp"
             android:paddingVertical="8dp"
             style="?attr/materialButtonOutlinedStyle"/>
@@ -55,16 +56,15 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="6dp"
-            app:cardBackgroundColor="#F9FAFB">
+            android:layout_marginBottom="10dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:background="@drawable/rounded_card"
+                android:padding="16dp"
+                android:elevation="3dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -232,16 +232,15 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="8dp"
-            app:cardBackgroundColor="#F9FAFB">
+            android:layout_marginBottom="10dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:background="@drawable/rounded_card"
+                android:padding="16dp"
+                android:elevation="3dp">
 
                 <!-- Feeding Times Title -->
                 <TextView
@@ -325,16 +324,15 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="8dp"
-            app:cardBackgroundColor="#F9FAFB">
+            android:layout_marginBottom="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:background="@drawable/rounded_card"
+                android:padding="16dp"
+                android:elevation="3dp">
 
                 <!-- Title -->
                 <TextView
