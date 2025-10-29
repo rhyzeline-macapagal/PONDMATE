@@ -27,6 +27,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
+import com.google.android.flexbox.FlexboxLayout;
 import com.google.gson.Gson;
 
 import org.json.JSONArray;
@@ -64,6 +65,7 @@ public class AddPondDialogFragment extends DialogFragment {
     private ArrayList<String> caretakerNames = new ArrayList<>();
     private ArrayList<String> caretakerIds = new ArrayList<>();
     private ArrayList<String> selectedCaretakerIds = new ArrayList<>();
+    ArrayList<CaretakerModel> selectedCaretakers = new ArrayList<>();
 
 
     @Nullable
@@ -84,12 +86,11 @@ public class AddPondDialogFragment extends DialogFragment {
         TextView btnClose = view.findViewById(R.id.btnClose);
 
         Button btnSelectCaretakers = view.findViewById(R.id.btnSelectCaretakers);
-        TextView tvSelectedCaretakers = view.findViewById(R.id.tvSelectedCaretakers);
 
         btnSelectCaretakers.setEnabled(false);
         btnSelectCaretakers.setText("Loading caretakers...");
 
-        loadCaretakersFromServer(btnSelectCaretakers, tvSelectedCaretakers);
+        loadCaretakersFromServer(btnSelectCaretakers);
 
         // ✅ Close dialog
         btnClose.setOnClickListener(v -> dismiss());
@@ -121,7 +122,6 @@ public class AddPondDialogFragment extends DialogFragment {
             }
         });
 
-        // ✅ Save button
         btnSave.setOnClickListener(v -> {
             String name = etPondName.getText().toString().trim();
             String area = etPondArea.getText().toString().trim();
@@ -129,6 +129,10 @@ public class AddPondDialogFragment extends DialogFragment {
             if (name.isEmpty() || area.isEmpty()) {
                 Toast.makeText(getContext(), "Please fill out all fields.", Toast.LENGTH_SHORT).show();
                 return;
+            }
+            if (selectedCaretakerIds.isEmpty()) {
+                Toast.makeText(getContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
+                return; //
             }
 
             if (capturedImageBitmap == null) {
@@ -151,6 +155,36 @@ public class AddPondDialogFragment extends DialogFragment {
         });
 
         return view;
+    }
+
+    private void refreshCaretakerChips() {
+        View root = getView();
+        if (root == null) return;
+
+        FlexboxLayout chipContainer = root.findViewById(R.id.caretakerChipContainer);
+        chipContainer.removeAllViews();
+
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        for (String caretakerId : selectedCaretakerIds) {
+            int index = caretakerIds.indexOf(caretakerId);
+            if (index < 0) continue;
+
+            String name = caretakerNames.get(index);
+
+            View chip = inflater.inflate(R.layout.item_caretaker_chip, chipContainer, false);
+            TextView tvName = chip.findViewById(R.id.tvCaretakerName);
+            TextView btnRemove = chip.findViewById(R.id.btnRemoveChip);
+
+            tvName.setText(name);
+
+            btnRemove.setOnClickListener(v -> {
+                selectedCaretakerIds.remove(caretakerId);
+                refreshCaretakerChips();
+            });
+
+            chipContainer.addView(chip);
+        }
     }
 
     private void savePond(String name, String imageBase64) {
@@ -279,7 +313,7 @@ public class AddPondDialogFragment extends DialogFragment {
         return Base64.encodeToString(byteArray, Base64.DEFAULT);
     }
 
-    private void loadCaretakersFromServer(Button btnSelectCaretakers, TextView tvSelectedCaretakers) {
+    private void loadCaretakersFromServer(Button btnSelectCaretakers) {
         new Thread(() -> {
             HttpURLConnection conn = null;
             try {
@@ -306,14 +340,18 @@ public class AddPondDialogFragment extends DialogFragment {
                     caretakerIds.add(obj.getString("id"));
                 }
 
-                // ✅ Safe UI update — only if fragment is attached
                 if (isAdded() && getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         btnSelectCaretakers.setEnabled(true);
                         btnSelectCaretakers.setText("Assign Caretakers");
 
                         btnSelectCaretakers.setOnClickListener(v -> {
-                            boolean[] checkedItems = new boolean[caretakerNames.size()];
+                            boolean[] checkedItems = new boolean[caretakerIds.size()];
+
+                            // Pre-check previously selected caretakers
+                            for (int i = 0; i < caretakerIds.size(); i++) {
+                                checkedItems[i] = selectedCaretakerIds.contains(caretakerIds.get(i));
+                            }
 
                             new AlertDialog.Builder(requireContext())
                                     .setTitle("Select Caretakers")
@@ -324,21 +362,8 @@ public class AddPondDialogFragment extends DialogFragment {
                                                 else selectedCaretakerIds.remove(id);
                                             })
                                     .setPositiveButton("OK", (dialog, which) -> {
-                                        if (selectedCaretakerIds.isEmpty()) {
-                                            tvSelectedCaretakers.setText("No caretakers selected");
-                                        } else {
-                                            StringBuilder selectedNames = new StringBuilder();
-                                            for (String id : selectedCaretakerIds) {
-                                                int idx = caretakerIds.indexOf(id);
-                                                if (idx >= 0)
-                                                    selectedNames.append(caretakerNames.get(idx)).append(", ");
-                                            }
-
-                                            if (selectedNames.length() > 2)
-                                                selectedNames.setLength(selectedNames.length() - 2); // remove last ", "
-
-                                            tvSelectedCaretakers.setText("Selected: " + selectedNames);
-                                        }
+                                        // ✅ Just refresh chips now
+                                        refreshCaretakerChips();
                                     })
                                     .setNegativeButton("Cancel", null)
                                     .show();

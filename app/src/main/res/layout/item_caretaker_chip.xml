@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_height="wrap_content"
+    android:layout_width="wrap_content"
+    android:background="@drawable/chip_bg"
+    android:padding="6dp"
+    android:layout_margin="4dp"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/tvCaretakerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#000"
+        android:textSize="14sp"/>
+
+    <TextView
+        android:id="@+id/btnRemoveChip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="✖"
+        android:textColor="#323232"
+        android:textSize="14sp"
+        android:layout_marginStart="6dp" />
+
+</LinearLayout>
