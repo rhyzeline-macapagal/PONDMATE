@@ -62,14 +62,13 @@ import java.util.concurrent.TimeUnit;
 import androidx.work.*;
 
 
-public class PondDashboardActivity extends AppCompatActivity implements ROIChartUpdater {
+public class PondDashboardActivity extends AppCompatActivity{
     private AlertDialog loadingDialog;
     private static final int REQUEST_NOTIFICATION_PERMISSION = 1001;
     RecyclerView pondRecyclerView;
     PondAdapter pondAdapter;
     ArrayList<PondModel> pondList;
     String userType;
-    private BarChart roiBarChart;
     private Map<String, String> dateRangeMap = new LinkedHashMap<>();
     private RecyclerView historyRecyclerView;
     private HistoryAdapter historyAdapter;
@@ -158,7 +157,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         pondRecyclerView.setLayoutManager(layoutManager);
         pondRecyclerView.setAdapter(pondAdapter);
 
-        roiBarChart = findViewById(R.id.roiBarChart);
 
         loadPondsFromServer();
 
@@ -179,7 +177,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 new PeriodicWorkRequest.Builder(PendingActivityWorker.class, 24, TimeUnit.HOURS)
                         .build();
 
-// Enqueue unique to avoid duplicates
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
                 "PendingActivityWorker",
                 ExistingPeriodicWorkPolicy.KEEP, // Keep the existing one if already enqueued
@@ -194,11 +191,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
         super.onResume();
         loadPondsFromServer();
         loadAllHistory();
-    }
-
-    @Override
-    public void loadChartData() {
-        runOnUiThread(this::renderChartData);
     }
 
     private void loadPondsFromServer() {
@@ -289,7 +281,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                     pondList.clear();
                     pondList.addAll(newPonds);
                     pondAdapter.notifyDataSetChanged();
-                    renderChartData();
 
                     // --- Pass pondList to fragment ---
                     String pondsJson = new Gson().toJson(pondList);
@@ -316,84 +307,6 @@ public class PondDashboardActivity extends AppCompatActivity implements ROIChart
                 runOnUiThread(this::hideLoadingDialog); // always close
             }
         }).start();
-    }
-
-        private void renderChartData() {
-        Map<String, Float> roiMap = new LinkedHashMap<>();
-        dateRangeMap.clear();
-
-        // Prepare data
-        for (PondModel pond : pondList) {
-            if ("ADD_BUTTON".equals(pond.getMode())) continue;
-
-            String pondName = pond.getName();
-            float actual = pond.getActualROI();
-
-            String startRaw = pond.getDateStarted();
-            String harvestRaw = pond.getDateHarvest();
-            String range = (startRaw.isEmpty() || harvestRaw.isEmpty())
-                    ? "N/A"
-                    : formatDateDisplay(startRaw) + " - " + formatDateDisplay(harvestRaw);
-
-            dateRangeMap.put(pondName, range);
-            roiMap.put(pondName, actual);
-        }
-
-        List<BarEntry> actualEntries = new ArrayList<>();
-        List<String> pondLabels = new ArrayList<>();
-
-        int i = 0;
-        for (Map.Entry<String, Float> e : roiMap.entrySet()) {
-            actualEntries.add(new BarEntry(i, e.getValue()));
-            pondLabels.add(e.getKey());
-            i++;
-        }
-
-        roiBarChart.clear();
-        if (pondLabels.isEmpty()) {
-            roiBarChart.invalidate();
-            return;
-        }
-
-        // Single dataset
-        BarDataSet setActual = new BarDataSet(actualEntries, "Actual ROI");
-        setActual.setColor(Color.parseColor("#001C4F"));
-
-        BarData data = new BarData(setActual);
-        data.setBarWidth(0.5f); // width for single bars
-        roiBarChart.setData(data);
-
-        // X Axis
-        XAxis xAxis = roiBarChart.getXAxis();
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(pondLabels));
-        xAxis.setGranularity(1f);
-        xAxis.setCenterAxisLabels(false); // no grouping
-        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-
-        // Y Axis
-        YAxis left = roiBarChart.getAxisLeft();
-        left.setAxisMinimum(0f);
-        roiBarChart.getAxisRight().setEnabled(false);
-
-        roiBarChart.getDescription().setEnabled(false);
-        roiBarChart.animateY(800);
-
-        // Custom marker
-        CustomMarkerView markerView = new CustomMarkerView(this, R.layout.custom_marker,
-                dateRangeMap, pondLabels, actualEntries);
-        roiBarChart.setMarker(markerView);
-
-        roiBarChart.invalidate();
-    }
-    
-    private String formatDateDisplay(String inputDate) {
-        try {
-            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-            SimpleDateFormat outputFormat = new SimpleDateFormat("MMM. dd, yyyy", Locale.US);
-            return outputFormat.format(inputFormat.parse(inputDate));
-        } catch (Exception e) {
-            return inputDate;
-        }
     }
 
     private void showLoadingDialog() {
