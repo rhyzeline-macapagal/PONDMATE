@@ -278,6 +278,8 @@ public class PondDashboardActivity extends AppCompatActivity{
 
                 // ✅ Update UI thread safely
                 runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+
                     pondList.clear();
                     pondList.addAll(newPonds);
                     pondAdapter.notifyDataSetChanged();
@@ -288,10 +290,11 @@ public class PondDashboardActivity extends AppCompatActivity{
                     Bundle args = new Bundle();
                     args.putString("pondsJson", pondsJson);
                     cycleChartFragment.setArguments(args);
+
                     getSupportFragmentManager()
                             .beginTransaction()
                             .replace(R.id.cycleChartContainer, cycleChartFragment)
-                            .commit();
+                            .commitAllowingStateLoss(); // <-- FIX
                 });
 
                 // ✅ Schedule notifications for activities and feeding

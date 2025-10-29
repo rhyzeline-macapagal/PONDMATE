@@ -445,9 +445,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         EditText etPassword = view.findViewById(R.id.etEditPassword);
         EditText etAddress = view.findViewById(R.id.etEditAddress);
         EditText etSalary = view.findViewById(R.id.etEditSalary);
-        RecyclerView rvPonds = view.findViewById(R.id.rvCaretakerPonds);
         Button btnSaveInfo = view.findViewById(R.id.btnSaveCaretaker);
-        Button btnSavePonds = view.findViewById(R.id.btnSavePondAssignments);
 
         // Prefill
         etFullname.setText(caretaker.getFullname());
@@ -459,8 +457,6 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         AlertDialog dialog = builder.create();
         dialog.show();
 
-        // ✅ Load ponds list into recycler
-        loadAssignedPonds(caretaker.getId(), rvPonds);
 
         // ✅ Save caretaker info (NO changes to pond assignment here)
         btnSaveInfo.setOnClickListener(v -> {
@@ -476,49 +472,10 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
             );
         });
 
-        // ✅ Save pond assignments only
-        btnSavePonds.setOnClickListener(v -> saveCaretakerPonds(caretaker.getId()));
     }
 
     private String formatCurrency(double amount) {
         return "₱" + String.format("%,.2f", amount);
-    }
-
-    private void loadAssignedPonds(int caretakerId, RecyclerView rv) {
-        new Thread(() -> {
-            try {
-                URL url = new URL(BASE_URL + "get_all_ponds_with_assignment.php?caretaker_id=" + caretakerId);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = in.readLine()) != null) response.append(line);
-                in.close();
-
-                JSONArray arr = new JSONArray(response.toString());
-                ArrayList<PondModel> ponds = new ArrayList<>();
-
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject o = arr.getJSONObject(i);
-
-                    PondModel p = new PondModel(o.getString("name")); // <-- Exists in your constructors
-                    p.setId(String.valueOf(o.getInt("id"))); // Store ID as String
-                    p.setAssigned(o.getBoolean("assigned"));
-                    ponds.add(p);
-                }
-
-                runOnUiThread(() -> {
-                    pondAdapter = new CaretakerPondAdapter(ponds);
-                    rv.setLayoutManager(new LinearLayoutManager(this));
-                    rv.setAdapter(pondAdapter);
-                });
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
     }
 
     private void editCaretaker(int id, String newUsername, String newPassword,
@@ -566,39 +523,6 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
                 runOnUiThread(() ->
                         Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
                 );
-            }
-        }).start();
-    }
-
-    private void saveCaretakerPonds(int caretakerId) {
-
-        List<PondModel> selected = pondAdapter.getSelectedPonds();
-        StringBuilder ids = new StringBuilder();
-
-        for (PondModel p : selected) {
-            if (ids.length() > 0) ids.append(",");
-            ids.append(p.getId());
-        }
-
-        new Thread(() -> {
-            try {
-                URL url = new URL(BASE_URL + "update_caretaker_ponds.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-                String data = "caretaker_id=" + caretakerId + "&pond_ids=" + ids;
-                conn.getOutputStream().write(data.getBytes());
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                String response = in.readLine();
-                in.close();
-
-                runOnUiThread(() -> Toast.makeText(this, response, Toast.LENGTH_SHORT).show());
-
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }).start();
     }
