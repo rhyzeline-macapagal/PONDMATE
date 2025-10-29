@@ -26,11 +26,7 @@ public class PondModel {
     private double mortalityRate;
     private String caretakers;
     private String caretakerName;
-
-
-
-
-
+    private boolean assigned;
 
     private List<ActivityItem> activities = new ArrayList<>();
 
@@ -73,6 +69,15 @@ public class PondModel {
     // --- Getters and Setters ---
     public String getCaretakerName() { return caretakerName; }
     public void setCaretakerName(String caretakerName) { this.caretakerName = caretakerName; }
+    public boolean isAssigned() {
+        return assigned;
+    }
+    public PondModel() {
+    }
+
+    public void setAssigned(boolean assigned) {
+        this.assigned = assigned;
+    }
 
     public String getCaretakers() { return caretakers; }
     public void setCaretakers(String caretakers) { this.caretakers = caretakers; }
