@@ -102,10 +102,15 @@ public class CycleChartFragment extends Fragment {
     }
 
     private void showError(String msg) {
-        requireActivity().runOnUiThread(() -> {
+        if (!isAdded()) return; // ✅ Fragment no longer attached, stop safely
+        if (getActivity() == null) return; // ✅ extra safety
+
+        getActivity().runOnUiThread(() -> {
+            if (!isAdded()) return; // ✅ prevent crash if detached mid-update
+
             progressBarChart.setVisibility(View.GONE);
             noDataText.setVisibility(View.VISIBLE);
-            Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
         });
     }
 
