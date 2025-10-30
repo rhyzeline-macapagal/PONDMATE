@@ -12,6 +12,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -277,6 +278,7 @@ public class AddPondDialogFragment extends DialogFragment {
             @Override
             public void onError(String error) {
                 hideLoadingDialog();
+                Log.e("UploadError", "Upload failed: " + error); // <-- Added log
                 Toast.makeText(getContext(), "Upload failed: " + error, Toast.LENGTH_LONG).show();
 
             }

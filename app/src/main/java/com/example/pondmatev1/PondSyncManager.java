@@ -67,6 +67,7 @@ public class PondSyncManager {
 
                 // ✅ Parse JSON response
                 String response = sb.toString();
+                Log.d("ServerResponse", "Response: " + response);
                 JSONObject json = new JSONObject(response);
                 String status = json.optString("status", "error");
                 String message = json.optString("message", "Unknown error");
@@ -90,8 +91,6 @@ public class PondSyncManager {
             }
         }).start();
     }
-
-
 
     // 🔹 Update existing feeding schedule
     public static void updateFeedingScheduleOnServer(String pondName,
@@ -359,7 +358,7 @@ public class PondSyncManager {
 
 
     public static void uploadSamplingRecord(
-            String pondName,
+            String pondId,
             int daysOfCulture,
             String growthStage,
             int totalStocks,
@@ -373,6 +372,7 @@ public class PondSyncManager {
             double dfrFeed,
             String createdAt,
             String updatedAt,
+            String nextSamplingDate,
             Callback callback
     ) {
         new Thread(() -> {
@@ -383,7 +383,7 @@ public class PondSyncManager {
                 conn.setDoOutput(true);
 
                 String postData =
-                        "pond_name=" + URLEncoder.encode(pondName, "UTF-8") +
+                        "pond_id=" + URLEncoder.encode(pondId, "UTF-8") +
                                 "&days_of_culture=" + daysOfCulture +
                                 "&growth_stage=" + URLEncoder.encode(growthStage, "UTF-8") +
                                 "&total_stocks=" + totalStocks +
@@ -396,7 +396,8 @@ public class PondSyncManager {
                                 "&dfr=" + dfr +
                                 "&dfr_feed=" + dfrFeed +
                                 "&created_at=" + URLEncoder.encode(createdAt, "UTF-8") +
-                                "&updated_at=" + URLEncoder.encode(updatedAt, "UTF-8");
+                                "&updated_at=" + URLEncoder.encode(updatedAt, "UTF-8") +
+                                "&next_sampling_date=" + URLEncoder.encode(nextSamplingDate, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
@@ -899,6 +900,52 @@ public class PondSyncManager {
 
             } catch (Exception e) {
                 callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+    public static void fetchLatestSamplingRecord(String pondId, Callback callback) {
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            BufferedReader reader = null;
+
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/fetchLatestSamplingRecord.php");
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(15000);
+
+                // ✅ Send pond_id (NOT pond_name)
+                String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8");
+                OutputStream os = connection.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                int responseCode = connection.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+
+                    callback.onSuccess(response.toString());
+                } else {
+                    callback.onError("Server returned code: " + responseCode);
+                }
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            } finally {
+                if (reader != null) {
+                    try { reader.close(); } catch (IOException ignored) {}
+                }
+                if (connection != null) connection.disconnect();
             }
         }).start();
     }

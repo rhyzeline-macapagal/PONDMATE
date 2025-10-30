@@ -91,6 +91,8 @@ public class ProductionCostFragment extends Fragment {
     Button btnDownload, btnFeedLogs, btnSampling, btnViewROIBreakdown;
     File generatedPdfFile;
     private int selectedCycleMonths = 6;
+    private String pondId; // place this at the top of the class
+
 
     @Nullable
     @Override
@@ -111,6 +113,7 @@ public class ProductionCostFragment extends Fragment {
             pondName = pond.getName();
             currentBreed = pond.getBreed();
             currentFishCount = pond.getFishCount();
+            pondId = pond.getId();
             handleFingerlingVisibility(view, pond);
             setupStockFingerlingsButton(view, pond);
             handleFingerlingStockedStatus(view, pond);
@@ -142,8 +145,14 @@ public class ProductionCostFragment extends Fragment {
 
         computeEstimatedROI();
 
-        Button btnSampling = view.findViewById(R.id.btnSampling);
+        btnSampling = view.findViewById(R.id.btnSampling);
+
         btnSampling.setOnClickListener(v -> openSamplingDialog());
+
+        if (pondId != null && !pondId.trim().isEmpty()) {
+            updateSamplingButtonState(pondId);
+        }
+
 
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
@@ -324,6 +333,52 @@ public class ProductionCostFragment extends Fragment {
         dialog.show(getParentFragmentManager(), "SamplingDialog");
     }
 
+    public void updateSamplingButtonState(String pondId) {
+        if (!isAdded()) return;
+
+        PondSyncManager.fetchLatestSamplingRecord(pondId, new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object response) {
+                if (!isAdded() || getActivity() == null) return;
+
+                Log.d("SAMPLING_DEBUG", "Response: " + response);
+
+                getActivity().runOnUiThread(() -> {
+                    if (!isAdded() || btnSampling == null) return;
+
+                    try {
+                        JSONObject json = new JSONObject(response.toString());
+                        String nextSamplingDate = json.optString("next_sampling_date", "").trim();
+
+                        // If no stored sampling yet → ENABLE
+                        if (nextSamplingDate.isEmpty() || nextSamplingDate.equalsIgnoreCase("null")) {
+                            setSamplingButtonEnabled(true);
+                            return;
+                        }
+
+                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                        Date today = sdf.parse(sdf.format(new Date())); // normalize
+                        Date next = sdf.parse(nextSamplingDate);
+
+                        // today >= next ? enable : disable
+                        boolean allowSampling = !today.before(next);
+                        setSamplingButtonEnabled(allowSampling);
+
+                    } catch (Exception e) {
+                        setSamplingButtonEnabled(true); // fail-safe
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                if (!isAdded() || getActivity() == null) return;
+                getActivity().runOnUiThread(() -> setSamplingButtonEnabled(true));
+            }
+        });
+    }
+
+
     private void showFeedLogs() {
         BlindFeedingFragment feedLogsDialog = new BlindFeedingFragment();
         feedLogsDialog.show(getParentFragmentManager(), "feedLogsDialog");
@@ -332,6 +387,7 @@ public class ProductionCostFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        updateSamplingButtonState(pondId);
         refreshROI();
         try {
             View root = getView();
@@ -393,8 +449,30 @@ public class ProductionCostFragment extends Fragment {
         } else {
             btnStockFingerlings.setVisibility(View.GONE);
         }
-
     }
+
+    private void setSamplingButtonEnabled(boolean enabled) {
+        btnSampling.setEnabled(enabled);
+
+        if (enabled) {
+            btnSampling.setBackgroundTintList(
+                    ContextCompat.getColorStateList(requireContext(), R.color.blue_pond_btn)
+            );
+            btnSampling.setOnClickListener(v -> openSamplingDialog());
+
+        } else {
+            btnSampling.setBackgroundTintList(
+                    ContextCompat.getColorStateList(requireContext(), android.R.color.darker_gray)
+            );
+            btnSampling.setOnClickListener(v ->
+                    Toast.makeText(requireContext(),
+                            "Next sampling is not due yet.",
+                            Toast.LENGTH_SHORT
+                    ).show()
+            );
+        }
+    }
+
     private void handleFingerlingVisibility(View view, PondModel pond) {
         Button btnAddProductionCost = view.findViewById(R.id.btnAddProductionCost);
         Button btnStockFingerlings = view.findViewById(R.id.btnStockFingerlings);
@@ -903,8 +981,18 @@ public class ProductionCostFragment extends Fragment {
     }
 
     private void updateROIText(String value) {
-        requireActivity().runOnUiThread(() -> tvEstimatedRoI.setText(value));
+        if (!isAdded() || getActivity() == null) {
+            Log.w("ROI_DEBUG", "Fragment not attached — skipping UI update");
+            return;
+        }
+
+        requireActivity().runOnUiThread(() -> {
+            if (tvEstimatedRoI != null) {
+                tvEstimatedRoI.setText(value);
+            }
+        });
     }
+
 
     private double round(double v) {
         return Math.round(v * 100.0) / 100.0;

@@ -106,10 +106,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-
-
-
-
         adminIcon.setOnClickListener(v -> {
             // Inflate the custom layout
             View dialogView = getLayoutInflater().inflate(R.layout.dialog_admin_options, null);
@@ -142,8 +138,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(MainActivity.this, FarmgatePriceActivity.class));
                 dialog.dismiss();
             });
-
-
 
             // Show dialog
             dialog.show();

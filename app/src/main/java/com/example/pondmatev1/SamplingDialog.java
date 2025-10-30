@@ -202,7 +202,7 @@ public class SamplingDialog extends DialogFragment {
                     String pondJson = prefs.getString("selected_pond", null);
                     PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
 
-                    String pondName = pond.getName();
+                    String pondId = pond.getId();
                     int daysOfCulture = Integer.parseInt(tvDaysOfCulture.getText().toString().replace(" days", ""));
                     String growthStage = tvLifeStage.getText().toString();
                     int totalStocks = pond.getFishCount();
@@ -217,18 +217,24 @@ public class SamplingDialog extends DialogFragment {
                     String feedingOne = formattedTime1; // use 24-hour version
                     String feedingTwo = formattedTime2;
 
-
                     String now = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
+                    String nextSamplingDate = tvNextSampling.getText().toString()
+                            .replace("Next Sampling: ", "")
+                            .trim();
+
                     PondSyncManager.uploadSamplingRecord(
-                            pondName, daysOfCulture, growthStage, totalStocks, mortalityRate,
+                            pond.getId(), daysOfCulture, growthStage, totalStocks, mortalityRate,
                             feedingOne, feedingTwo, abw, feedingRate, survivalRate, dfr, dfrFeed,
-                            now, now,
+                            now, now, nextSamplingDate,
                             new PondSyncManager.Callback() {
                                 @Override
                                 public void onSuccess(Object response) {
                                     requireActivity().runOnUiThread(() -> {
                                         Toast.makeText(getContext(), "Sampling record saved!", Toast.LENGTH_SHORT).show();
+                                        if (getParentFragment() instanceof ProductionCostFragment) {
+                                            ((ProductionCostFragment) getParentFragment()).updateSamplingButtonState(pond.getId());
+                                        }
                                         dismiss();
                                     });
                                 }
@@ -245,16 +251,12 @@ public class SamplingDialog extends DialogFragment {
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                 .show();
 }
-
-
-
         private void setDefaultFeedingTimes() {
             formattedTime1 = "08:00:00";
             formattedTime2 = "16:00:00";
             tvTimeFeeding1.setText("8:00 AM");
             tvTimeFeeding2.setText("4:00 PM");
         }
-
 
     private void showTimePickerDialog(TextView targetTextView, int timeNumber) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_timepicker, null);
