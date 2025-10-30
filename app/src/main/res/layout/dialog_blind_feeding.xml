@@ -41,6 +41,72 @@
             android:gravity="center"
             android:layout_marginBottom="6dp"/>
 
+        <!-- Feed Logs Table -->
+        <!-- Scrollable Feed Logs Table -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            android:fillViewport="true"
+            android:scrollbars="horizontal">
+
+            <ScrollView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:scrollbars="vertical">
+
+                <TableLayout
+                    android:id="@+id/tableFeedLogs"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:stretchColumns="*"
+                    android:background="@drawable/rounded_dialog_bg"
+                    android:padding="2dp"
+                    android:scrollbars="vertical|horizontal">
+
+                    <!-- Table Header -->
+                    <TableRow
+                        android:background="#00448D"
+                        android:padding="2dp">
+
+                        <TextView
+                            android:text="Actions"
+                            android:textColor="@android:color/white"
+                            android:textStyle="bold"
+                            android:padding="8dp"/>
+
+                        <TextView
+                            android:text="Date"
+                            android:textColor="@android:color/white"
+                            android:textStyle="bold"
+                            android:padding="8dp"/>
+
+                        <TextView
+                            android:text="Feed Type"
+                            android:textColor="@android:color/white"
+                            android:textStyle="bold"
+                            android:padding="8dp"/>
+
+                        <TextView
+                            android:text="Quantity (g)"
+                            android:textColor="@android:color/white"
+                            android:textStyle="bold"
+                            android:padding="8dp"/>
+
+                        <TextView
+                            android:text="Cost (₱)"
+                            android:textColor="@android:color/white"
+                            android:textStyle="bold"
+                            android:padding="8dp"/>
+
+
+                    </TableRow>
+                </TableLayout>
+
+
+            </ScrollView>
+        </HorizontalScrollView>
+
         <!-- Feeding Record Form -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -74,13 +140,16 @@
                         android:textStyle="bold"
                         android:layout_marginBottom="4dp"/>
 
-                    <Spinner
-                        android:id="@+id/spinnerFeedType"
+                    <TextView
+                        android:id="@+id/tvFeedType"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
+                        android:text="Frymash"
                         android:textSize="12sp"
-                        android:background="@drawable/rounded_edittext"
-                        android:padding="8dp"/>
+                        android:background="@drawable/rounded_dialog_bg"
+
+                        android:padding="12dp" />
+
 
                     <EditText
                         android:id="@+id/etOtherFeedType"
@@ -103,7 +172,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Quantity (kg)"
+                        android:text="Quantity (g)"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="4dp"/>
@@ -127,7 +196,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:weightSum="2"
-                android:layout_marginTop="12dp">
+                android:layout_marginTop="6dp">
 
                 <!-- Feeding Date -->
                 <LinearLayout
@@ -149,12 +218,12 @@
                         android:id="@+id/etFeedDate"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
-                        android:hint="Select Date"
+                        android:hint="Select date"
                         android:focusable="false"
                         android:textSize="12sp"
                         android:clickable="true"
-                        android:background="@drawable/rounded_edittext"
-                        android:padding="12dp"/>
+                        android:padding="12dp"
+                        android:background="@drawable/rounded_edittext"/>
                 </LinearLayout>
 
                 <!-- Cost -->
@@ -172,15 +241,14 @@
                         android:textStyle="bold"
                         android:layout_marginBottom="4dp"/>
 
-                    <EditText
+                    <TextView
                         android:id="@+id/etFeedCost"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
                         android:hint="₱0.00"
                         android:textSize="12sp"
-
                         android:inputType="numberDecimal"
-                        android:background="@drawable/rounded_edittext"
+                        android:background="@drawable/rounded_dialog_bg"
                         android:padding="12dp"/>
                 </LinearLayout>
             </LinearLayout>
@@ -191,7 +259,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="end"
-                android:layout_marginTop="16dp">
+                android:layout_marginTop="6dp">
 
                 <Button
                     android:id="@+id/btnCancelFeed"
@@ -213,63 +281,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Feed Logs Table -->
-        <!-- Scrollable Feed Logs Table -->
-        <HorizontalScrollView
-            android:layout_width="match_parent"
-            android:layout_height="300dp"
-            android:fillViewport="true"
-            android:scrollbars="horizontal">
 
-            <ScrollView
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:fillViewport="true"
-                android:scrollbars="vertical">
-
-                <TableLayout
-                    android:id="@+id/tableFeedLogs"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:stretchColumns="*"
-                    android:background="@drawable/rounded_dialog_bg"
-                    android:padding="2dp"
-                    android:scrollbars="vertical|horizontal">
-
-                    <!-- Table Header -->
-                    <TableRow
-                        android:background="#00448D"
-                        android:padding="2dp">
-
-                        <TextView
-                            android:text="Date"
-                            android:textColor="@android:color/white"
-                            android:textStyle="bold"
-                            android:padding="8dp"/>
-
-                        <TextView
-                            android:text="Feed Type"
-                            android:textColor="@android:color/white"
-                            android:textStyle="bold"
-                            android:padding="8dp"/>
-
-                        <TextView
-                            android:text="Quantity (kg)"
-                            android:textColor="@android:color/white"
-                            android:textStyle="bold"
-                            android:padding="8dp"/>
-
-                        <TextView
-                            android:text="Cost (₱)"
-                            android:textColor="@android:color/white"
-                            android:textStyle="bold"
-                            android:padding="8dp"/>
-                    </TableRow>
-
-                </TableLayout>
-
-            </ScrollView>
-        </HorizontalScrollView>
 
 
     </LinearLayout>
