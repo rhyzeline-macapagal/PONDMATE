@@ -48,12 +48,31 @@ public class PondPDFGenerator {
             writer.setPageEvent(new BorderAndWatermarkEvent(action));
             document.open();
 
-            // HEADER
-            document.add(new Paragraph(report.optString("title", "Production Report"),
-                    new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD)));
-            document.add(new Paragraph(report.optString("report_period", "")));
+            // HEADER / TITLE n
+            String titleText;
+            Font titleFont;
+
+            if (action.equals("EMERGENCY_HARVEST")) {
+                titleText = "EMERGENCY HARVEST REPORT";
+                titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, BaseColor.RED);
+            } else if (action.equals("INACTIVE")) {
+                titleText = "INACTIVE POND REPORT";
+                titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, new BaseColor(80, 80, 80));
+            } else {
+                titleText = "POND REPORT";
+                titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, BaseColor.BLACK);
+            }
+
+            Paragraph title = new Paragraph(titleText, titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(10f);
+            document.add(title);
+
+            // Sub-header information stays the same
+            document.add(new Paragraph(report.optString("report_period", ""), new Font(Font.FontFamily.HELVETICA, 12)));
             document.add(new Paragraph("Generated on: " +
-                    new SimpleDateFormat("MMMM d, yyyy hh:mm a", Locale.getDefault()).format(new Date())));
+                    new SimpleDateFormat("MMMM d, yyyy hh:mm a", Locale.getDefault()).format(new Date()),
+                    new Font(Font.FontFamily.HELVETICA, 11)));
             document.add(new Paragraph("\n"));
 
             // --- POND DETAILS ---
@@ -205,17 +224,6 @@ public class PondPDFGenerator {
         return pdfFile;
     }
 
-
-    private static String formatDate(String dateString) {
-        try {
-            SimpleDateFormat input = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-            SimpleDateFormat output = new SimpleDateFormat("MMMM d, yyyy", Locale.getDefault());
-            return output.format(input.parse(dateString));
-        } catch (Exception e) {
-            return dateString;
-        }
-    }
-
     private static PdfPCell headerCell(String text) {
         PdfPCell cell = new PdfPCell(new Phrase(text));
         cell.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -250,8 +258,16 @@ public class PondPDFGenerator {
 
             // Watermark
             if (action.equals("INACTIVE")) {
+                // Gray inactive watermark
                 Font watermarkFont = new Font(Font.FontFamily.HELVETICA, 60, Font.BOLD, new BaseColor(200, 200, 200, 70));
-                Phrase watermark = new Phrase(action + " POND", watermarkFont);
+                Phrase watermark = new Phrase("INACTIVE POND", watermarkFont);
+                ColumnText.showTextAligned(canvas, Element.ALIGN_CENTER, watermark,
+                        rect.getWidth() / 2, rect.getHeight() / 2, 45);
+
+            } else if (action.equals("EMERGENCY_HARVEST")) {
+                // 🔥 Emergency Harvest — Red, eye-catching watermark
+                Font watermarkFont = new Font(Font.FontFamily.HELVETICA, 60, Font.BOLD, new BaseColor(255, 0, 0, 70));
+                Phrase watermark = new Phrase("EMERGENCY HARVEST", watermarkFont);
                 ColumnText.showTextAligned(canvas, Element.ALIGN_CENTER, watermark,
                         rect.getWidth() / 2, rect.getHeight() / 2, 45);
             }
