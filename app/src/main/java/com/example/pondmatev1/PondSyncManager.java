@@ -9,6 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -896,6 +898,118 @@ public class PondSyncManager {
             }
         }).start();
     }
+
+    public interface OnDataSyncListener {
+        void onSuccess(String response);
+        void onError(String error);
+    }
+    public static void deleteBlindFeedingLog(String logId, String pondName, OnDataSyncListener listener) {
+        new Thread(() -> {
+            try {
+                // ✅ Replace with your actual full PHP URL
+                URL url = new URL("https://pondmate.alwaysdata.net/delete_blind_feed_logs.php");
+
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+
+                // ✅ Prepare POST data
+                String postData = "log_id=" + URLEncoder.encode(logId, "UTF-8") +
+                        "&pond_name=" + URLEncoder.encode(pondName, "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os, "UTF-8"));
+                writer.write(postData);
+                writer.flush();
+                writer.close();
+                os.close();
+
+                // ✅ Read response
+                int responseCode = conn.getResponseCode();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        responseCode == HttpURLConnection.HTTP_OK ? conn.getInputStream() : conn.getErrorStream()
+                ));
+
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                Log.e("DELETE_FEED_LOG", "Response: " + response);
+
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    listener.onSuccess(response.toString());
+                } else {
+                    listener.onError("Server returned: " + responseCode);
+                }
+
+            } catch (Exception e) {
+                Log.e("DELETE_FEED_LOG", "Error deleting log", e);
+                listener.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+
+    public static void updateBlindFeedingLog(
+            String pondName,
+            String feedType,
+            double quantity,
+            double cost,
+            String feedingDate,
+            String feedLogId,
+            OnDataSyncListener listener
+    ) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/update_blind_feeding_logs.php");
+
+                JSONObject postData = new JSONObject();
+                postData.put("pond_name", pondName);
+                postData.put("feed_type", feedType);
+                postData.put("quantity", quantity);
+                postData.put("cost", cost);
+                postData.put("feeding_date", feedingDate);
+                postData.put("feed_log_id", feedLogId);
+
+                Log.d("PondSyncManager", "Updating feed log with data: " + postData.toString());
+
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                conn.setDoOutput(true);
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.toString().getBytes("UTF-8"));
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) response.append(line);
+                br.close();
+
+                Log.d("PondSyncManager", "Server response (" + responseCode + "): " + response);
+
+                if (responseCode == HttpURLConnection.HTTP_OK)
+                    listener.onSuccess(response.toString());
+                else
+                    listener.onError("HTTP " + responseCode + ": " + response.toString());
+
+            } catch (Exception e) {
+                Log.e("PondSyncManager", "Error updating log", e);
+                listener.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+
+
 
 
 

@@ -102,12 +102,16 @@ public class CycleChartFragment extends Fragment {
     }
 
     private void showError(String msg) {
+        if (!isAdded() || getActivity() == null) return; // ✅ ensures fragment is still attached
+
         requireActivity().runOnUiThread(() -> {
+            if (!isAdded()) return; // ✅ double-check before touching UI
             progressBarChart.setVisibility(View.GONE);
             noDataText.setVisibility(View.VISIBLE);
             Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show();
         });
     }
+
 
     private void setupRecyclerView() {
         pondRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));

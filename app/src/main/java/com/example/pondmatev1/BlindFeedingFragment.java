@@ -1,13 +1,19 @@
 package com.example.pondmatev1;
 
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.*;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,23 +24,37 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.json.JSONObject;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class BlindFeedingFragment extends DialogFragment {
 
-    private Spinner spinnerFeedType;
-    private EditText etOtherFeedType, etFeedQuantity, etFeedCost, etFeedDate;
+    private TextView tvFeedType, etFeedCost; // ✅ replaced spinner with TextView
+    private EditText etFeedQuantity, etFeedDate;
     private TableLayout tableFeedLogs;
     private Button btnAddFeed, btnCancelFeed;
     private Calendar selectedDate = Calendar.getInstance();
+    private Map<String, Double> feedPriceMap = new HashMap<>();
+
+
+
+
+    private String pondName;
+
     private final SimpleDateFormat displayFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
     private final SimpleDateFormat mysqlFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
     private static final String TAG = "BlindFeedingFragment";
+
+    private AlertDialog loadingDialog;
+
 
     @NonNull
     @Override
@@ -43,9 +63,23 @@ public class BlindFeedingFragment extends DialogFragment {
         Dialog dialog = new Dialog(requireContext());
         View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_blind_feeding, null);
         dialog.setContentView(view);
+        if (getArguments() != null) {
+            pondName = getArguments().getString("pondName");
+        } else {
+            // fallback to SharedPreferences if no argument passed
+            SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+            String pondJson = prefs.getString("selected_pond", null);
+            if (pondJson != null) {
+                PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                pondName = pond.getName();
+            } else {
+                pondName = "Unknown Pond";
+            }
+        }
 
-        spinnerFeedType = view.findViewById(R.id.spinnerFeedType);
-        etOtherFeedType = view.findViewById(R.id.etOtherFeedType);
+
+
+        tvFeedType = view.findViewById(R.id.tvFeedType); // ✅ TextView now
         etFeedQuantity = view.findViewById(R.id.etFeedQuantity);
         etFeedCost = view.findViewById(R.id.etFeedCost);
         etFeedDate = view.findViewById(R.id.etFeedDate);
@@ -54,117 +88,294 @@ public class BlindFeedingFragment extends DialogFragment {
         btnCancelFeed = view.findViewById(R.id.btnCancelFeed);
         TextView btnClose = view.findViewById(R.id.btnClose);
 
-        // Spinner setup
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                requireContext(),
-                android.R.layout.simple_spinner_dropdown_item,
-                new String[]{"Frymash", "Crumble", "Other"}
-        );
-        spinnerFeedType.setAdapter(adapter);
+        // ✅ Set feed type fixed to "Frymash"
+        tvFeedType.setText("Frymash");
 
-        spinnerFeedType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                etOtherFeedType.setVisibility(
-                        parent.getItemAtPosition(position).toString().equals("Other") ? View.VISIBLE : View.GONE
-                );
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
-        etFeedDate.setOnClickListener(v -> showDatePicker());
+        etFeedDate.setOnClickListener(v -> showDateSelectionDialog());
         btnAddFeed.setOnClickListener(v -> addFeedLog());
         btnCancelFeed.setOnClickListener(v -> dismiss());
         btnClose.setOnClickListener(v -> dismiss());
+        etFeedQuantity.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                String quantityStr = s.toString().trim();
+                if (quantityStr.isEmpty()) {
+                    etFeedCost.setText("");
+                    return;
+                }
+
+                double quantityInGrams;
+                try {
+                    quantityInGrams = Double.parseDouble(quantityStr);
+                } catch (NumberFormatException e) {
+                    etFeedCost.setText("");
+                    return;
+                }
+
+                // Get pond breed
+                SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                String pondJson = prefs.getString("selected_pond", null);
+                if (pondJson == null) return;
+                PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                String breed = pond.getBreed();
+
+                // Fetch feed price from feeds list
+                PondSyncManager.fetchFeeds(new PondSyncManager.Callback() {
+                    @Override
+                    public void onSuccess(Object response) {
+                        try {
+                            JsonObject root = JsonParser.parseString(response.toString()).getAsJsonObject();
+                            JsonArray feeds = root.getAsJsonArray("feeds");
+                            boolean found = false;
+                            for (int i = 0; i < feeds.size(); i++) {
+                                JsonObject feed = feeds.get(i).getAsJsonObject();
+                                String feedBreed = feed.get("breed").getAsString();
+                                String type = feed.get("feed_type").getAsString();
+
+                                if (feedBreed.equalsIgnoreCase(breed) && type.equalsIgnoreCase("frymash")) {
+                                    double pricePerKg = Double.parseDouble(feed.get("price_per_kg").getAsString());
+                                    double cost = (quantityInGrams / 1000) * pricePerKg; // ✅ convert grams to kg
+                                    etFeedCost.setText(String.format(Locale.getDefault(), "%.2f", cost));
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) {
+                                etFeedCost.setText("0.00");
+                                Toast.makeText(getContext(), "Feed price not found for this breed", Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            etFeedCost.setText("0.00");
+                            Toast.makeText(getContext(), "Error parsing feed price: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            Log.d(TAG, "Cannot fetch feed price", e);
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        etFeedCost.setText("0.00");
+                        Toast.makeText(getContext(), "Cannot fetch feed price: " + error, Toast.LENGTH_SHORT).show();
+                        Log.d(TAG, error);
+                    }
+                });
+            }
+
+        });
+
 
         // Load existing logs
         loadFeedLogs();
 
         return dialog;
+
+
     }
 
-    private void showDatePicker() {
-        Calendar calendar = Calendar.getInstance();
-        new DatePickerDialog(requireContext(),
-                (view, year, month, dayOfMonth) -> {
-                    selectedDate.set(year, month, dayOfMonth);
-                    etFeedDate.setText(displayFormat.format(selectedDate.getTime()));
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-        ).show();
+    private void showDateSelectionDialog() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
+        if (pondJson == null) return;
+
+        PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+        String stockingDateStr = pond.getDateStocking();
+        if (stockingDateStr == null || stockingDateStr.isEmpty()) return;
+
+        String[] displayDates = generateFeedingDates(stockingDateStr);
+        String[] serverDates = generateFeedingDatesForServer(stockingDateStr);
+
+        if (displayDates.length == 0) return;
+
+        final int[] selectedIndex = {0}; // default selection
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Select Feeding Date")
+                .setSingleChoiceItems(displayDates, 0, (dialog, which) -> selectedIndex[0] = which)
+                .setPositiveButton("OK", (dialog, which) -> etFeedDate.setText(displayDates[selectedIndex[0]])) // display friendly format
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                .show();
+
+        // Later, when sending to server, use: serverDates[selectedIndex[0]]
+    }
+
+
+    private String formatDateForDisplay(String dateStr) {
+        try {
+            Date date = mysqlFormat.parse(dateStr); // parse yyyy-MM-dd
+            return displayFormat.format(date);       // format to MMM dd, yyyy
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return dateStr; // fallback to original if parsing fails
+        }
+    }
+
+    private void fetchFeedPriceFromAllFeeds(String breed, String feedType, FeedPriceCallback callback) {
+        PondSyncManager.fetchFeeds(new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object response) {
+                try {
+                    JsonObject root = JsonParser.parseString(response.toString()).getAsJsonObject();
+                    JsonArray feeds = root.getAsJsonArray("feeds"); // <-- use the "feeds" array
+                    for (int i = 0; i < feeds.size(); i++) {
+                        JsonObject feed = feeds.get(i).getAsJsonObject();
+                        String feedBreed = feed.get("breed").getAsString();
+                        String type = feed.get("feed_type").getAsString();
+
+                        if (feedBreed.equalsIgnoreCase(breed) && type.equalsIgnoreCase(feedType)) {
+                            double pricePerKg = Double.parseDouble(feed.get("price_per_kg").getAsString());
+                            callback.onPriceFetched(pricePerKg);
+                            return;
+                        }
+                    }
+                    callback.onError("Feed price not found for this breed");
+                } catch (Exception e) {
+                    callback.onError(e.getMessage());
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+
+    interface FeedPriceCallback {
+        void onPriceFetched(double pricePerKg);
+        void onError(String error);
     }
 
     private void addFeedLog() {
-        String feedType = spinnerFeedType.getSelectedItem().toString();
-        if (feedType.equals("Other")) {
-            feedType = etOtherFeedType.getText().toString().trim();
-        }
+        final String feedType = "Frymash";
+        final String quantityStr = etFeedQuantity.getText().toString().trim();
+        final String dateStr = etFeedDate.getText().toString().trim();
 
-        String quantityStr = etFeedQuantity.getText().toString().trim();
-        String costStr = etFeedCost.getText().toString().trim();
-        String dateStr = etFeedDate.getText().toString().trim();
-
-        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-        String pondJson = prefs.getString("selected_pond", null);
-        String pondName = "";
-        if (pondJson != null) {
-            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
-            pondName = pond.getName();
-        }
-
-        if (feedType.isEmpty() || quantityStr.isEmpty() || costStr.isEmpty() || dateStr.isEmpty()) {
+        if (quantityStr.isEmpty() || dateStr.isEmpty()) {
             Toast.makeText(getContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        double quantity = Double.parseDouble(quantityStr);
-        double cost = Double.parseDouble(costStr);
-
-        String feedingDateMysql;
+        double quantity;
         try {
-            Date parsedDate = displayFormat.parse(dateStr);
-            feedingDateMysql = mysqlFormat.format(parsedDate);
-        } catch (ParseException e) {
-            Log.e(TAG, "Date parsing error: " + e.getMessage());
-            feedingDateMysql = dateStr;
+            quantity = Double.parseDouble(quantityStr);
+        } catch (NumberFormatException e) {
+            Toast.makeText(getContext(), "Invalid quantity", Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        final String finalFeedType = feedType;
-        final String finalPondName = pondName;
-        final String finalFeedingDate = feedingDateMysql;
-        final double finalQuantity = quantity;
-        final double finalCost = cost;
+        final String feedingDateMysql;
+        try {
+            Date selected = displayFormat.parse(dateStr);
+            feedingDateMysql = mysqlFormat.format(selected);
+        } catch (ParseException e) {
+            Toast.makeText(getContext(), "Invalid date format", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
+        if (pondJson == null) {
+            Toast.makeText(getContext(), "Pond not selected", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+        final String pondName = pond.getName();
+
+        computeFeedCost(feedType, quantity, new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object costObj) {
+                final double cost = (double) costObj;
+
+                // Check for duplicates
+                PondSyncManager.fetchBlindFeedLogs(pondName, new PondSyncManager.Callback() {
+                    @Override
+                    public void onSuccess(Object response) {
+                        try {
+                            JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
+                            JsonArray logs = json.getAsJsonArray("data");
+                            boolean dateExists = false;
+                            for (int i = 0; i < logs.size(); i++) {
+                                JsonObject log = logs.get(i).getAsJsonObject();
+                                String existingDate = log.has("feeding_date") && !log.get("feeding_date").isJsonNull()
+                                        ? log.get("feeding_date").getAsString() : "";
+                                if (existingDate.equals(feedingDateMysql)) {
+                                    dateExists = true;
+                                    break;
+                                }
+                            }
+
+                            if (dateExists) {
+                                new Handler(Looper.getMainLooper()).post(() -> {
+                                    String displayDate;
+                                    try {
+                                        Date d = mysqlFormat.parse(feedingDateMysql);
+                                        displayDate = displayFormat.format(d);
+                                    } catch (ParseException e) {
+                                        displayDate = feedingDateMysql;
+                                    }
+                                    Toast.makeText(
+                                            getContext(),
+                                            "A feeding log for " + displayDate + " already exists.",
+                                            Toast.LENGTH_LONG
+                                    ).show();
+                                });
+                            } else {
+                                new Handler(Looper.getMainLooper()).post(() -> showConfirmAddDialog(quantity, cost, feedType, dateStr, feedingDateMysql, pondName));
+                            }
+
+                        } catch (Exception e) {
+                            new Handler(Looper.getMainLooper()).post(() -> showConfirmAddDialog(quantity, cost, feedType, dateStr, feedingDateMysql, pondName));
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        new Handler(Looper.getMainLooper()).post(() -> showConfirmAddDialog(quantity, cost, feedType, dateStr, feedingDateMysql, pondName));
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                new Handler(Looper.getMainLooper()).post(() ->
+                        Toast.makeText(getContext(), "Error computing cost: " + error, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
+
+    // Show confirmation dialog
+    private void showConfirmAddDialog(double quantity, double cost, String feedType, String dateStr, String feedingDateMysql, String pondName) {
+        if (!isAdded() || getContext() == null) return;
 
         new android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Feeding Log")
-                .setMessage("Add this feeding log?\n\nFeed Type: " + finalFeedType +
-                        "\nQuantity: " + finalQuantity + " kg\nCost: ₱" + finalCost + "\nDate: " + dateStr)
+                .setMessage("Add feeding log?\n\nFeed Type: " + feedType +
+                        "\nQuantity: " + quantity + " kg" +
+                        "\nCost: ₱" + String.format(Locale.getDefault(), "%.2f", cost) +
+                        "\nDate: " + dateStr)
                 .setPositiveButton("Yes", (dialog, which) -> {
-                    String recordAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                            .format(new Date());
-
+                    showLoadingDialog("Uploading feeding log...");
+                    String recordAt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
                     PondSyncManager.uploadBlindFeedLog(
-                            finalPondName,
-                            finalFeedType,
-                            finalQuantity,
-                            finalCost,
-                            finalFeedingDate,
-                            recordAt,
+                            pondName, feedType, quantity, cost, feedingDateMysql, recordAt,
                             new PondSyncManager.Callback() {
                                 @Override
                                 public void onSuccess(Object response) {
-                                    requireActivity().runOnUiThread(() -> {
+                                    hideLoadingDialog();
+                                    new Handler(Looper.getMainLooper()).post(() -> {
                                         Toast.makeText(getContext(), "Feed log added!", Toast.LENGTH_SHORT).show();
-                                        loadFeedLogs(); // 🔁 Auto refresh table after upload
+                                        loadFeedLogs();
                                     });
                                 }
 
                                 @Override
                                 public void onError(String error) {
-                                    requireActivity().runOnUiThread(() ->
+                                    hideLoadingDialog();
+                                    new Handler(Looper.getMainLooper()).post(() ->
                                             Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_SHORT).show()
                                     );
                                 }
@@ -175,10 +386,103 @@ public class BlindFeedingFragment extends DialogFragment {
                 .show();
     }
 
+
+    private String[] generateFeedingDates(String stockingDateStr) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date stockingDate = sdf.parse(stockingDateStr);
+
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(stockingDate);
+
+            int totalDays = 30; // adjust number of selectable dates
+
+            // We'll keep two arrays: one for server format, one for display
+            String[] displayDates = new String[totalDays];
+
+            for (int i = 0; i < totalDays; i++) {
+                cal.add(Calendar.DAY_OF_MONTH, 1);
+                displayDates[i] = displayFormat.format(cal.getTime()); // MMM dd, yyyy
+            }
+
+            return displayDates;
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return new String[0];
+        }
+    }
+    private String[] generateFeedingDatesForServer(String stockingDateStr) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date stockingDate = sdf.parse(stockingDateStr);
+
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(stockingDate);
+
+            int totalDays = 30;
+            String[] serverDates = new String[totalDays];
+
+            for (int i = 0; i < totalDays; i++) {
+                cal.add(Calendar.DAY_OF_MONTH, 1);
+                serverDates[i] = mysqlFormat.format(cal.getTime()); // yyyy-MM-dd
+            }
+
+            return serverDates;
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return new String[0];
+        }
+    }
+
+
+
+
+    private void updateFeedLog(String pondName, String feedType, double quantity, double cost, String feedingDate, String feedLogId) {
+        showLoadingDialog("Updating feeding log...");
+
+        PondSyncManager.updateBlindFeedingLog(
+                pondName, feedType, quantity, cost, feedingDate, feedLogId,
+                new PondSyncManager.OnDataSyncListener() {
+                    @Override
+                    public void onSuccess(String response) {
+                        hideLoadingDialog();
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            if (!isAdded() || getContext() == null) return;
+
+                            try {
+                                JSONObject json = new JSONObject(response);
+                                if (json.getString("status").equals("success")) {
+                                    Toast.makeText(getContext(), "Feed log updated!", Toast.LENGTH_SHORT).show();
+                                    tableFeedLogs.removeViews(1, tableFeedLogs.getChildCount() - 1);
+                                    loadFeedLogs();
+                                } else {
+                                    Toast.makeText(getContext(), json.getString("message"), Toast.LENGTH_LONG).show();
+                                }
+                            } catch (Exception e) {
+                                Toast.makeText(getContext(), "Error parsing response: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        hideLoadingDialog();
+                        new Handler(Looper.getMainLooper()).post(() ->
+                                Toast.makeText(getContext(), "Error updating: " + error, Toast.LENGTH_LONG).show()
+                        );
+                    }
+                }
+        );
+    }
+
     private void loadFeedLogs() {
+        showLoadingDialog("Loading feed records...");
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
-        if (pondJson == null) return;
+        if (pondJson == null) {
+
+            return;
+        }
 
         PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
         String pondName = pond.getName();
@@ -186,6 +490,8 @@ public class BlindFeedingFragment extends DialogFragment {
         PondSyncManager.fetchBlindFeedLogs(pondName, new PondSyncManager.Callback() {
             @Override
             public void onSuccess(Object response) {
+
+                if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
                     try {
                         JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
@@ -195,25 +501,64 @@ public class BlindFeedingFragment extends DialogFragment {
                         }
 
                         JsonArray logs = json.getAsJsonArray("data");
-
-                        // 🔄 Keep header (index 0), remove all rows below it
                         int childCount = tableFeedLogs.getChildCount();
                         if (childCount > 1) tableFeedLogs.removeViews(1, childCount - 1);
 
                         for (int i = 0; i < logs.size(); i++) {
                             JsonObject log = logs.get(i).getAsJsonObject();
+
+                            String logId = log.get("id").getAsString();
+                            String date = log.get("feeding_date").getAsString();
+                            String feedType = log.get("feed_type").getAsString();
+                            String quantity = log.get("quantity").getAsString();
+                            String cost = log.get("cost").getAsString();
+
                             TableRow row = new TableRow(getContext());
+                            row.setPadding(4, 4, 4, 4);;
 
-                            addCell(row, log.get("feeding_date").getAsString());
-                            addCell(row, log.get("feed_type").getAsString());
-                            addCell(row, log.get("quantity").getAsString());
-                            addCell(row, "₱" + log.get("cost").getAsString());
+                            // ✅ Create the "Actions" cell layout
+                            LinearLayout actionLayout = new LinearLayout(getContext());
+                            actionLayout.setOrientation(LinearLayout.HORIZONTAL);
+                            actionLayout.setGravity(Gravity.CENTER_VERTICAL);
+                            actionLayout.setPadding(8, 4, 8, 4);
 
+                            // 🖊️ Edit icon
+                            ImageView editIcon = new ImageView(getContext());
+                            editIcon.setImageResource(android.R.drawable.ic_menu_edit);
+                            editIcon.setPadding(8, 0, 8, 0);
+                            editIcon.setClickable(true);
+                            editIcon.setFocusable(true);
+                            editIcon.setOnClickListener(v -> showEditDialog(logId, date, feedType, quantity, cost));
+
+                            // 🗑️ Delete icon
+                            ImageView deleteIcon = new ImageView(getContext());
+                            deleteIcon.setImageResource(android.R.drawable.ic_menu_delete);
+                            deleteIcon.setPadding(8, 0, 8, 0);
+                            deleteIcon.setClickable(true);
+                            deleteIcon.setFocusable(true);
+                            deleteIcon.setOnClickListener(v -> confirmDeleteLog(logId));
+
+                            actionLayout.addView(editIcon);
+                            actionLayout.addView(deleteIcon);
+
+                            // ✅ Add "Actions" layout first (front)
+                            row.addView(actionLayout);
+
+                            // ✅ Add your other data cells
+                            addCell(row, formatDateForDisplay(date));
+                            addCell(row, feedType);
+                            addCell(row, quantity);
+                            addCell(row, "₱" + cost);
 
                             tableFeedLogs.addView(row);
+                            hideLoadingDialog();
                         }
 
+
+
+
                     } catch (Exception e) {
+                        hideLoadingDialog();
                         Log.e(TAG, "Error parsing feed logs: " + e.getMessage());
                     }
                 });
@@ -221,9 +566,95 @@ public class BlindFeedingFragment extends DialogFragment {
 
             @Override
             public void onError(String error) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Error loading logs: " + error, Toast.LENGTH_SHORT).show()
-                );
+                hideLoadingDialog();
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (getContext() != null)
+                        Toast.makeText(getContext(), "Error loading logs: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+
+    // 🔹 Modified showLoadingDialog to accept a message
+    private void showLoadingDialog(String message) {
+        requireActivity().runOnUiThread(() -> {
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                TextView loadingText = loadingDialog.findViewById(R.id.loadingText);
+                if (loadingText != null) loadingText.setText(message);
+                return; // already showing
+            }
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+            View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null);
+
+            ImageView fishLoader = dialogView.findViewById(R.id.fishLoader);
+            TextView loadingText = dialogView.findViewById(R.id.loadingText);
+            loadingText.setText(message);
+
+            Animation rotate = AnimationUtils.loadAnimation(requireContext(), R.anim.rotate);
+            if (fishLoader != null) fishLoader.startAnimation(rotate);
+
+            builder.setView(dialogView);
+            builder.setCancelable(false);
+            loadingDialog = builder.create();
+            loadingDialog.show();
+        });
+    }
+
+    private void hideLoadingDialog() {
+        requireActivity().runOnUiThread(() -> {
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                loadingDialog.dismiss();
+                loadingDialog = null;
+            }
+        });
+    }
+
+    private void computeFeedCost(String feedType, double quantityInGrams, PondSyncManager.Callback callback) {
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
+        if (pondJson == null) {
+            callback.onError("Pond not selected");
+            return;
+        }
+        PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+        String pondBreed = pond.getBreed();
+
+        PondSyncManager.fetchFeeds(new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object response) {
+                try {
+                    JsonObject root = JsonParser.parseString(response.toString()).getAsJsonObject(); // root object
+                    JsonArray feeds = root.getAsJsonArray("feeds"); // ✅ correct
+
+                    double pricePerKg = -1;
+                    for (int i = 0; i < feeds.size(); i++) {
+                        JsonObject feed = feeds.get(i).getAsJsonObject();
+                        String breed = feed.get("breed").getAsString();
+                        String type = feed.get("feed_type").getAsString();
+                        if (breed.equalsIgnoreCase(pondBreed) && type.equalsIgnoreCase(feedType)) {
+                            pricePerKg = feed.get("price_per_kg").getAsDouble();
+                            break;
+                        }
+                    }
+
+                    if (pricePerKg < 0) {
+                        callback.onError("Price not found for " + feedType + " (" + pondBreed + ")");
+                        return;
+                    }
+
+                    double cost = (quantityInGrams / 1000.0) * pricePerKg; // grams -> kg
+                    callback.onSuccess(cost);
+
+                } catch (Exception e) {
+                    callback.onError("Error parsing feeds: " + e.getMessage());
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
             }
         });
     }
@@ -231,6 +662,127 @@ public class BlindFeedingFragment extends DialogFragment {
 
 
 
+
+    private void showEditDialog(String logId, String date, String feedType, String quantity, String cost) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(requireContext());
+
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_edit_feed, null);
+        EditText etQuantity = dialogView.findViewById(R.id.etEditQuantity);
+        EditText etCost = dialogView.findViewById(R.id.etEditCost);
+
+        etQuantity.setText(quantity);
+        etCost.setText(cost);
+
+        etQuantity.addTextChangedListener(new android.text.TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                try {
+                    double qtyInGrams = Double.parseDouble(s.toString());
+                    SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                    String pondJson = prefs.getString("selected_pond", null);
+                    if (pondJson == null) {
+                        etCost.setText("0.00");
+                        return;
+                    }
+                    PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                    String breed = pond.getBreed();
+
+                    PondSyncManager.fetchFeeds(new PondSyncManager.Callback() {
+                        @Override
+                        public void onSuccess(Object response) {
+                            try {
+                                JsonObject root = JsonParser.parseString(response.toString()).getAsJsonObject();
+                                JsonArray feeds = root.getAsJsonArray("feeds");
+                                boolean found = false;
+                                for (int i = 0; i < feeds.size(); i++) {
+                                    JsonObject feed = feeds.get(i).getAsJsonObject();
+                                    String feedBreed = feed.get("breed").getAsString();
+                                    String type = feed.get("feed_type").getAsString();
+
+                                    if (feedBreed.equalsIgnoreCase(breed) && type.equalsIgnoreCase(feedType)) {
+                                        double pricePerKg = Double.parseDouble(feed.get("price_per_kg").getAsString());
+                                        double cost = qtyInGrams * pricePerKg / 1000.0; // if input in grams
+                                        etCost.setText(String.format(Locale.getDefault(), "%.2f", cost));
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) etCost.setText("0.00");
+                            } catch (Exception e) {
+                                etCost.setText("0.00");
+                            }
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            etCost.setText("0.00");
+                        }
+                    });
+
+                } catch (NumberFormatException e) {
+                    etCost.setText("0.00");
+                }
+            }
+            @Override public void afterTextChanged(android.text.Editable s) {}
+        });
+
+
+        builder.setView(dialogView);
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            try {
+                double newQuantity = Double.parseDouble(etQuantity.getText().toString());
+                double newCost = Double.parseDouble(etCost.getText().toString());
+
+                SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                String pondJson = prefs.getString("selected_pond", null);
+                PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                String pondName = pond.getName();
+
+                updateFeedLog(pondName, feedType, newQuantity, newCost, date, logId);
+
+            } catch (Exception e) {
+                Toast.makeText(getContext(), "Invalid input: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+
+
+    private void confirmDeleteLog(String logId) {
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Confirm Delete")
+                .setMessage("Are you sure you want to delete this feeding log?\nThis action cannot be undone.")
+                .setPositiveButton("Yes, Delete", (dialog, which) -> deleteFeedLog(logId))
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
+
+
+    private void deleteFeedLog(String logId) {
+        showLoadingDialog("Deleting feeding log...");
+        PondSyncManager.deleteBlindFeedingLog(logId, pondName, new PondSyncManager.OnDataSyncListener() {
+            @Override
+            public void onSuccess(String response) {
+                hideLoadingDialog();
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    Toast.makeText(getContext(), "Feed log deleted!", Toast.LENGTH_SHORT).show();
+                    loadFeedLogs();
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                hideLoadingDialog();
+                new Handler(Looper.getMainLooper()).post(() ->
+                        Toast.makeText(getContext(), "Error deleting: " + error, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
 
 
     private void addCell(TableRow row, String text) {
