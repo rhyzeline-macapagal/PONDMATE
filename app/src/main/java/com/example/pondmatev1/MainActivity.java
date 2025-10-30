@@ -198,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
 
                 case 4:
                     getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.con, new ActivityFragment())
+                            .replace(R.id.con, new ActivitiesFragment())
                             .addToBackStack(null)
                             .commit();
                     break;

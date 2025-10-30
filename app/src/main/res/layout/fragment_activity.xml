@@ -1,74 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/scrollView"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:padding="10dp">
-
-    <LinearLayout
+    <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/scrollView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:padding="10dp">
 
-        <!-- Title -->
-        <TextView
-            android:id="@+id/tvTitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Production Activity"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:textColor="@android:color/black"
-            android:paddingBottom="10dp" />
-
-        <!-- Spinner to show/hide calendar -->
-        <Spinner
-            android:id="@+id/calendarToggleSpinner"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:minHeight="48dp"
-            android:spinnerMode="dropdown"
-            android:padding="8dp" />
-
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone"/>
-
-
-        <!-- Calendar -->
-        <com.prolificinteractive.materialcalendarview.MaterialCalendarView
-            android:id="@+id/calendarView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:mcv_showOtherDates="all"
-            app:mcv_selectionColor="@color/teal_200" />
-
-        <!-- Header for activities -->
-        <TextView
-            android:id="@+id/activitiesHeader"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="My Activities"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/black"
-            android:paddingTop="10dp"
-            android:paddingBottom="5dp" />
-
-        <!-- Container for dynamically added activity checkboxes -->
         <LinearLayout
-            android:id="@+id/activitiesLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@android:color/white"
-            android:padding="8dp" />
+            android:orientation="vertical">
 
-    </LinearLayout>
-</ScrollView>
+            <!-- Title -->
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Production Activity"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:textColor="@android:color/black"
+                android:paddingBottom="10dp" />
+
+            <!-- Spinner to show/hide calendar -->
+            <Spinner
+                android:id="@+id/calendarToggleSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:minHeight="48dp"
+                android:spinnerMode="dropdown"
+                android:padding="8dp" />
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:visibility="gone"/>
+
+
+            <!-- Calendar -->
+            <com.prolificinteractive.materialcalendarview.MaterialCalendarView
+                android:id="@+id/calendarView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:mcv_showOtherDates="none"
+                app:mcv_headerTextAppearance="@style/TextAppearance.AppCompat.Medium"
+                app:mcv_weekDayTextAppearance="@style/TextAppearance.AppCompat.Small"
+                app:mcv_selectionColor="@color/white" />
+
+            <!-- Header for activities -->
+            <TextView
+                android:id="@+id/activitiesHeader"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="My Activities"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/black"
+                android:paddingTop="10dp"
+                android:paddingBottom="5dp" />
+
+            <!-- Container for dynamically added activity checkboxes -->
+            <LinearLayout
+                android:id="@+id/activitiesLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@android:color/white"
+                android:padding="8dp" />
+
+        </LinearLayout>
+    </ScrollView>
