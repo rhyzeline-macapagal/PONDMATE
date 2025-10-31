@@ -25,14 +25,16 @@
             android:gravity="center"
             android:textColor="@android:color/black" />
 
-        <!-- Spinner to show/hide calendar -->
-
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/calendarInstructions"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:visibility="gone"/>
+            android:text="Click the calendar dates to view activities."
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray"
+            android:paddingBottom="8dp" />
+
+
 
 
         <!-- Calendar -->
@@ -43,6 +45,8 @@
             app:mcv_showOtherDates="all"
             app:mcv_tileSize="50dp"
             app:mcv_arrowColor="#0042A0"
+            app:mcv_headerTextAppearance="@drawable/rounded_dialog_bg"
+            app:mcv_dateTextAppearance="@drawable/rounded_edittext"
             app:mcv_calendarMode="month"
             android:background="@drawable/rounded_dialog_bg"
             app:mcv_tileHeight="30dp"
@@ -60,7 +64,16 @@
             android:paddingTop="10dp"
             android:paddingBottom="5dp" />
 
-        <!-- Container for dynamically added activity checkboxes -->
+        <!-- Instruction for checking done activities -->
+        <TextView
+            android:id="@+id/activitiesInstruction"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Check the box for activities you have completed today."
+            android:textSize="14sp"
+            android:textColor="@android:color/darker_gray"
+            android:paddingBottom="8dp" />
+
         <LinearLayout
             android:id="@+id/activitiesLayout"
             android:layout_width="match_parent"
@@ -68,6 +81,7 @@
             android:orientation="vertical"
             android:background="@android:color/white"
             android:padding="8dp" />
+
 
     </LinearLayout>
 </ScrollView>

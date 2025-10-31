@@ -1,5 +1,6 @@
 package com.example.pondmatev1;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -9,6 +10,9 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -36,6 +40,8 @@ public class ActivitiesFragment extends Fragment {
     private LinearLayout activitiesLayout;
     private ProgressBar progressBar;
     private TextView activitiesHeader, tvTitle;
+    private AlertDialog loadingDialog;
+
 
     private String pondName;
 
@@ -51,7 +57,6 @@ public class ActivitiesFragment extends Fragment {
 
         calendarView = view.findViewById(R.id.calendarView);
         activitiesLayout = view.findViewById(R.id.activitiesLayout);
-        progressBar = view.findViewById(R.id.progressBar);
         activitiesHeader = view.findViewById(R.id.activitiesHeader);
         tvTitle = view.findViewById(R.id.tvTitle);
 
@@ -75,41 +80,82 @@ public class ActivitiesFragment extends Fragment {
         return view;
     }
 
+    private void showLoadingDialog(String message) {
+        requireActivity().runOnUiThread(() -> {
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                TextView loadingText = loadingDialog.findViewById(R.id.loadingText);
+                if (loadingText != null) loadingText.setText(message);
+                return; // already showing
+            }
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+            View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null);
+
+            ImageView fishLoader = dialogView.findViewById(R.id.fishLoader);
+            TextView loadingText = dialogView.findViewById(R.id.loadingText);
+            loadingText.setText(message);
+
+            Animation rotate = AnimationUtils.loadAnimation(requireContext(), R.anim.rotate);
+            if (fishLoader != null) fishLoader.startAnimation(rotate);
+
+            builder.setView(dialogView);
+            builder.setCancelable(false);
+            loadingDialog = builder.create();
+            loadingDialog.show();
+        });
+    }
+
+    private void hideLoadingDialog() {
+        requireActivity().runOnUiThread(() -> {
+            if (loadingDialog != null && loadingDialog.isShowing()) {
+                loadingDialog.dismiss();
+                loadingDialog = null;
+            }
+        });
+    }
+
+
     private void fetchPondDateCreated(String pondName) {
-        progressBar.setVisibility(View.VISIBLE);
+
+        showLoadingDialog("Loading calendar...");
 
         PondSyncManager.fetchPondDateCreated(pondName, new PondSyncManager.Callback() {
             @Override
             public void onSuccess(Object response) {
+                hideLoadingDialog();
+
                 try {
                     JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
 
                     if (json.get("status").getAsString().equals("success")) {
                         String dateCreated = json.get("date_created").getAsString();
-
                         // ✅ Now fetch activities using the same pond
                         fetchActivities(pondName, dateCreated);
 
                     } else {
                         showToast("Failed to load pond date.");
-                        progressBar.setVisibility(View.GONE);
+                        hideLoadingDialog();
+
                     }
 
                 } catch (Exception e) {
                     showToast("Error parsing response.");
-                    progressBar.setVisibility(View.GONE);
+                    hideLoadingDialog();
+
                 }
             }
 
             @Override
             public void onError(String error) {
                 showToast("Network error: " + error);
-                progressBar.setVisibility(View.GONE);
+                hideLoadingDialog();
             }
         });
     }
 
     private void fetchActivities(String pondName, String dateCreated) {
+        showLoadingDialog("Loading activities...");
+
         PondSyncManager.fetchPondActivities(pondName, new PondSyncManager.Callback() {
             @Override
             public void onSuccess(Object response) {
@@ -118,20 +164,20 @@ public class ActivitiesFragment extends Fragment {
 
                     if (json.get("status").getAsString().equals("success")) {
                         new Handler(Looper.getMainLooper()).post(() -> {
-                            progressBar.setVisibility(View.GONE);
+                            hideLoadingDialog();
                             setCalendarRange(calendarView, dateCreated, json);
                         });
                     }
                 } catch (Exception e) {
                     showToast("Error parsing activities.");
-                    progressBar.setVisibility(View.GONE);
+                    hideLoadingDialog();
                 }
             }
 
             @Override
             public void onError(String error) {
                 showToast("Network error: " + error);
-                progressBar.setVisibility(View.GONE);
+                hideLoadingDialog();
             }
         });
     }
@@ -151,7 +197,6 @@ public class ActivitiesFragment extends Fragment {
             endCal.setTime(startDate);
             endCal.add(Calendar.DAY_OF_YEAR, 193); // 194 days total
 
-            // ✅ Restrict calendar range and hide other dates
             calendarView.state().edit()
                     .setMinimumDate(CalendarDay.from(startCal))
                     .setMaximumDate(CalendarDay.from(endCal))
@@ -159,10 +204,21 @@ public class ActivitiesFragment extends Fragment {
 
             calendarView.setShowOtherDates(MaterialCalendarView.SHOW_NONE);
 
-            // Default selection: start date
-            calendarView.setSelectedDate(CalendarDay.from(startCal));
+// Default selection: today if in range, else start date
+            Calendar todayCal = Calendar.getInstance();
+            String defaultDateStr;
+            if (!todayCal.before(startCal) && !todayCal.after(endCal)) {
+                calendarView.setSelectedDate(CalendarDay.from(todayCal));
+                defaultDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(todayCal.getTime());
+            } else {
+                calendarView.setSelectedDate(CalendarDay.from(startCal));
+                defaultDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(startCal.getTime());
+            }
 
-            // Handle date selection
+// Show activities for the default date
+            showActivitiesForDate(json, defaultDateStr);
+
+// Handle date selection by user
             calendarView.setOnDateChangedListener((widget, date, selected) -> {
                 String formattedDate = String.format(Locale.getDefault(),
                         "%04d-%02d-%02d",
@@ -171,6 +227,7 @@ public class ActivitiesFragment extends Fragment {
                         date.getDay());
                 showActivitiesForDate(json, formattedDate);
             });
+
 
         } catch (Exception e) {
             Log.e("CALENDAR_RANGE", "Error: " + e.getMessage());
