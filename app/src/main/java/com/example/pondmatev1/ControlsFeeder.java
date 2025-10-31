@@ -62,10 +62,6 @@ public class ControlsFeeder extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.controls_feeder, container, false);
 
-        // Assign TextViews
-        textCurrentDate = view.findViewById(R.id.currentdate);
-        lastFeedingTimeTV = view.findViewById(R.id.lastfeedingtime);
-        nextFeedingTimeTV = view.findViewById(R.id.nextfeedingtime);
 
         // Update feeding times immediately on load
         updateFeedingTimes(Calendar.getInstance(TimeZone.getTimeZone("Asia/Manila")));

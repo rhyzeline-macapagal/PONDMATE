@@ -280,6 +280,7 @@ public class AddPondDialogFragment extends DialogFragment {
                 hideLoadingDialog();
                 Log.e("UploadError", "Upload failed: " + error); // <-- Added log
                 Toast.makeText(getContext(), "Upload failed: " + error, Toast.LENGTH_LONG).show();
+
             }
         });
     }

@@ -272,6 +272,7 @@ public class ProductionCostFragment extends Fragment {
             double feedCost = 0.0;
             double maintenanceCost = 0.0;
 
+
             tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
             totalCost = totalFingerlingCost + feedCost + maintenanceCost + salaryPerPond;
             tvSummaryTotal.setText("₱" + formatPrice(totalCost));
@@ -513,8 +514,6 @@ public class ProductionCostFragment extends Fragment {
             productionCostSummary.setVisibility(View.VISIBLE);
             roiSection.setVisibility(View.VISIBLE);
         }
-
-
     }
 
     private void handleFingerlingStockedStatus(View view, PondModel pond) {
