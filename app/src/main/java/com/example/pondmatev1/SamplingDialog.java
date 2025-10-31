@@ -332,6 +332,8 @@ public class SamplingDialog extends DialogFragment {
         double survivalRate = parseDouble(tvSurvivalRate.getText().toString().replace("%", ""));
         double dfr = parseDouble(tvDFRResult.getText().toString().replace(" g", ""));
         double dfrFeed = parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""));
+        double dailyFeedCost = parseDouble(tvFeedCost.getText().toString().replace("₱", "").trim());
+
 
         String feedingOne = formattedTime1; // use 24-hour version
         String feedingTwo = formattedTime2;
@@ -344,7 +346,7 @@ public class SamplingDialog extends DialogFragment {
 
         PondSyncManager.uploadSamplingRecord(
                 pond.getId(), daysOfCultureVal, growthStage, totalStocks, mortalityRate,
-                feedingOne, feedingTwo, abw, feedingRate, survivalRate, dfr, dfrFeed,
+                feedingOne, feedingTwo, abw, feedingRate, survivalRate, dfr, dfrFeed, dailyFeedCost,
                 now, now, nextSamplingDate,
                 new PondSyncManager.Callback() {
                     @Override
