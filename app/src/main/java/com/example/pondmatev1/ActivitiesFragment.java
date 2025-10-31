@@ -57,6 +57,7 @@ public class ActivitiesFragment extends Fragment {
 
         tvTitle.setText("Pond Activities");
 
+        calendarView.addDecorator(new TodayDecorator());
         // ✅ Load pond name from SharedPreferences
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
@@ -187,7 +188,10 @@ public class ActivitiesFragment extends Fragment {
 
         boolean found = false;
 
-        // SharedPreferences to save done activities
+        // Get today in yyyy-MM-dd
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        String todayStr = sdf.format(new Date());
+
         SharedPreferences prefs = requireContext().getSharedPreferences("ACTIVITY_PREFS", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
 
@@ -202,34 +206,33 @@ public class ActivitiesFragment extends Fragment {
                 String description = act.get("description").getAsString();
                 int dayNumber = act.get("day_number").getAsInt();
 
-                // Unique key for saving checked state
                 String key = pondName + "_" + actDate + "_" + title;
 
-                // Create container for each activity
                 LinearLayout itemLayout = new LinearLayout(getContext());
                 itemLayout.setOrientation(LinearLayout.HORIZONTAL);
                 itemLayout.setPadding(10, 10, 10, 10);
 
-                // Create a CheckBox
                 android.widget.CheckBox checkBox = new android.widget.CheckBox(getContext());
                 checkBox.setText("Day " + dayNumber + ": " + title);
                 checkBox.setChecked(prefs.getBoolean(key, false));
 
-                checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                    editor.putBoolean(key, isChecked);
-                    editor.apply();
+                // ✅ Only allow checking if it's today
+                checkBox.setEnabled(actDate.equals(todayStr));
 
-                    if (isChecked) {
-                        Toast.makeText(getContext(), "Marked as done ✅", Toast.LENGTH_SHORT).show();
+                checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                    if (actDate.equals(todayStr)) {
+                        editor.putBoolean(key, isChecked);
+                        editor.apply();
+                        if (isChecked) {
+                            Toast.makeText(getContext(), "Marked as done ✅", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
 
-                // Description text
                 TextView descView = new TextView(getContext());
                 descView.setText(description);
                 descView.setPadding(30, 0, 0, 0);
 
-                // Add to layout
                 LinearLayout wrapper = new LinearLayout(getContext());
                 wrapper.setOrientation(LinearLayout.VERTICAL);
                 wrapper.addView(checkBox);
@@ -245,6 +248,7 @@ public class ActivitiesFragment extends Fragment {
             activitiesLayout.addView(empty);
         }
     }
+
 
 
     private void showToast(String msg) {

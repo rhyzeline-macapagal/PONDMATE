@@ -69,6 +69,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("com.onesignal:OneSignal:[5.1.6, 5.1.99]")
     implementation("com.google.android.flexbox:flexbox:3.0.0")
 
 

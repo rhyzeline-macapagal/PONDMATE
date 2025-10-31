@@ -41,8 +41,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             app:mcv_showOtherDates="all"
+            app:mcv_tileSize="50dp"
+            app:mcv_arrowColor="#0042A0"
+            app:mcv_calendarMode="month"
             android:background="@drawable/rounded_dialog_bg"
-            app:mcv_selectionColor="@color/teal_200" />
+            app:mcv_tileHeight="30dp"
+            app:mcv_selectionColor="#005FE6" />
 
         <!-- Header for activities -->
         <TextView
