@@ -174,6 +174,7 @@ public class ProductionCostFragment extends Fragment {
                         new Handler(Looper.getMainLooper()).post(() -> {
                             try {
                                 JSONObject json = new JSONObject(String.valueOf(response));
+                                Log.d("REPORT_DEBUG", "Report JSON: " + json.toString());
                                 // ✅ Standard report (no forced INACTIVE)
                                 json.put("action", "REPORT");
 
@@ -538,10 +539,9 @@ public class ProductionCostFragment extends Fragment {
     private void fetchTotalFeedCost(String pondId) {
         new Thread(() -> {
             try {
-                String urlString = "https://pondmate.alwaysdata.net/fetch_total_feed_cost.php";
-                if (pondId != null && !pondId.isEmpty()) {
-                    urlString += "?pond_id=" + pondId;
-                }
+                if (pondId == null || pondId.trim().isEmpty()) return;
+
+                String urlString = "https://pondmate.alwaysdata.net/fetch_total_feed_cost.php?pond_id=" + pondId;
 
                 URL url = new URL(urlString);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -556,27 +556,38 @@ public class ProductionCostFragment extends Fragment {
                     while ((line = reader.readLine()) != null) {
                         sb.append(line);
                     }
-                    Log.d("FEED_DEBUG", "PHP response: " + sb.toString());
+                    reader.close();
+
+                    Log.d("FEED_DEBUG", "PHP response: " + sb);
 
                     JSONObject json = new JSONObject(sb.toString());
-                    if (json.has("total_feed_cost")) {
-                        final double totalFeedCost = json.getDouble("total_feed_cost");
+
+                    if (json.optString("status").equalsIgnoreCase("success")) {
+
+                        final double blindFeed = json.optDouble("blind_feed_total", 0);
+                        final double samplingFeed = json.optDouble("sampling_feed_total", 0);
+                        final double totalFeedCost = json.optDouble("total_feed_cost", 0);
+
+                        Log.d("FEED_DEBUG", "Blind Feed = " + blindFeed);
+                        Log.d("FEED_DEBUG", "Sampling Feed = " + samplingFeed);
+                        Log.d("FEED_DEBUG", "Total Feed Cost = " + totalFeedCost);
 
                         requireActivity().runOnUiThread(() -> {
                             View view = getView();
                             if (view != null) {
-                                TextView tvSummaryFeeds = view.findViewById(R.id.tvSummaryFeeds);
                                 tvSummaryFeeds.setText("₱" + formatPrice(totalFeedCost));
-                                updateTotalCost(); // recalc total after feeds loaded
+                                updateTotalCost(); // ✅ Recalculate production cost total
                             }
                         });
                     }
                 } else {
                     Log.e("FeedCost", "Server returned: " + responseCode);
                 }
+
                 conn.disconnect();
+
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.e("FeedCost", "Error: ", e);
             }
         }).start();
     }
@@ -633,7 +644,6 @@ public class ProductionCostFragment extends Fragment {
             }
         }).start();
     }
-
     private void updateTotalCost() {
         updateTotalCost(currentBreed, currentFishCount);
     }
@@ -655,7 +665,6 @@ public class ProductionCostFragment extends Fragment {
             }
         }
     }
-
     private void previewPDF(File pdfFile) {
         if (pdfFile == null || !pdfFile.exists()) {
             Toast.makeText(requireContext(), "PDF not available", Toast.LENGTH_SHORT).show();
@@ -665,7 +674,6 @@ public class ProductionCostFragment extends Fragment {
         intent.putExtra(PdfPreviewActivity.EXTRA_PDF_PATH, pdfFile.getAbsolutePath());
         startActivity(intent);
     }
-
     private void savePDFToDownloads(File sourceFile) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -706,28 +714,6 @@ public class ProductionCostFragment extends Fragment {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private void saveEstimatedROI(String pondName, double roiPercent) {
-        SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
-        sp.edit().putFloat(pondName + "_estimated_roi", (float) roiPercent).apply();
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/update_roi.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-                String postData = "pond_name=" + pondName + "&estimated_roi=" + roiPercent;
-                conn.getOutputStream().write(postData.getBytes("UTF-8"));
-
-                conn.getInputStream().close();
-                conn.disconnect();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
     }
 
     private double parseDouble(String str) {
@@ -865,7 +851,6 @@ public class ProductionCostFragment extends Fragment {
 
     private void computeEstimatedROI() {
         Log.d("ROI_DEBUG", "Starting computeEstimatedROI()...");
-
         try {
             SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
             String pondJson = prefs.getString("selected_pond", null);
@@ -873,18 +858,15 @@ public class ProductionCostFragment extends Fragment {
                 tvEstimatedRoI.setText("—");
                 return;
             }
-
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             if (pond == null) {
                 tvEstimatedRoI.setText("—");
                 return;
             }
-
             double fingerlingsCount = pond.getFishCount();
             double mortalityRate = pond.getMortalityRate();
             double survivalRate = 100 - mortalityRate;
             String breed = pond.getBreed();
-
             PondSyncManager.fetchFarmgatePrice(breed, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object result) {
@@ -963,41 +945,33 @@ public class ProductionCostFragment extends Fragment {
                         ROIHelper.lastBreakdown = b;
 
                         updateROIText(String.format(Locale.US, "%.2f%%", estimatedROI));
-
                     } catch (Exception e) {
                         updateROIText("—");
                     }
                 }
-
                 @Override
                 public void onError(String error) {
                     updateROIText("—");
                 }
             });
-
         } catch (Exception e) {
             tvEstimatedRoI.setText("—");
         }
     }
-
     private void updateROIText(String value) {
         if (!isAdded() || getActivity() == null) {
             Log.w("ROI_DEBUG", "Fragment not attached — skipping UI update");
             return;
         }
-
         requireActivity().runOnUiThread(() -> {
             if (tvEstimatedRoI != null) {
                 tvEstimatedRoI.setText(value);
             }
         });
     }
-
-
     private double round(double v) {
         return Math.round(v * 100.0) / 100.0;
     }
-
     private void showROIBreakdownDialog(ROIBreakdown b) {
         View view = getLayoutInflater().inflate(R.layout.dialog_roi_breakdown, null);
         TableLayout table = view.findViewById(R.id.tableROI);
@@ -1037,25 +1011,20 @@ public class ProductionCostFragment extends Fragment {
                 .setPositiveButton("OK", null)
                 .show();
     }
-
     private void addRow(TableLayout table, String label, String value) {
         TableRow row = new TableRow(requireContext());
 
         TextView tvLabel = new TextView(requireContext());
         tvLabel.setText(label);
         tvLabel.setTextSize(14);
-
         TextView tvValue = new TextView(requireContext());
         tvValue.setText(value);
         tvValue.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
         tvValue.setTextSize(14);
-
         row.addView(tvLabel);
         row.addView(tvValue);
-
         table.addView(row);
     }
-
     private void addHeader(TableLayout table, String text) {
         TextView header = new TextView(requireContext());
         header.setText(text);
@@ -1063,31 +1032,25 @@ public class ProductionCostFragment extends Fragment {
         header.setPadding(0, 16, 0, 4);
         table.addView(header);
     }
-
     private void addSpacer(TableLayout table) {
         View spacer = new View(requireContext());
         spacer.setMinimumHeight(12);
         table.addView(spacer);
     }
-
     private String formatPeso(double value) {
         return String.format("₱%.2f", value);
     }
-
-
     private double getDoubleFromText(TextView textView) {
         if (textView == null) {
             Log.w("ROI_DEBUG", "TextView reference is null — returning 0");
             return 0.0;
         }
-
         try {
             String raw = textView.getText().toString().trim();
             if (raw.isEmpty()) {
                 Log.w("ROI_DEBUG", "Empty value in " + getResources().getResourceEntryName(textView.getId()) + " — returning 0");
                 return 0.0;
             }
-
             // Remove peso signs, commas, or any other non-numeric characters
             String cleaned = raw.replaceAll("[^0-9.]", "");
             double value = cleaned.isEmpty() ? 0.0 : Double.parseDouble(cleaned);
@@ -1096,99 +1059,12 @@ public class ProductionCostFragment extends Fragment {
                     getResources().getResourceEntryName(textView.getId()) +
                     " = " + value);
             return value;
-
         } catch (Exception e) {
             Log.e("ROI_DEBUG", "Error parsing value from TextView", e);
             return 0.0;
         }
     }
-
-
     private void refreshROI() {
         computeEstimatedROI();
-    }
-
-    private void uploadPdfAndSaveHistory(String pondId, String pondName, File pdfFile, String existingPdfPath, String actionType) {
-        new Thread(() -> {
-            try {
-                String safePondId = (pondId != null && !pondId.trim().isEmpty()) ? pondId : "INACTIVE_POND";
-                String boundary = "----WebKitFormBoundary" + System.currentTimeMillis();
-                URL url = new URL("https://pondmate.alwaysdata.net/savePondHistory.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setDoOutput(true);
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
-
-                try (OutputStream outputStream = conn.getOutputStream()) {
-                    outputStream.write(("--" + boundary + "\r\n").getBytes());
-                    outputStream.write("Content-Disposition: form-data; name=\"pond_id\"\r\n\r\n".getBytes());
-                    outputStream.write(pondId.getBytes());
-                    outputStream.write("\r\n".getBytes());
-
-                    outputStream.write(("--" + boundary + "\r\n").getBytes());
-                    outputStream.write("Content-Disposition: form-data; name=\"name\"\r\n\r\n".getBytes());
-                    outputStream.write(pondName.getBytes());
-                    outputStream.write("\r\n".getBytes());
-
-                    outputStream.write(("--" + boundary + "\r\n").getBytes());
-                    outputStream.write("Content-Disposition: form-data; name=\"action\"\r\n\r\n".getBytes());
-                    outputStream.write(actionType.getBytes());
-                    outputStream.write("\r\n".getBytes());
-
-                    if (existingPdfPath != null && !existingPdfPath.isEmpty()) {
-                        outputStream.write(("--" + boundary + "\r\n").getBytes());
-                        outputStream.write("Content-Disposition: form-data; name=\"pdf_path\"\r\n\r\n".getBytes());
-                        outputStream.write(existingPdfPath.getBytes());
-                        outputStream.write("\r\n".getBytes());
-                    }
-
-                    if (pdfFile != null && pdfFile.exists()) {
-                        outputStream.write(("--" + boundary + "\r\n").getBytes());
-                        outputStream.write(("Content-Disposition: form-data; name=\"pdf_file\"; filename=\"" +
-                                pdfFile.getName() + "\"\r\n").getBytes());
-                        outputStream.write("Content-Type: application/pdf\r\n\r\n".getBytes());
-
-                        try (FileInputStream fileInputStream = new FileInputStream(pdfFile)) {
-                            byte[] buffer = new byte[4096];
-                            int bytesRead;
-                            while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-                                outputStream.write(buffer, 0, bytesRead);
-                            }
-                        }
-                        outputStream.write("\r\n".getBytes());
-                    }
-
-                    outputStream.write(("--" + boundary + "--\r\n").getBytes());
-                    outputStream.flush();
-                }
-
-                int responseCode = conn.getResponseCode();
-                InputStream is = (responseCode >= 200 && responseCode < 400)
-                        ? conn.getInputStream()
-                        : conn.getErrorStream();
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) response.append(line);
-                reader.close();
-
-                Log.d("PDF_UPLOAD", "Server Response: " + response);
-
-                requireActivity().runOnUiThread(() -> {
-                    if (response.toString().toLowerCase().contains("success")) {
-                        Toast.makeText(requireContext(), "PDF successfully uploaded!", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(requireContext(), "Upload completed (check logs).", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                new Handler(Looper.getMainLooper()).post(() ->
-                        Toast.makeText(requireContext(), "Upload error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                );
-            }
-        }).start();
     }
 }

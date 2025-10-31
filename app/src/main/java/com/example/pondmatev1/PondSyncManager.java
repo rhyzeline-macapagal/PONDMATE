@@ -444,24 +444,11 @@ public class PondSyncManager {
     }
 
 
-    public static void uploadSamplingRecord(
-            String pondId,
-            int daysOfCulture,
-            String growthStage,
-            int totalStocks,
-            double mortalityRate,
-            String feedingOne,
-            String feedingTwo,
-            double abw,
-            double feedingRate,
-            double survivalRate,
-            double dfr,
-            double dfrFeed,
-            String createdAt,
-            String updatedAt,
-            String nextSamplingDate,
-            Callback callback
-    ) {
+    public static void uploadSamplingRecord(String pondId, int daysOfCulture, String growthStage, int totalStocks,
+                                            double mortalityRate, String feedingOne, String feedingTwo, double abw, double feedingRate,
+                                            double survivalRate, double dfr, double dfrFeed, double dailyFeedCost,
+                                            String createdAt, String updatedAt, String nextSamplingDate, Callback callback) {
+
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/add_sampling.php");
@@ -482,6 +469,7 @@ public class PondSyncManager {
                                 "&survival_rate=" + survivalRate +
                                 "&dfr=" + dfr +
                                 "&dfr_feed=" + dfrFeed +
+                                "&daily_feed_cost=" + dailyFeedCost +
                                 "&created_at=" + URLEncoder.encode(createdAt, "UTF-8") +
                                 "&updated_at=" + URLEncoder.encode(updatedAt, "UTF-8") +
                                 "&next_sampling_date=" + URLEncoder.encode(nextSamplingDate, "UTF-8");
