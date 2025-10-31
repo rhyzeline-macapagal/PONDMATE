@@ -174,6 +174,7 @@ public class ProductionCostFragment extends Fragment {
                         new Handler(Looper.getMainLooper()).post(() -> {
                             try {
                                 JSONObject json = new JSONObject(String.valueOf(response));
+                                Log.d("REPORT_DEBUG", "Report JSON: " + json.toString());
                                 // ✅ Standard report (no forced INACTIVE)
                                 json.put("action", "REPORT");
 

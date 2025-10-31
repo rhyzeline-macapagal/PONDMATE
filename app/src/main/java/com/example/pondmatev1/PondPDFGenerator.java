@@ -79,18 +79,24 @@ public class PondPDFGenerator {
             JSONObject pondDetails = report.optJSONObject("pond_details");
             if (pondDetails != null) {
                 document.add(new Paragraph("POND DETAILS", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
-                PdfPTable ptable = new PdfPTable(2);
-                ptable.setWidthPercentage(100);
+                document.add(new Paragraph("\n"));
+
+                Font labelFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD);
+                Font valueFont = new Font(Font.FontFamily.HELVETICA, 12);
 
                 for (Iterator<String> it = pondDetails.keys(); it.hasNext();) {
                     String key = it.next();
-                    ptable.addCell(headerCell(key));
-                    ptable.addCell(pondDetails.optString(key, "-"));
+                    String value = pondDetails.optString(key, "-");
+
+                    Paragraph line = new Paragraph(key + ": ", labelFont);
+                    line.add(new Phrase(value, valueFont));
+                    line.setSpacingAfter(4f);
+                    document.add(line);
                 }
 
-                document.add(ptable);
                 document.add(new Paragraph("\n"));
             }
+
 
             // --- EXPENSES SECTION ---
             JSONObject expenses = report.optJSONObject("expenses");
@@ -134,15 +140,16 @@ public class PondPDFGenerator {
                 }
 
                 // 🔹 Feeds Table
+                // 🔹 Accumulated Feed Cost (Blind + Sampling)
                 JSONObject feeds = expenses.optJSONObject("Feeds");
                 if (feeds != null) {
-                    document.add(new Paragraph("FEEDS", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
+                    document.add(new Paragraph("ACCUMULATED FEED COST", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
                     document.add(new Paragraph("\n"));
-                    PdfPTable feedTable = new PdfPTable(4);
+
+                    // Table with only Description + Amount
+                    PdfPTable feedTable = new PdfPTable(2);
                     feedTable.setWidthPercentage(100);
                     feedTable.addCell(headerCell("Description"));
-                    feedTable.addCell(headerCell("Quantity"));
-                    feedTable.addCell(headerCell("Cost per Unit"));
                     feedTable.addCell(headerCell("Amount"));
 
                     JSONArray feedDetails = feeds.optJSONArray("details");
@@ -150,22 +157,26 @@ public class PondPDFGenerator {
                         for (int i = 0; i < feedDetails.length(); i++) {
                             JSONObject fd = feedDetails.getJSONObject(i);
                             feedTable.addCell(fd.optString("description", "-"));
-                            feedTable.addCell(fd.optString("quantity", "0"));
-                            feedTable.addCell("₱" + fd.optString("cost_per_unit", "0"));
-                            feedTable.addCell("₱" + fd.optString("amount", "0"));
+
+                            PdfPCell amountCell = new PdfPCell(new Phrase("₱" + String.format("%.2f", fd.optDouble("amount", 0))));
+                            amountCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                            feedTable.addCell(amountCell);
                         }
                     } else {
-                        PdfPCell noData = new PdfPCell(new Phrase("No feeds data available"));
-                        noData.setColspan(4);
+                        PdfPCell noData = new PdfPCell(new Phrase("No feed cost data available"));
+                        noData.setColspan(2);
                         noData.setHorizontalAlignment(Element.ALIGN_CENTER);
                         feedTable.addCell(noData);
                     }
 
-                    PdfPCell ftotal = new PdfPCell(new Phrase("Total: ₱" +
-                            String.format("%.2f", feeds.optDouble("total_cost", 0))));
-                    ftotal.setColspan(4);
-                    ftotal.setHorizontalAlignment(Element.ALIGN_RIGHT);
-                    feedTable.addCell(ftotal);
+                    // Total row
+                    PdfPCell totalLabel = new PdfPCell(new Phrase("Total Feed Cost:"));
+                    totalLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+                    feedTable.addCell(totalLabel);
+
+                    PdfPCell totalValue = new PdfPCell(new Phrase("₱" + String.format("%.2f", feeds.optDouble("total_cost", 0))));
+                    totalValue.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                    feedTable.addCell(totalValue);
 
                     document.add(feedTable);
                     document.add(new Paragraph("\n"));
