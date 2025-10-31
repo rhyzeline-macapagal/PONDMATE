@@ -24,8 +24,56 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 
 public class PondSyncManager {
+
+    // 🔹 Base POST Request (reusable)
+    public static void postRequest(String endpoint, String postParams, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/" + endpoint);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                // Send POST data
+                OutputStream os = conn.getOutputStream();
+                os.write(postParams.getBytes());
+                os.flush();
+                os.close();
+
+                // Read response
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                reader.close();
+
+                String response = sb.toString();
+
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (callback != null) callback.onSuccess(response);
+                });
+
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+            }
+        }).start();
+    }
+
+    // 🔹 Accepts Map<String,String> and converts it to POST params
+    public static void postData(String endpoint, Map<String, String> params, Callback callback) {
+        StringBuilder postData = new StringBuilder();
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            if (postData.length() != 0) postData.append("&");
+            postData.append(entry.getKey()).append("=").append(entry.getValue());
+        }
+        postRequest(endpoint, postData.toString(), callback);
+    }
 
 
     public static void uploadPondToServer(Context context, PondModel pond, String imageBase64, Callback callback) {
