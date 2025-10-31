@@ -1,0 +1,59 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="#A6FFFFFF">
+
+    <com.prolificinteractive.materialcalendarview.MaterialCalendarView
+        android:id="@+id/calendarView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:mcv_calendarMode="week"
+        app:mcv_weekDayTextAppearance="@drawable/rounded_dialog_bg"
+        app:mcv_selectionColor="#005FE6"
+        app:mcv_arrowColor="#0042A0"
+        app:mcv_showOtherDates="none"
+        app:mcv_headerTextAppearance="@drawable/rounded_dialog_bg"
+        app:mcv_tileHeight="40dp"
+        app:mcv_tileSize="50dp"
+        android:background="@drawable/rounded_dialog_bg" />
+
+    <TextView
+        android:id="@+id/activitiesHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Activities for this week"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:paddingTop="10dp"
+        android:paddingBottom="5dp" />
+
+    <TextView
+        android:id="@+id/activitiesInstruction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Check the box for activities you have completed today."
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
+        android:paddingBottom="8dp" />
+
+    <!-- ✅ Wrap activities layout in ScrollView -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/activitiesLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@android:color/white"
+            android:padding="8dp"
+            android:layout_marginTop="10dp" />
+    </ScrollView>
+</LinearLayout>

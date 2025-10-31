@@ -140,6 +140,45 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void fetchAllPondsActivities(Callback callback) {
+        new Thread(() -> {
+            try {
+                // ✅ Automatically filters by today and next 7 days
+                String urlString = "https://pondmate.alwaysdata.net/get_all_pond_date_created.php";
+                java.net.URL url = new java.net.URL(urlString);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                conn.setDoInput(true);
+
+                int responseCode = conn.getResponseCode();
+                if (responseCode == java.net.HttpURLConnection.HTTP_OK) {
+                    java.io.BufferedReader in = new java.io.BufferedReader(
+                            new java.io.InputStreamReader(conn.getInputStream())
+                    );
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        response.append(line);
+                    }
+                    in.close();
+
+                    if (callback != null) callback.onSuccess(response.toString());
+                } else {
+                    if (callback != null)
+                        callback.onError("Server returned code: " + responseCode);
+                }
+
+                conn.disconnect();
+            } catch (Exception e) {
+                if (callback != null)
+                    callback.onError("Exception: " + e.getMessage());
+            }
+        }).start();
+    }
+
     // 🔹 Update existing feeding schedule
     public static void updateFeedingScheduleOnServer(String pondName,
                                                      String schedOne,

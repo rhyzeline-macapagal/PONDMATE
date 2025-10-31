@@ -10,6 +10,26 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
+// For OkHttp networking
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+// For JSON construction
+import org.json.JSONException;
+import org.json.JSONObject;
+
+// For logging
+import android.util.Log;
+
+// For Toast
+import android.widget.Toast;
+
+
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -37,14 +57,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
-/**
- * Cleaned and fixed SamplingDialog:
- * - tvSurvivalRate is treated as TextView (display-only)
- * - fetchFeedPrice(...) runs on background thread and updates UI on main thread
- * - DFR displayed in grams ("0.45 g") to match existing UI
- * - feed cost uses price_per_kg and converts grams -> kg before multiplication
- * - robust error handling & logs
- */
+
 public class SamplingDialog extends DialogFragment {
 
     private static final String TAG = "SamplingDialog";
@@ -242,9 +255,6 @@ public class SamplingDialog extends DialogFragment {
         }).start();
     }
 
-    // -------------------------
-    // update feed cost using currentPricePerKg and DFR shown in tvDFRResult (which is in grams)
-    // -------------------------
     private void updateFeedCost() {
         if (currentPricePerKg == null) {
             tvFeedCost.setText("₱00.00");
@@ -258,7 +268,6 @@ public class SamplingDialog extends DialogFragment {
         // Convert grams → kg
         double dfrKg = dfrGrams / 1000.0;
 
-        // Calculate daily cost
         double dailyCost = dfrKg * currentPricePerKg;
 
         // Display
@@ -351,12 +360,18 @@ public class SamplingDialog extends DialogFragment {
                     public void onSuccess(Object response) {
                         requireActivity().runOnUiThread(() -> {
                             Toast.makeText(getContext(), "Sampling record saved!", Toast.LENGTH_SHORT).show();
+
+                            // Upload to Adafruit
+                            double dfrFeedGrams = parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""));
+                            uploadDFRToAdafruit(pond.getName(), formattedTime1, formattedTime2, dfrFeedGrams);
+
                             if (getParentFragment() instanceof ProductionCostFragment) {
                                 ((ProductionCostFragment) getParentFragment()).updateSamplingButtonState(pond.getId());
                             }
                             dismiss();
                         });
                     }
+
 
                     @Override
                     public void onError(String error) {
@@ -496,4 +511,65 @@ public class SamplingDialog extends DialogFragment {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
     }
+
+    private void uploadDFRToAdafruit(String pondName, String feedingOne24, String feedingTwo24, double dfrFeedGrams) {
+        OkHttpClient client = new OkHttpClient();
+
+        String feedKey = "schedule"; // your Adafruit feed key
+        String username = getString(R.string.adafruit_username);
+        String aioKey = getString(R.string.adafruit_aio_key);
+
+        // Divide by 10
+        int reducedGrams = (int) Math.round(dfrFeedGrams / 10);
+
+        // Value format: PondName|feedingOne,feedingTwo|reducedGrams
+        String value = pondName + "|" + feedingOne24 + "," + feedingTwo24 + "|" + reducedGrams + "g";
+
+        try {
+            JSONObject json = new JSONObject();
+            json.put("value", value);
+
+            RequestBody body = RequestBody.create(json.toString(),
+                    MediaType.parse("application/json; charset=utf-8"));
+
+            String url = "https://io.adafruit.com/api/v2/" + username + "/feeds/" + feedKey + "/data";
+
+            Log.d(TAG, "Posting to Adafruit: " + value);
+            Log.d(TAG, "URL: " + url);
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("X-AIO-Key", aioKey)
+                    .post(body)
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    Log.e(TAG, "Adafruit request failed", e);
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Failed to post to Adafruit: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    }
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    String bodyStr = (response.body() != null) ? response.body().string() : "";
+                    Log.d(TAG, "Adafruit response code: " + response.code());
+                    Log.d(TAG, "Adafruit response body: " + bodyStr);
+
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(requireContext(), "DFR posted to Adafruit!", Toast.LENGTH_SHORT).show());
+                    }
+                }
+            });
+
+        } catch (JSONException ex) {
+            Log.e(TAG, "JSON error", ex);
+            Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
 }

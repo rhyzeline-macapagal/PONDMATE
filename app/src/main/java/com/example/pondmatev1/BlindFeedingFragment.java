@@ -576,7 +576,6 @@ public class BlindFeedingFragment extends DialogFragment {
     }
 
 
-    // 🔹 Modified showLoadingDialog to accept a message
     private void showLoadingDialog(String message) {
         requireActivity().runOnUiThread(() -> {
             if (loadingDialog != null && loadingDialog.isShowing()) {

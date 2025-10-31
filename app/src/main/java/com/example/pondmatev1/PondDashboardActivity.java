@@ -181,7 +181,15 @@ public class PondDashboardActivity extends AppCompatActivity{
                 "PendingActivityWorker",
                 ExistingPeriodicWorkPolicy.KEEP, // Keep the existing one if already enqueued
                 pendingActivityWork
+
+
         );
+
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.allActivitiesContainer, new AllActivitiesFragment())
+                    .commit();
+        }
 
 
     }
@@ -297,11 +305,14 @@ public class PondDashboardActivity extends AppCompatActivity{
                             .commitAllowingStateLoss(); // <-- FIX
                 });
 
-                // ✅ Schedule notifications for activities and feeding
+                // ✅ Schedule notifications safely
                 schedulePendingActivityNotifications();
-                for (PondModel pond : pondList) {
+
+                List<PondModel> pondSnapshot = new ArrayList<>(pondList);
+                for (PondModel pond : pondSnapshot) {
                     scheduleFeedingNotifications(pond);
                 }
+
 
             } catch (Exception e) {
                 Log.e("LOAD_PONDS", "Error: " + e.getMessage(), e);

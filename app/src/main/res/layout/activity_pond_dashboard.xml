@@ -114,7 +114,7 @@
                     android:layout_height="wrap_content"
                     android:text="Dashboard"
                     android:textColor="#001C4F"
-                    android:textSize="28sp"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
             </LinearLayout>
@@ -126,7 +126,7 @@
                 android:layout_marginBottom="4dp"
                 android:text="Active Ponds"
                 android:textColor="#1A1A1A"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <androidx.recyclerview.widget.RecyclerView
@@ -147,7 +147,7 @@
                 android:layout_marginBottom="4dp"
                 android:text="Grow Out Cycle"
                 android:textColor="#1A1A1A"
-                android:textSize="22sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <FrameLayout
@@ -158,12 +158,27 @@
                 android:layout_marginBottom="8dp"
                 android:elevation="4dp"
                 android:padding="16dp">
-
-                <!-- Chart will be added programmatically -->
-
             </FrameLayout>
 
-            <!-- Pond History Section -->
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Activity for this Week"
+                android:textColor="#1A1A1A"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:layout_marginTop="10dp" />
+
+            <FrameLayout
+                android:id="@+id/allActivitiesContainer"
+                android:layout_width="match_parent"
+                android:elevation="4dp"
+                android:background="#FFFFFF"
+                android:layout_height="400dp"
+                android:layout_marginBottom="10dp" >
+            </FrameLayout>
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -181,6 +196,10 @@
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="true"
                 android:background="@android:color/transparent" />
+
+
+
+
 
         </LinearLayout>
     </ScrollView>
