@@ -15,6 +15,8 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.*;
+
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
@@ -43,6 +45,11 @@ public class BlindFeedingFragment extends DialogFragment {
     private Calendar selectedDate = Calendar.getInstance();
     private Map<String, Double> feedPriceMap = new HashMap<>();
 
+    private boolean isLockedInFragment = false;
+    private static final String PREF_LOCK_STATE = "LOCK_PREF";
+    private static final String KEY_IS_LOCKED = "isLockedInBlindFeeding";
+
+
 
 
 
@@ -63,6 +70,9 @@ public class BlindFeedingFragment extends DialogFragment {
         Dialog dialog = new Dialog(requireContext());
         View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_blind_feeding, null);
         dialog.setContentView(view);
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+
         if (getArguments() != null) {
             pondName = getArguments().getString("pondName");
         } else {
@@ -75,8 +85,23 @@ public class BlindFeedingFragment extends DialogFragment {
             } else {
                 pondName = "Unknown Pond";
             }
+
         }
 
+
+        SharedPreferences lockPrefs = requireContext().getSharedPreferences(PREF_LOCK_STATE, Context.MODE_PRIVATE);
+        isLockedInFragment = lockPrefs.getBoolean(KEY_IS_LOCKED, false);
+
+        if (isLockedInFragment) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("⚠️ Locked")
+                    .setMessage("You still need to complete all blind feeding logs before you can exit this section.")
+                    .setCancelable(false)
+                    .setPositiveButton("OK", (dlg, which) -> dlg.dismiss())
+                    .show();
+        }
+        dialog.setCancelable(false);
+        setCancelable(false);
 
 
         tvFeedType = view.findViewById(R.id.tvFeedType); // ✅ TextView now
@@ -87,8 +112,6 @@ public class BlindFeedingFragment extends DialogFragment {
         btnAddFeed = view.findViewById(R.id.btnAddFeed);
         btnCancelFeed = view.findViewById(R.id.btnCancelFeed);
         TextView btnClose = view.findViewById(R.id.btnClose);
-
-        // ✅ Set feed type fixed to "Frymash"
         tvFeedType.setText("Frymash");
 
         etFeedDate.setOnClickListener(v -> showDateSelectionDialog());
@@ -165,13 +188,157 @@ public class BlindFeedingFragment extends DialogFragment {
         });
 
 
-        // Load existing logs
+        // Load
         loadFeedLogs();
+        checkIfLastBlindFeedingDay();
 
         return dialog;
 
 
     }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        requireActivity().getOnBackPressedDispatcher().addCallback(this,
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        if (isLockedInFragment) {
+                            Toast.makeText(requireContext(),
+                                    "You must complete all blind feeding logs before exiting.",
+                                    Toast.LENGTH_SHORT).show();
+                        } else {
+                            setEnabled(false);
+                            requireActivity().onBackPressed();
+                        }
+                    }
+                });
+    }
+
+
+
+    private void checkIfLastBlindFeedingDay() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
+        if (pondJson == null) return;
+
+        PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+        String stockingDateStr = pond.getDateStocking();
+        if (stockingDateStr == null || stockingDateStr.isEmpty()) return;
+
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date stockingDate = sdf.parse(stockingDateStr);
+            Calendar today = Calendar.getInstance();
+
+            long diffMillis = today.getTimeInMillis() - stockingDate.getTime();
+            int daysSinceStocking = (int) (diffMillis / (1000 * 60 * 60 * 24));
+
+            Calendar lastBlindFeedingDay = Calendar.getInstance();
+            lastBlindFeedingDay.setTime(stockingDate);
+            lastBlindFeedingDay.add(Calendar.DAY_OF_YEAR, 30);
+
+            Log.d("BlindFeedingDebug", "🗓 Stocking Date: " + stockingDateStr +
+                    " | Today: " + sdf.format(today.getTime()) +
+                    " | Last Blind Feeding Day: " + sdf.format(lastBlindFeedingDay.getTime()) +
+                    " | Days Since Stocking: " + daysSinceStocking);
+
+            // ✅ Fetch logs to decide what to do
+            PondSyncManager.fetchBlindFeedLogs(pond.getName(), new PondSyncManager.Callback() {
+                @Override
+                public void onSuccess(Object response) {
+                    try {
+                        JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
+                        if (!json.get("status").getAsString().equals("success")) return;
+
+                        JsonArray logs = json.getAsJsonArray("data");
+                        int logCount = logs.size();
+
+                        requireActivity().runOnUiThread(() -> {
+                            SharedPreferences lockPrefs = requireContext().getSharedPreferences(PREF_LOCK_STATE, Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor = lockPrefs.edit();
+
+                            if (daysSinceStocking == 30) {
+                                // 🗓 It's the final blind feeding day
+                                if (logCount < 30) {
+                                    // 🔒 Lock until logs complete
+                                    isLockedInFragment = true;
+                                    editor.putBoolean(KEY_IS_LOCKED, true);
+                                    editor.apply();
+
+                                    new AlertDialog.Builder(requireContext())
+                                            .setTitle("⚠️ Final Day of Blind Feeding")
+                                            .setMessage("You have only completed " + logCount + " out of 30 blind feeding logs.\n\nPlease finish all logs today before exiting.")
+                                            .setCancelable(false)
+                                            .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                                            .show();
+
+                                    Log.d("BlindFeedingDebug", "🔒 Final day and incomplete logs. Locked fragment.");
+                                } else {
+                                    // ✅ All logs complete
+                                    isLockedInFragment = false;
+                                    editor.putBoolean(KEY_IS_LOCKED, false);
+                                    editor.apply();
+
+                                    new AlertDialog.Builder(requireContext())
+                                            .setTitle("✅ Blind Feeding Complete")
+                                            .setMessage("You have completed all 30 blind feeding logs.\n\nNo further entries are required.")
+                                            .setCancelable(false)
+                                            .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                                            .show();
+
+                                    // 🚫 Disable adding more logs
+                                    if (btnAddFeed != null) btnAddFeed.setEnabled(false);
+                                    Log.d("BlindFeedingDebug", "✅ All 30 logs complete on final day. Disabled log button.");
+                                }
+
+                            } else if (daysSinceStocking > 30) {
+                                // ⛔ After blind feeding phase
+                                isLockedInFragment = false;
+                                editor.putBoolean(KEY_IS_LOCKED, false);
+                                editor.apply();
+
+                                new AlertDialog.Builder(requireContext())
+                                        .setTitle("⛔ Blind Feeding Period Over")
+                                        .setMessage("The 30-day blind feeding period has ended.\nYou can no longer add blind feeding logs.")
+                                        .setCancelable(false)
+                                        .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                                        .show();
+
+                                if (btnAddFeed != null) btnAddFeed.setEnabled(false);
+                                Log.d("BlindFeedingDebug", "⛔ Day > 30. Blind feeding disabled.");
+
+                            } else {
+                                // 👌 Before day 30 — allow normal logging
+                                isLockedInFragment = false;
+                                editor.putBoolean(KEY_IS_LOCKED, false);
+                                editor.apply();
+
+                                Log.d("BlindFeedingDebug", "✅ Day " + daysSinceStocking + ": logging allowed.");
+                            }
+                        });
+
+                    } catch (Exception e) {
+                        Log.e("BlindFeedingDebug", "Error parsing logs: " + e.getMessage());
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.e("BlindFeedingDebug", "Error fetching blind feed logs: " + error);
+                }
+            });
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
 
     private void showDateSelectionDialog() {
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
@@ -791,4 +958,27 @@ public class BlindFeedingFragment extends DialogFragment {
         tv.setTextSize(14);
         row.addView(tv);
     }
+    @Override
+    public void dismiss() {
+        if (isLockedInFragment) {
+            Toast.makeText(requireContext(),
+                    "You cannot close this until all blind feeding logs are complete.",
+                    Toast.LENGTH_SHORT).show();
+        } else {
+            super.dismiss();
+        }
+    }
+
+    @Override
+    public void dismissAllowingStateLoss() {
+        if (isLockedInFragment) {
+            Toast.makeText(requireContext(),
+                    "You cannot close this until all blind feeding logs are complete.",
+                    Toast.LENGTH_SHORT).show();
+        } else {
+            super.dismissAllowingStateLoss();
+        }
+    }
+
+
 }

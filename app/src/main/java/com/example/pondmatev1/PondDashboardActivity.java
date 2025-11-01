@@ -187,7 +187,7 @@ public class PondDashboardActivity extends AppCompatActivity{
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.allActivitiesContainer, new AllActivitiesFragment())
+                    .replace(R.id.activitiesLayout, new AllActivitiesFragment())
                     .commit();
         }
 
