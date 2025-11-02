@@ -5,6 +5,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.google.gson.JsonObject;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -1495,6 +1497,37 @@ public class PondSyncManager {
             }
         }).start();
     }
+
+    public static void sendNotification(JsonObject payload, Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://yourdomain.com/add_notification.php"); // existing PHP
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json; utf-8");
+                conn.setDoOutput(true);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    byte[] input = payload.toString().getBytes("utf-8");
+                    os.write(input, 0, input.length);
+                }
+
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) {
+                    response.append(line.trim());
+                }
+                br.close();
+
+                callback.onSuccess(response.toString());
+
+            } catch (Exception e) {
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
 
     // ✅ Update Blind Feed Log
 

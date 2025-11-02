@@ -14,7 +14,6 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,12 +37,11 @@ public class ActivitiesFragment extends Fragment {
 
     private MaterialCalendarView calendarView;
     private LinearLayout activitiesLayout;
-    private ProgressBar progressBar;
     private TextView activitiesHeader, tvTitle;
     private AlertDialog loadingDialog;
 
-
     private String pondName;
+    private String pondId; // Add pondId for notifications
 
     public ActivitiesFragment() {
     }
@@ -61,20 +59,19 @@ public class ActivitiesFragment extends Fragment {
         tvTitle = view.findViewById(R.id.tvTitle);
 
         tvTitle.setText("Pond Activities");
-
         calendarView.addDecorator(new TodayDecorator());
-        // ✅ Load pond name from SharedPreferences
+
+        // Load pond from SharedPreferences
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
 
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             pondName = pond.getName();
-
-            // Fetch pond date_created using the selected pond name
+            pondId = pond.getId(); // Save pondId for notifications
             fetchPondDateCreated(pondName);
         } else {
-            Toast.makeText(getContext(), "No pond selected.", Toast.LENGTH_SHORT).show();
+            showToast("No pond selected.");
         }
 
         return view;
@@ -85,7 +82,7 @@ public class ActivitiesFragment extends Fragment {
             if (loadingDialog != null && loadingDialog.isShowing()) {
                 TextView loadingText = loadingDialog.findViewById(R.id.loadingText);
                 if (loadingText != null) loadingText.setText(message);
-                return; // already showing
+                return;
             }
 
             AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -114,40 +111,31 @@ public class ActivitiesFragment extends Fragment {
         });
     }
 
-
     private void fetchPondDateCreated(String pondName) {
-
         showLoadingDialog("Loading calendar...");
 
         PondSyncManager.fetchPondDateCreated(pondName, new PondSyncManager.Callback() {
             @Override
             public void onSuccess(Object response) {
                 hideLoadingDialog();
-
                 try {
                     JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
-
                     if (json.get("status").getAsString().equals("success")) {
                         String dateCreated = json.get("date_created").getAsString();
-                        // ✅ Now fetch activities using the same pond
                         fetchActivities(pondName, dateCreated);
-
                     } else {
-                        showToast("Failed to load pond date.");
+                        ActivitiesFragment.this.showToast("Failed to load pond date.");
                         hideLoadingDialog();
-
                     }
-
                 } catch (Exception e) {
-                    showToast("Error parsing response.");
+                    ActivitiesFragment.this.showToast("Error parsing response.");
                     hideLoadingDialog();
-
                 }
             }
 
             @Override
             public void onError(String error) {
-                showToast("Network error: " + error);
+                ActivitiesFragment.this.showToast("Network error: " + error);
                 hideLoadingDialog();
             }
         });
@@ -161,7 +149,6 @@ public class ActivitiesFragment extends Fragment {
             public void onSuccess(Object response) {
                 try {
                     JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
-
                     if (json.get("status").getAsString().equals("success")) {
                         new Handler(Looper.getMainLooper()).post(() -> {
                             hideLoadingDialog();
@@ -169,22 +156,19 @@ public class ActivitiesFragment extends Fragment {
                         });
                     }
                 } catch (Exception e) {
-                    showToast("Error parsing activities.");
+                    ActivitiesFragment.this.showToast("Error parsing activities.");
                     hideLoadingDialog();
                 }
             }
 
             @Override
             public void onError(String error) {
-                showToast("Network error: " + error);
+                ActivitiesFragment.this.showToast("Network error: " + error);
                 hideLoadingDialog();
             }
         });
     }
 
-    /**
-     * Configure calendar to only show 194 days from date_created
-     */
     private void setCalendarRange(MaterialCalendarView calendarView, String dateCreatedStr, JsonObject json) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -195,7 +179,7 @@ public class ActivitiesFragment extends Fragment {
 
             Calendar endCal = Calendar.getInstance();
             endCal.setTime(startDate);
-            endCal.add(Calendar.DAY_OF_YEAR, 193); // 194 days total
+            endCal.add(Calendar.DAY_OF_YEAR, 193);
 
             calendarView.state().edit()
                     .setMinimumDate(CalendarDay.from(startCal))
@@ -204,21 +188,18 @@ public class ActivitiesFragment extends Fragment {
 
             calendarView.setShowOtherDates(MaterialCalendarView.SHOW_NONE);
 
-// Default selection: today if in range, else start date
             Calendar todayCal = Calendar.getInstance();
             String defaultDateStr;
             if (!todayCal.before(startCal) && !todayCal.after(endCal)) {
                 calendarView.setSelectedDate(CalendarDay.from(todayCal));
-                defaultDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(todayCal.getTime());
+                defaultDateStr = sdf.format(todayCal.getTime());
             } else {
                 calendarView.setSelectedDate(CalendarDay.from(startCal));
-                defaultDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(startCal.getTime());
+                defaultDateStr = sdf.format(startCal.getTime());
             }
 
-// Show activities for the default date
             showActivitiesForDate(json, defaultDateStr);
 
-// Handle date selection by user
             calendarView.setOnDateChangedListener((widget, date, selected) -> {
                 String formattedDate = String.format(Locale.getDefault(),
                         "%04d-%02d-%02d",
@@ -228,24 +209,18 @@ public class ActivitiesFragment extends Fragment {
                 showActivitiesForDate(json, formattedDate);
             });
 
-
         } catch (Exception e) {
             Log.e("CALENDAR_RANGE", "Error: " + e.getMessage());
         }
     }
 
-    /**
-     * Example function to show activities for selected date
-     */
     private void showActivitiesForDate(JsonObject json, String date) {
         activitiesLayout.removeAllViews();
         if (!json.has("data")) return;
 
         JsonArray activities = json.getAsJsonArray("data");
-
         boolean found = false;
 
-        // Get today in yyyy-MM-dd
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         String todayStr = sdf.format(new Date());
 
@@ -262,7 +237,6 @@ public class ActivitiesFragment extends Fragment {
                 String title = act.get("title").getAsString();
                 String description = act.get("description").getAsString();
                 int dayNumber = act.get("day_number").getAsInt();
-
                 String key = pondName + "_" + actDate + "_" + title;
 
                 LinearLayout itemLayout = new LinearLayout(getContext());
@@ -272,16 +246,23 @@ public class ActivitiesFragment extends Fragment {
                 android.widget.CheckBox checkBox = new android.widget.CheckBox(getContext());
                 checkBox.setText("Day " + dayNumber + ": " + title);
                 checkBox.setChecked(prefs.getBoolean(key, false));
-
-                // ✅ Only allow checking if it's today
                 checkBox.setEnabled(actDate.equals(todayStr));
 
                 checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                     if (actDate.equals(todayStr)) {
                         editor.putBoolean(key, isChecked);
                         editor.apply();
+
                         if (isChecked) {
-                            Toast.makeText(getContext(), "Marked as done ✅", Toast.LENGTH_SHORT).show();
+                            ActivitiesFragment.this.showToast("Marked as done ✅");
+
+                            SessionManager sessionManager = new SessionManager(requireContext());
+                            String username = sessionManager.getUsername(); // get the logged-in user's name
+                            NotificationHelper.showActivityDoneNotification(requireContext(), pondName, title, username);
+
+
+                            // Insert into notifications table for all users
+                            addNotificationToServer(pondId, title, "Activity completed: " + title, actDate);
                         }
                     }
                 });
@@ -306,10 +287,29 @@ public class ActivitiesFragment extends Fragment {
         }
     }
 
-
-
     private void showToast(String msg) {
         new Handler(Looper.getMainLooper()).post(() ->
                 Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show());
+    }
+
+    private void addNotificationToServer(String pondId, String title, String message, String scheduledFor) {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("pond_id", pondId);
+        payload.addProperty("title", title);
+        payload.addProperty("message", message);
+        payload.addProperty("scheduled_for", scheduledFor);
+
+        // Send HTTP POST to your add_notification.php endpoint
+        PondSyncManager.sendNotification(payload, new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object response) {
+                ActivitiesFragment.this.showToast("Notification sent to all users!");
+            }
+
+            @Override
+            public void onError(String error) {
+                ActivitiesFragment.this.showToast("Failed to send notification: " + error);
+            }
+        });
     }
 }
