@@ -169,12 +169,25 @@ public class PondPDFGenerator {
                         feedTable.addCell(noData);
                     }
 
-                    // Total row
-                    PdfPCell totalLabel = new PdfPCell(new Phrase("Total Feed Cost:"));
+                    double accumulatedFeedCost = feeds.optDouble("total_cost", 0);
+                    double blindFeedCost = feeds.optDouble("blind_feed_cost", 0);
+                    double combinedFeedTotal = accumulatedFeedCost + blindFeedCost;
+
+                    if (blindFeedCost > 0) {
+                        PdfPCell blindLabel = new PdfPCell(new Phrase("Blind Feeding Breakdown:"));
+                        blindLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+                        feedTable.addCell(blindLabel);
+
+                        PdfPCell blindValue = new PdfPCell(new Phrase("₱" + String.format("%.2f", blindFeedCost)));
+                        blindValue.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                        feedTable.addCell(blindValue);
+                    }
+
+                    PdfPCell totalLabel = new PdfPCell(new Phrase("Total Feed Cost (Accumulated + Blind):"));
                     totalLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
                     feedTable.addCell(totalLabel);
 
-                    PdfPCell totalValue = new PdfPCell(new Phrase("₱" + String.format("%.2f", feeds.optDouble("total_cost", 0))));
+                    PdfPCell totalValue = new PdfPCell(new Phrase("₱" + String.format("%.2f", combinedFeedTotal)));
                     totalValue.setHorizontalAlignment(Element.ALIGN_RIGHT);
                     feedTable.addCell(totalValue);
 
@@ -216,12 +229,64 @@ public class PondPDFGenerator {
 
                     document.add(otable);
                 }
+
+                // 🔹 Caretaker Salary Section
+                JSONObject salary = expenses.optJSONObject("Salary");
+                if (salary != null) {
+                    document.add(new Paragraph("CARETAKER SALARY", new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
+                    document.add(new Paragraph("\n"));
+
+                    PdfPTable sTable = new PdfPTable(2);
+                    sTable.setWidthPercentage(100);
+                    sTable.addCell(headerCell("Description"));
+                    sTable.addCell(headerCell("Amount"));
+
+                    JSONArray sDetails = salary.optJSONArray("details");
+                    if (sDetails != null && sDetails.length() > 0) {
+                        for (int i = 0; i < sDetails.length(); i++) {
+                            JSONObject s = sDetails.getJSONObject(i);
+                            sTable.addCell(s.optString("description", "-"));
+                            PdfPCell sAmt = new PdfPCell(new Phrase("₱" + String.format("%.2f", s.optDouble("amount", 0))));
+                            sAmt.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                            sTable.addCell(sAmt);
+                        }
+                    }
+
+                    PdfPCell sTotal = new PdfPCell(new Phrase("Total Salary: ₱" + String.format("%.2f", salary.optDouble("total_cost", 0))));
+                    sTotal.setColspan(2);
+                    sTotal.setHorizontalAlignment(Element.ALIGN_RIGHT);
+                    sTable.addCell(sTotal);
+
+                    document.add(sTable);
+                    document.add(new Paragraph("\n"));
+                }
             }
 
-            // --- FINAL TOTAL ---
-            document.add(new Paragraph("\nTOTAL EXPENSES: ₱" +
-                    String.format("%.2f", report.optDouble("total_expenses", 0)),
-                    new Font(Font.FontFamily.HELVETICA, 13, Font.BOLD)));
+            // ✅ Compute Final Total Capital
+            double totalCapital = 0;
+
+            if (expenses.optJSONObject("Fingerlings") != null) {
+                totalCapital += expenses.optJSONObject("Fingerlings").optDouble("total_cost", 0);
+            }
+
+            if (expenses.optJSONObject("Feeds") != null) {
+                double accumulatedFeedCost = expenses.optJSONObject("Feeds").optDouble("total_cost", 0);
+                double blindFeedCost = expenses.optJSONObject("Feeds").optDouble("blind_feed_cost", 0);
+                totalCapital += (accumulatedFeedCost + blindFeedCost);
+            }
+
+            if (expenses.optJSONObject("Other Expenses") != null) {
+                totalCapital += expenses.optJSONObject("Other Expenses").optDouble("total_cost", 0);
+            }
+
+            if (expenses.optJSONObject("Salary") != null) {
+                totalCapital += expenses.optJSONObject("Salary").optDouble("total_cost", 0);
+            }
+
+            document.add(new Paragraph("\nTOTAL CAPITAL / EXPENSES: ₱" +
+                    String.format("%.2f", totalCapital),
+                    new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
+
 
             document.add(new Paragraph("\n\n--- End of Report ---"));
             document.close();
