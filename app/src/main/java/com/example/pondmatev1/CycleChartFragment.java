@@ -9,14 +9,11 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -25,12 +22,12 @@ import java.util.*;
 public class CycleChartFragment extends Fragment {
 
     private static final String GET_PONDS_URL = "https://pondmate.alwaysdata.net/get_ponds.php";
+    private static final String GET_POND_ACTIVITIES_URL = "https://pondmate.alwaysdata.net/get_pond_activities.php";
 
     private ProgressBar progressBarChart;
     private TextView noDataText;
     private RecyclerView pondRecyclerView;
     private final List<JSONObject> ponds = new ArrayList<>();
-    private Thread fetchThread;
 
     @Nullable
     @Override
@@ -50,7 +47,7 @@ public class CycleChartFragment extends Fragment {
         progressBarChart.setVisibility(View.VISIBLE);
         noDataText.setVisibility(View.GONE);
 
-        fetchThread = new Thread(() -> {
+        new Thread(() -> {
             HttpURLConnection conn = null;
             try {
                 conn = (HttpURLConnection) new URL(GET_PONDS_URL).openConnection();
@@ -65,27 +62,17 @@ public class CycleChartFragment extends Fragment {
                 while ((line = reader.readLine()) != null) sb.append(line);
                 reader.close();
 
-                String jsonString = sb.toString().trim();
-                if (jsonString.isEmpty() || !jsonString.startsWith("[")) {
-                    showError("Invalid server response");
-                    return;
-                }
-
-                JSONArray response = new JSONArray(jsonString);
-                List<JSONObject> loadedPonds = new ArrayList<>();
+                JSONArray response = new JSONArray(sb.toString().trim());
+                ponds.clear();
                 for (int i = 0; i < response.length(); i++) {
-                    loadedPonds.add(response.getJSONObject(i));
+                    ponds.add(response.getJSONObject(i));
                 }
 
                 requireActivity().runOnUiThread(() -> {
                     progressBarChart.setVisibility(View.GONE);
-                    ponds.clear();
-                    ponds.addAll(loadedPonds);
-
                     if (ponds.isEmpty()) {
                         noDataText.setVisibility(View.VISIBLE);
                     } else {
-                        noDataText.setVisibility(View.GONE);
                         setupRecyclerView();
                     }
                 });
@@ -96,18 +83,12 @@ public class CycleChartFragment extends Fragment {
             } finally {
                 if (conn != null) conn.disconnect();
             }
-        });
-
-        fetchThread.start();
+        }).start();
     }
 
     private void showError(String msg) {
-        if (!isAdded()) return; // ✅ Fragment no longer attached, stop safely
-        if (getActivity() == null) return; // ✅ extra safety
-
+        if (!isAdded() || getActivity() == null) return;
         getActivity().runOnUiThread(() -> {
-            if (!isAdded()) return; // ✅ prevent crash if detached mid-update
-
             progressBarChart.setVisibility(View.GONE);
             noDataText.setVisibility(View.VISIBLE);
             Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
@@ -122,6 +103,7 @@ public class CycleChartFragment extends Fragment {
     // ===================== ADAPTER =====================
     private class PondAdapter extends RecyclerView.Adapter<PondAdapter.PondViewHolder> {
         private final List<JSONObject> pondList;
+        private final Map<String, Integer> cachedProgress = new HashMap<>();
 
         PondAdapter(List<JSONObject> pondList) {
             this.pondList = pondList;
@@ -176,90 +158,115 @@ public class CycleChartFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull PondViewHolder holder, int position) {
             JSONObject pond = pondList.get(position);
-
             String name = pond.optString("name", "Unnamed Pond");
             String breed = pond.optString("breed", "Tilapia");
-            String dateCreated = pond.optString("date_started", "");
-            String stockingDate = pond.optString("date_stocking", "");
+            String dateCreated = pond.optString("date_created", "");
 
             holder.pondName.setText(name);
 
-            long startMillis = parseDateToMillis(stockingDate.isEmpty() ? dateCreated : stockingDate);
-            long now = System.currentTimeMillis();
-            long dayMs = 24L * 60 * 60 * 1000;
+            if (cachedProgress.containsKey(name)) {
+                updateUI(holder, breed, cachedProgress.get(name));
+                return;
+            }
 
-            // Define phase durations
-            long pondPrepEnd = startMillis + (14L * dayMs);
-            long stockingEnd = pondPrepEnd + dayMs;
-            long maintenanceEnd = stockingEnd + (180L * dayMs);
-            long harvestDate = maintenanceEnd + dayMs;
+            holder.pondPhase.setText("Loading progress...");
+            holder.pondLifeStage.setText("");
+            holder.pondProgressText.setText("");
+            holder.pondProgressCircle.setProgress(0);
 
-            String phaseName;
-            String lifeStage;
-            int progressPercent;
+            new Thread(() -> fetchPondActivities(name, breed, holder)).start();
+        }
 
-            if (now < startMillis) {
+        private void fetchPondActivities(String pondName, String breed, PondViewHolder holder) {
+            HttpURLConnection conn = null;
+            try {
+                conn = (HttpURLConnection) new URL(GET_POND_ACTIVITIES_URL).openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(6000);
+                conn.setReadTimeout(6000);
+
+                String postData = "pond_name=" + pondName;
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                reader.close();
+
+                JSONObject response = new JSONObject(sb.toString().trim());
+                if (!response.optString("status").equals("success")) return;
+
+                JSONArray activities = response.getJSONArray("data");
+                if (activities.length() == 0) return;
+
+                String firstDate = activities.getJSONObject(0).getString("date");
+                String lastDate = activities.getJSONObject(activities.length() - 1).getString("date");
+
+                long startMillis = parseDateToMillis(firstDate);
+                long endMillis = parseDateToMillis(lastDate);
+                long now = System.currentTimeMillis();
+
+                int progress = (int) (((double) (now - startMillis) / (endMillis - startMillis)) * 100);
+                progress = Math.max(0, Math.min(progress, 100));
+
+                cachedProgress.put(pondName, progress);
+
+                int finalProgress = progress;
+                requireActivity().runOnUiThread(() -> updateUI(holder, breed, finalProgress));
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }
+
+        private void updateUI(PondViewHolder holder, String breed, int progress) {
+            String phaseName, lifeStage;
+
+            if (progress < 10) {
                 phaseName = "Pond Preparation";
-                lifeStage = "Not Applicable, wait for stocking";
-                progressPercent = 0;
+                lifeStage = "Not Applicable";
                 holder.pondProgressCircle.setIndicatorColor(Color.GRAY);
-            } else if (now <= pondPrepEnd) {
-                phaseName = "Pond Preparation";
-                lifeStage = "Not Applicable, wait for stocking";
-                progressPercent = (int) ((now - startMillis) * 100 / (pondPrepEnd - startMillis));
-                holder.pondProgressCircle.setIndicatorColor(Color.GRAY);
-            } else if (now <= stockingEnd) {
+            } else if (progress < 30) {
                 phaseName = "Stocking";
                 lifeStage = "Fingerling";
-                progressPercent = 100;
                 holder.pondProgressCircle.setIndicatorColor(Color.BLUE);
-            } else if (now <= maintenanceEnd) {
+            } else if (progress < 90) {
                 phaseName = "Daily Maintenance";
-                long daysSinceStocking = (now - stockingEnd) / dayMs;
-
-                if (breed.equalsIgnoreCase("Tilapia")) {
-                    if (daysSinceStocking <= 60) lifeStage = "Fingerling → Juvenile";
-                    else if (daysSinceStocking <= 90) lifeStage = "Juvenile → Sub-adult";
-                    else lifeStage = "Sub-adult → Adult / Harvest";
-                } else { // Bangus
-                    if (daysSinceStocking <= 70) lifeStage = "Fingerling → Juvenile";
-                    else if (daysSinceStocking <= 90) lifeStage = "Juvenile → Sub-adult";
-                    else lifeStage = "Sub-adult → Adult / Harvest";
-                }
-
-                progressPercent = (int) ((now - stockingEnd) * 100 / (maintenanceEnd - stockingEnd));
-                holder.pondProgressCircle.setIndicatorColor(Color.BLUE);
-            } else if (now <= harvestDate) {
+                lifeStage = breed.equalsIgnoreCase("Tilapia")
+                        ? "Juvenile → Sub-adult"
+                        : "Sub-adult → Grow-out";
+                holder.pondProgressCircle.setIndicatorColor(Color.CYAN);
+            } else {
                 phaseName = "Harvesting";
                 lifeStage = "Adult / Ready to Harvest";
-                progressPercent = 100;
-                holder.pondProgressCircle.setIndicatorColor(Color.GREEN);
-            } else {
-                phaseName = "Harvest Completed";
-                lifeStage = "Not Applicable, already harvested";
-                progressPercent = 100;
                 holder.pondProgressCircle.setIndicatorColor(Color.GREEN);
             }
 
             holder.pondPhase.setText("Phase: " + phaseName);
             holder.pondLifeStage.setText("Life Stage: " + lifeStage);
-            holder.pondProgressText.setText("Progress: " + progressPercent + "%");
-            holder.pondProgressCircle.setProgress(progressPercent);
-        }
-
-        @Override
-        public int getItemCount() {
-            return pondList.size();
+            holder.pondProgressText.setText("Progress: " + progress + "%");
+            holder.pondProgressCircle.setProgress(progress);
         }
 
         private long parseDateToMillis(String dateStr) {
             try {
-                if (dateStr == null || dateStr.isEmpty()) return System.currentTimeMillis();
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
                 return sdf.parse(dateStr).getTime();
             } catch (Exception e) {
                 return System.currentTimeMillis();
             }
+        }
+
+        @Override
+        public int getItemCount() {
+            return pondList.size();
         }
 
         class PondViewHolder extends RecyclerView.ViewHolder {
