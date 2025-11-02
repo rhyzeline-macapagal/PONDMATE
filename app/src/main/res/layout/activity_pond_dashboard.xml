@@ -181,6 +181,8 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="8dp"
+                    android:elevation="4dp"
+
                     android:background="@android:color/white" />
 
             </androidx.core.widget.NestedScrollView>

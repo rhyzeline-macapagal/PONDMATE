@@ -76,7 +76,14 @@ public class ScheduleFeeder extends Fragment {
                 String response = (String) result;
                 Log.d(TAG, "API Response: " + response);
 
-                requireActivity().runOnUiThread(() -> {
+                // ✅ Prevent IllegalStateException when fragment is detached
+                if (!isAdded() || getActivity() == null) {
+                    Log.w(TAG, "Fragment not attached — skipping UI update");
+                    return;
+                }
+
+                // ✅ Safe way to post UI updates
+                getActivity().runOnUiThread(() -> {
                     try {
                         JSONObject json = new JSONObject(response);
                         if ("success".equals(json.optString("status"))) {
@@ -89,6 +96,7 @@ public class ScheduleFeeder extends Fragment {
                     }
                 });
             }
+
 
             @Override
             public void onError(String error) {

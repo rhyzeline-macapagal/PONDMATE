@@ -1,26 +1,22 @@
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:fillViewport="true">
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp"
-        android:background="#A6FFFFFF">
+    android:orientation="vertical"
+    android:background="#A6FFFFFF"
+    android:padding="8dp">
 
     <!-- 📅 Calendar stays fixed -->
     <com.prolificinteractive.materialcalendarview.MaterialCalendarView
         android:id="@+id/calendarView"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:mcv_calendarMode="week"
         app:mcv_selectionColor="#005FE6"
         app:mcv_arrowColor="#0042A0"
         app:mcv_showOtherDates="none"
         app:mcv_tileHeight="40dp"
+        app:mcv_tileWidth="match_parent"
         app:mcv_tileSize="50dp"
         android:background="@drawable/rounded_dialog_bg" />
 
@@ -46,6 +42,17 @@
         android:textColor="@android:color/darker_gray"
         android:paddingBottom="8dp" />
 
+    <!-- ✅ Only this part scrolls -->
+    <ScrollView
+        android:id="@+id/activitiesScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false"
+        android:scrollbarThumbVertical="@color/blue"
+        android:scrollbarSize="6dp">
+
         <LinearLayout
             android:id="@+id/activitiesLayout"
             android:layout_width="match_parent"
@@ -54,7 +61,5 @@
             android:background="@android:color/white"
             android:padding="8dp"
             android:layout_marginTop="10dp" />
-
-
+    </ScrollView>
 </LinearLayout>
-</ScrollView>

@@ -7,6 +7,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
@@ -20,6 +21,7 @@ import android.content.SharedPreferences;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -43,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+
+
 
         pondNameLabel = findViewById(R.id.pondNameLabel);
         pondNameLabel.setVisibility(View.GONE); // Hide by default
@@ -223,6 +227,20 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 101) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Notifications enabled!", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Notifications permission denied.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
 
     private void createNotificationChannel() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {

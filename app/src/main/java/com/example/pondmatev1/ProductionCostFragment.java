@@ -632,7 +632,10 @@ public class ProductionCostFragment extends Fragment {
                         if (tvSummarySalary != null) {
                             tvSummarySalary.setText("₱" + formatPrice(caretakerCost));
                         }
-                        updateTotalCost(currentBreed, currentFishCount);
+                        if (isAdded()) {
+                            updateTotalCost(currentBreed, currentFishCount);
+                        }
+
                     });
                 }
             } catch (Exception e) {
@@ -645,9 +648,13 @@ public class ProductionCostFragment extends Fragment {
         }).start();
     }
     private void updateTotalCost() {
+        if (!isAdded()) return; // ✅ prevent call if fragment not attached
         updateTotalCost(currentBreed, currentFishCount);
     }
+
     private void updateTotalCost(String breed, int fishCount) {
+        if (!isAdded() || getContext() == null) return; // ✅ safe guard
+
         double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
         double feeds = parseDouble(tvSummaryFeeds.getText().toString());
         double maintenance = parseDouble(tvSummaryMaintenance.getText().toString());
@@ -657,7 +664,7 @@ public class ProductionCostFragment extends Fragment {
         tvSummaryTotal.setText("₱" + formatPrice(totalCost));
 
         if (!pondName.isEmpty()) {
-            SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+            SharedPreferences prefs = getContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
             String pondJson = prefs.getString("selected_pond", null);
             if (pondJson != null) {
                 PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
@@ -665,6 +672,7 @@ public class ProductionCostFragment extends Fragment {
             }
         }
     }
+
     private void previewPDF(File pdfFile) {
         if (pdfFile == null || !pdfFile.exists()) {
             Toast.makeText(requireContext(), "PDF not available", Toast.LENGTH_SHORT).show();

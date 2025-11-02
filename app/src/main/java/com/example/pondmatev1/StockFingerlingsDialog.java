@@ -309,29 +309,32 @@ public class StockFingerlingsDialog extends DialogFragment {
 
         try {
             double fishCount = Double.parseDouble(fishCountStr);
-            double pondArea = rawPondArea; // ✅ use raw value
+            double pondArea = rawPondArea;
 
             double density = fishCount / pondArea;
-            double maxAllowed = 0;
             double minRecommended = 0;
+            double maxAllowed = 0;
 
             switch (breed) {
                 case "Tilapia":
-                    minRecommended = 3.0;
-                    maxAllowed = 15.0;
+                    minRecommended = 2.0;
+                    maxAllowed = 4.0;
                     break;
                 case "Bangus":
-                    minRecommended = 0.2;
-                    maxAllowed = 3.0;
+                    minRecommended = 0.8;
+                    maxAllowed = 1.2;
                     break;
             }
 
+            double minFishCount = minRecommended * pondArea;
+            double maxFishCount = maxAllowed * pondArea;
+
             if (density > maxAllowed) {
                 etFishCount.setError(String.format(Locale.getDefault(),
-                        "⚠️ Overstocked! %.2f fish/m² (max %.2f)", density, maxAllowed));
+                        "⚠️ Overstocked! Recommended: %.0f–%.0f fish for your pond.", minFishCount, maxFishCount));
             } else if (density < minRecommended) {
                 etFishCount.setError(String.format(Locale.getDefault(),
-                        "Low density: %.2f fish/m² (min %.2f)", density, minRecommended));
+                        "Too few fish. Recommended: %.0f–%.0f fish for your pond.", minFishCount, maxFishCount));
             } else {
                 etFishCount.setError(null);
             }
@@ -340,9 +343,6 @@ public class StockFingerlingsDialog extends DialogFragment {
             etFishCount.setError(null);
         }
     }
-
-
-
 
     private boolean checkStockingDensity() {
         String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
@@ -355,27 +355,36 @@ public class StockFingerlingsDialog extends DialogFragment {
 
         try {
             double fishCount = Double.parseDouble(fishCountStr);
-            double pondArea = rawPondArea; // ✅ use raw value
+            double pondArea = rawPondArea;
 
             double density = fishCount / pondArea;
-            double maxAllowed = 0;
             double minRecommended = 0;
+            double maxAllowed = 0;
 
             switch (breed) {
                 case "Tilapia":
-                    minRecommended = 3.0;
-                    maxAllowed = 15.0;
+                    minRecommended = 2.0;
+                    maxAllowed = 4.0;
                     break;
                 case "Bangus":
-                    minRecommended = 0.2;
-                    maxAllowed = 3.0;
+                    minRecommended = 0.8;
+                    maxAllowed = 1.2;
                     break;
             }
+
+            double minFishCount = minRecommended * pondArea;
+            double maxFishCount = maxAllowed * pondArea;
 
             if (density > maxAllowed) {
                 Toast.makeText(getContext(),
                         String.format(Locale.getDefault(),
-                                "❌ Overstocked! %.2f fish/m² (max %.2f)", density, maxAllowed),
+                                "❌ Overstocked! Recommended: %.0f–%.0f fish for your pond.", minFishCount, maxFishCount),
+                        Toast.LENGTH_LONG).show();
+                return false;
+            } else if (density < minRecommended) {
+                Toast.makeText(getContext(),
+                        String.format(Locale.getDefault(),
+                                "⚠️ Understocked. Recommended: %.0f–%.0f fish for your pond.", minFishCount, maxFishCount),
                         Toast.LENGTH_LONG).show();
                 return false;
             }
@@ -387,6 +396,7 @@ public class StockFingerlingsDialog extends DialogFragment {
             return false;
         }
     }
+
 
 
 
