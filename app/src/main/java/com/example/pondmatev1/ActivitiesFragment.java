@@ -1,18 +1,13 @@
 package com.example.pondmatev1;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,8 +23,15 @@ import com.google.gson.JsonParser;
 import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 
@@ -37,279 +39,266 @@ public class ActivitiesFragment extends Fragment {
 
     private MaterialCalendarView calendarView;
     private LinearLayout activitiesLayout;
-    private TextView activitiesHeader, tvTitle;
-    private AlertDialog loadingDialog;
-
     private String pondName;
-    private String pondId; // Add pondId for notifications
+    private String pondId;
 
-    public ActivitiesFragment() {
-    }
+    private Handler handler = new Handler(Looper.getMainLooper());
+    private Runnable notificationPollRunnable;
+    private int pollInterval = 5000;
+
+    private JsonObject fetchedActivities;
+    private ArrayList<String> fetchedNotifications = new ArrayList<>();
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-
+                             @Nullable android.os.Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_activities, container, false);
-
         calendarView = view.findViewById(R.id.calendarView);
         activitiesLayout = view.findViewById(R.id.activitiesLayout);
-        activitiesHeader = view.findViewById(R.id.activitiesHeader);
-        tvTitle = view.findViewById(R.id.tvTitle);
 
-        tvTitle.setText("Pond Activities");
-        calendarView.addDecorator(new TodayDecorator());
-
-        // Load pond from SharedPreferences
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
 
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             pondName = pond.getName();
-            pondId = pond.getId(); // Save pondId for notifications
-            fetchPondDateCreated(pondName);
+            pondId = pond.getId();
         } else {
             showToast("No pond selected.");
         }
 
+        fetchActivitiesFromServer();
+        startNotificationPolling();
         return view;
     }
 
-    private void showLoadingDialog(String message) {
-        requireActivity().runOnUiThread(() -> {
-            if (loadingDialog != null && loadingDialog.isShowing()) {
-                TextView loadingText = loadingDialog.findViewById(R.id.loadingText);
-                if (loadingText != null) loadingText.setText(message);
-                return;
-            }
+    private void fetchActivitiesFromServer() {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_pond_activities.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-            AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-            View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_loading, null);
+                String postData = "pond_name=" + pondName;
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
 
-            ImageView fishLoader = dialogView.findViewById(R.id.fishLoader);
-            TextView loadingText = dialogView.findViewById(R.id.loadingText);
-            loadingText.setText(message);
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) response.append(line);
+                in.close();
+                conn.disconnect();
 
-            Animation rotate = AnimationUtils.loadAnimation(requireContext(), R.anim.rotate);
-            if (fishLoader != null) fishLoader.startAnimation(rotate);
-
-            builder.setView(dialogView);
-            builder.setCancelable(false);
-            loadingDialog = builder.create();
-            loadingDialog.show();
-        });
-    }
-
-    private void hideLoadingDialog() {
-        requireActivity().runOnUiThread(() -> {
-            if (loadingDialog != null && loadingDialog.isShowing()) {
-                loadingDialog.dismiss();
-                loadingDialog = null;
-            }
-        });
-    }
-
-    private void fetchPondDateCreated(String pondName) {
-        showLoadingDialog("Loading calendar...");
-
-        PondSyncManager.fetchPondDateCreated(pondName, new PondSyncManager.Callback() {
-            @Override
-            public void onSuccess(Object response) {
-                hideLoadingDialog();
-                try {
-                    JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
-                    if (json.get("status").getAsString().equals("success")) {
-                        String dateCreated = json.get("date_created").getAsString();
-                        fetchActivities(pondName, dateCreated);
-                    } else {
-                        ActivitiesFragment.this.showToast("Failed to load pond date.");
-                        hideLoadingDialog();
-                    }
-                } catch (Exception e) {
-                    ActivitiesFragment.this.showToast("Error parsing response.");
-                    hideLoadingDialog();
+                JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
+                if (json.get("status").getAsString().equals("success")) {
+                    fetchedActivities = json;
+                    String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                    handler.post(() -> showActivitiesForDate(todayStr));
+                    handler.post(this::setupCalendarListener);
                 }
-            }
 
-            @Override
-            public void onError(String error) {
-                ActivitiesFragment.this.showToast("Network error: " + error);
-                hideLoadingDialog();
+            } catch (Exception e) {
+                Log.e("FetchActivities", e.getMessage(), e);
             }
+        }).start();
+    }
+
+    private void setupCalendarListener() {
+        calendarView.setOnDateChangedListener((widget, date, selected) -> {
+            String formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d",
+                    date.getYear(), date.getMonth() + 1, date.getDay());
+            showActivitiesForDate(formatted);
         });
     }
 
-    private void fetchActivities(String pondName, String dateCreated) {
-        showLoadingDialog("Loading activities...");
-
-        PondSyncManager.fetchPondActivities(pondName, new PondSyncManager.Callback() {
-            @Override
-            public void onSuccess(Object response) {
-                try {
-                    JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
-                    if (json.get("status").getAsString().equals("success")) {
-                        new Handler(Looper.getMainLooper()).post(() -> {
-                            hideLoadingDialog();
-                            setCalendarRange(calendarView, dateCreated, json);
-                        });
-                    }
-                } catch (Exception e) {
-                    ActivitiesFragment.this.showToast("Error parsing activities.");
-                    hideLoadingDialog();
-                }
-            }
-
-            @Override
-            public void onError(String error) {
-                ActivitiesFragment.this.showToast("Network error: " + error);
-                hideLoadingDialog();
-            }
-        });
-    }
-
-    private void setCalendarRange(MaterialCalendarView calendarView, String dateCreatedStr, JsonObject json) {
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-            Date startDate = sdf.parse(dateCreatedStr);
-
-            Calendar startCal = Calendar.getInstance();
-            startCal.setTime(startDate);
-
-            Calendar endCal = Calendar.getInstance();
-            endCal.setTime(startDate);
-            endCal.add(Calendar.DAY_OF_YEAR, 193);
-
-            calendarView.state().edit()
-                    .setMinimumDate(CalendarDay.from(startCal))
-                    .setMaximumDate(CalendarDay.from(endCal))
-                    .commit();
-
-            calendarView.setShowOtherDates(MaterialCalendarView.SHOW_NONE);
-
-            Calendar todayCal = Calendar.getInstance();
-            String defaultDateStr;
-            if (!todayCal.before(startCal) && !todayCal.after(endCal)) {
-                calendarView.setSelectedDate(CalendarDay.from(todayCal));
-                defaultDateStr = sdf.format(todayCal.getTime());
-            } else {
-                calendarView.setSelectedDate(CalendarDay.from(startCal));
-                defaultDateStr = sdf.format(startCal.getTime());
-            }
-
-            showActivitiesForDate(json, defaultDateStr);
-
-            calendarView.setOnDateChangedListener((widget, date, selected) -> {
-                String formattedDate = String.format(Locale.getDefault(),
-                        "%04d-%02d-%02d",
-                        date.getYear(),
-                        date.getMonth() + 1,
-                        date.getDay());
-                showActivitiesForDate(json, formattedDate);
-            });
-
-        } catch (Exception e) {
-            Log.e("CALENDAR_RANGE", "Error: " + e.getMessage());
-        }
-    }
-
-    private void showActivitiesForDate(JsonObject json, String date) {
+    private void showActivitiesForDate(String date) {
+        if (fetchedActivities == null) return;
         activitiesLayout.removeAllViews();
-        if (!json.has("data")) return;
 
-        JsonArray activities = json.getAsJsonArray("data");
-        boolean found = false;
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        String todayStr = sdf.format(new Date());
-
+        JsonArray activities = fetchedActivities.getAsJsonArray("data");
         SharedPreferences prefs = requireContext().getSharedPreferences("ACTIVITY_PREFS", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
+        String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
         for (int i = 0; i < activities.size(); i++) {
             JsonObject act = activities.get(i).getAsJsonObject();
             String actDate = act.get("date").getAsString();
+            if (!actDate.equals(date)) continue;
 
-            if (actDate.equals(date)) {
-                found = true;
+            String title = act.get("title").getAsString();
+            String description = act.get("description").getAsString();
+            int dayNumber = act.get("day_number").getAsInt();
+            String key = pondName + "_" + actDate + "_" + title;
 
-                String title = act.get("title").getAsString();
-                String description = act.get("description").getAsString();
-                int dayNumber = act.get("day_number").getAsInt();
-                String key = pondName + "_" + actDate + "_" + title;
+            LinearLayout wrapper = new LinearLayout(getContext());
+            wrapper.setOrientation(LinearLayout.VERTICAL);
 
-                LinearLayout itemLayout = new LinearLayout(getContext());
-                itemLayout.setOrientation(LinearLayout.HORIZONTAL);
-                itemLayout.setPadding(10, 10, 10, 10);
+            android.widget.CheckBox checkBox = new android.widget.CheckBox(getContext());
+            checkBox.setText("Day " + dayNumber + ": " + title);
+            checkBox.setChecked(prefs.getBoolean(key, false));
+            checkBox.setEnabled(actDate.equals(todayStr));
 
-                android.widget.CheckBox checkBox = new android.widget.CheckBox(getContext());
-                checkBox.setText("Day " + dayNumber + ": " + title);
-                checkBox.setChecked(prefs.getBoolean(key, false));
-                checkBox.setEnabled(actDate.equals(todayStr));
+            checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked && actDate.equals(todayStr)) {
+                    editor.putBoolean(key, true).apply();
+                    showToast("Marked as done ✅");
 
-                checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                    if (actDate.equals(todayStr)) {
-                        editor.putBoolean(key, isChecked);
-                        editor.apply();
+                    SessionManager session = new SessionManager(requireContext());
+                    String username = session.getUsername();
+                    String userId = session.getUserId(); // current user
 
-                        if (isChecked) {
-                            ActivitiesFragment.this.showToast("Marked as done ✅");
+                    // Local notification for the user who checked the box
+                    NotificationHelper.showActivityDoneNotification(
+                            requireContext(),
+                            pondName,
+                            title,
+                            true,  // local
+                            username
+                    );
 
-                            SessionManager sessionManager = new SessionManager(requireContext());
-                            String username = sessionManager.getUsername(); // get the logged-in user's name
-                            NotificationHelper.showActivityDoneNotification(requireContext(), pondName, title, username);
+                    // Broadcast to all OTHER users only
+                    addNotificationToServer(
+                            pondId,
+                            "", // empty title for broadcast
+                            title + " completed by " + username, // full message
+                            actDate,
+                            userId // pass current user's ID so server can skip sending to them
+                    );
+                }
+            });
 
 
-                            // Insert into notifications table for all users
-                            addNotificationToServer(pondId, title, "Activity completed: " + title, actDate);
-                        }
-                    }
-                });
+            TextView descView = new TextView(getContext());
+            descView.setText(description);
+            descView.setPadding(30, 0, 0, 0);
 
-                TextView descView = new TextView(getContext());
-                descView.setText(description);
-                descView.setPadding(30, 0, 0, 0);
-
-                LinearLayout wrapper = new LinearLayout(getContext());
-                wrapper.setOrientation(LinearLayout.VERTICAL);
-                wrapper.addView(checkBox);
-                wrapper.addView(descView);
-
-                activitiesLayout.addView(wrapper);
-            }
+            wrapper.addView(checkBox);
+            wrapper.addView(descView);
+            activitiesLayout.addView(wrapper);
         }
 
-        if (!found) {
+        if (activities.size() == 0) {
             TextView empty = new TextView(getContext());
             empty.setText("No activities for this date.");
             activitiesLayout.addView(empty);
         }
     }
 
-    private void showToast(String msg) {
-        new Handler(Looper.getMainLooper()).post(() ->
-                Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show());
+    private void addNotificationToServer(String pondId, String title, String message, String scheduledFor, String userId) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/add_notification.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+
+                JSONObject payload = new JSONObject();
+                payload.put("ponds_id", pondId);
+                payload.put("title", title);
+                payload.put("message", message);
+                payload.put("scheduled_for", scheduledFor);
+                payload.put("user_id", userId);
+
+                OutputStream os = conn.getOutputStream();
+                os.write(payload.toString().getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) response.append(line);
+                in.close();
+                conn.disconnect();
+
+                Log.d("ADD_NOTIFICATION", "Response: " + response);
+
+            } catch (Exception e) {
+                Log.e("ADD_NOTIFICATION", "Error: " + e.getMessage(), e);
+            }
+        }).start();
     }
 
-    private void addNotificationToServer(String pondId, String title, String message, String scheduledFor) {
-        JsonObject payload = new JsonObject();
-        payload.addProperty("pond_id", pondId);
-        payload.addProperty("title", title);
-        payload.addProperty("message", message);
-        payload.addProperty("scheduled_for", scheduledFor);
-
-        // Send HTTP POST to your add_notification.php endpoint
-        PondSyncManager.sendNotification(payload, new PondSyncManager.Callback() {
+    private void startNotificationPolling() {
+        notificationPollRunnable = new Runnable() {
             @Override
-            public void onSuccess(Object response) {
-                ActivitiesFragment.this.showToast("Notification sent to all users!");
-            }
+            public void run() {
+                PondSyncManager.fetchNotifications(new PondSyncManager.Callback() {
+                    @Override
+                    public void onSuccess(Object response) {
+                        try {
+                            JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
+                            if (json.get("status").getAsString().equals("success")) {
+                                JsonArray data = json.getAsJsonArray("data");
+                                boolean hasNew = false;
 
-            @Override
-            public void onError(String error) {
-                ActivitiesFragment.this.showToast("Failed to send notification: " + error);
+                                for (int i = 0; i < data.size(); i++) {
+                                    JsonObject notif = data.get(i).getAsJsonObject();
+
+                                    String notifKey = notif.get("id").getAsString();
+                                    if (fetchedNotifications.contains(notifKey)) continue;
+
+                                    fetchedNotifications.add(notifKey);
+                                    hasNew = true;
+
+                                    String notifMessage = notif.get("message").getAsString();
+
+                                    // Display broadcast or user notifications (5 args)
+                                    NotificationHelper.showActivityDoneNotification(
+                                            requireContext(),
+                                            pondName,
+                                            notifMessage, // full message already includes username
+                                            false,        // broadcast
+                                            ""            // username ignored for broadcast
+                                    );
+                                }
+
+                                if (hasNew) {
+                                    CalendarDay selected = calendarView.getSelectedDate();
+                                    if (selected != null) {
+                                        String formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d",
+                                                selected.getYear(), selected.getMonth() + 1, selected.getDay());
+                                        showActivitiesForDate(formatted);
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e("NotifPolling", "Error parsing notifications: " + e.getMessage());
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.e("NotifPolling", "Error fetching notifications: " + error);
+                    }
+                });
+
+                handler.postDelayed(this, pollInterval);
             }
-        });
+        };
+        handler.post(notificationPollRunnable);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startNotificationPolling();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (notificationPollRunnable != null) handler.removeCallbacks(notificationPollRunnable);
+    }
+
+    private void showToast(String msg) {
+        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show());
     }
 }

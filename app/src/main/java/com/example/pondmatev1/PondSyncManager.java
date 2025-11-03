@@ -1498,35 +1498,68 @@ public class PondSyncManager {
         }).start();
     }
 
-    public static void sendNotification(JsonObject payload, Callback callback) {
+    public static void sendNotification(String pondId, String title, String message, String scheduledFor) {
         new Thread(() -> {
             try {
-                URL url = new URL("https://yourdomain.com/add_notification.php"); // existing PHP
+                URL url = new URL("https://pondmate.alwaysdata.net/add_notification.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; utf-8");
+                conn.setRequestProperty("Content-Type", "application/json");
                 conn.setDoOutput(true);
 
-                try (OutputStream os = conn.getOutputStream()) {
-                    byte[] input = payload.toString().getBytes("utf-8");
-                    os.write(input, 0, input.length);
-                }
+                JSONObject payload = new JSONObject();
+                payload.put("ponds_id", pondId);
+                payload.put("title", title);
+                payload.put("message", message);
+                payload.put("scheduled_for", scheduledFor);
 
-                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
+                OutputStream os = conn.getOutputStream();
+                os.write(payload.toString().getBytes());
+                os.flush();
+                os.close();
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder response = new StringBuilder();
                 String line;
-                while ((line = br.readLine()) != null) {
-                    response.append(line.trim());
-                }
-                br.close();
+                while ((line = in.readLine()) != null) response.append(line);
+                in.close();
+                conn.disconnect();
 
-                callback.onSuccess(response.toString());
+                Log.d("SEND_NOTIFICATION", "Response: " + response);
 
             } catch (Exception e) {
-                callback.onError(e.getMessage());
+                Log.e("SEND_NOTIFICATION", "Error: " + e.getMessage(), e);
             }
         }).start();
     }
+
+
+
+    public static void fetchNotifications(Callback callback) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_notifications.php");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Content-Type", "application/json");
+
+                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    response.append(line);
+                }
+                in.close();
+                conn.disconnect();
+
+                if (callback != null) callback.onSuccess(response.toString());
+            } catch (Exception e) {
+                if (callback != null) callback.onError(e.getMessage());
+            }
+        }).start();
+    }
+
+
 
 
     // ✅ Update Blind Feed Log
