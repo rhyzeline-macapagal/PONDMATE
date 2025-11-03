@@ -126,16 +126,6 @@
                                 android:textColor="#01082D"
                                 android:textSize="13sp" />
 
-                            <Spinner
-                                android:id="@+id/spinnerSpecies"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:spinnerMode="dropdown"
-                                android:gravity="center"
-                                android:padding="2dp"
-
-                                android:background="@android:drawable/edit_text"/>
-
                         </LinearLayout>
 
                         <LinearLayout
@@ -298,9 +288,9 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Date Created"
+                        android:text="Grow-out Start Date"
                         android:textColor="#01082D"
-                        android:textSize="13sp" />
+                        android:textSize="12sp" />
 
                     <EditText
                         android:id="@+id/etDateCreated"
@@ -320,9 +310,9 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Stocking Date"
+                        android:text="Stocking Date \n(14 days after grow-out start)"
                         android:textColor="#01082D"
-                        android:textSize="13sp" />
+                        android:textSize="12sp" />
 
                     <EditText
                         android:id="@+id/etStockingDate"
@@ -342,9 +332,9 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Estimated Harvest Date"
+                        android:text="Estimated Harvest Date \n(6 months after stocking)"
                         android:textColor="#01082D"
-                        android:textSize="13sp" />
+                        android:textSize="12sp" />
 
                     <EditText
                         android:id="@+id/etHarvestDate"

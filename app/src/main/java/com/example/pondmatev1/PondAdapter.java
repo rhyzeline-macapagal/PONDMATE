@@ -137,6 +137,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         });
     }
 
+
     private void setPondInactive(ViewHolder holder, PondModel pond) {
         Context context = holder.itemView.getContext();
 

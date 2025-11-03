@@ -179,7 +179,7 @@ public class EditPondDialog extends DialogFragment {
             etMortalityRate.setHint("N/A");
 
             Toast.makeText(requireContext(),
-                    "This pond has no fingerling stock. Only basic info can be edited.",
+                    "This pond has no fingerling stock. Only name, area, and dates can be edited.",
                     Toast.LENGTH_LONG).show();
         }
     }
