@@ -196,7 +196,59 @@
                         android:textSize="14sp"
                         android:gravity="end" />
                 </LinearLayout>
+            </LinearLayout>
 
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="8dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/rounded_card">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <!-- Header -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:id="@+id/imgFeedLevel"
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:src="@drawable/feed_funnel_level"
+                                android:contentDescription="Feed Level" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="FEED CONTAINER LEVEL"
+                                android:textColor="#01082D"
+                                android:textSize="20sp"
+                                android:paddingStart="12dp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- **Remaining Feed Display** -->
+                        <TextView
+                            android:id="@+id/tvRemainingFeed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Remaining Feed: 0 g"
+                            android:textColor="#444"
+                            android:textSize="16sp"
+                            android:layout_gravity="center"
+                            android:layout_marginBottom="12dp"/>
+
+                    </LinearLayout>
             </LinearLayout>
 
                 <!-- Feeding Schedule Section -->
@@ -206,7 +258,7 @@
                     android:orientation="vertical"
                     android:background="@drawable/rounded_card"
                     android:padding="16dp"
-                    android:layout_marginTop="12dp">
+                    android:layout_marginTop="10dp">
 
                     <TextView
                         android:layout_width="match_parent"
@@ -318,7 +370,7 @@
                     android:orientation="vertical"
                     android:background="@drawable/rounded_card"
                     android:padding="16dp"
-                    android:layout_marginTop="12dp">
+                    android:layout_marginTop="10dp">
 
                     <TextView
                         android:layout_width="match_parent"

@@ -64,7 +64,7 @@ public class SamplingDialog extends DialogFragment {
 
     private Button btnSelectTime1, btnSelectTime2;
     private TextView tvPondName, tvNextSampling, tvDaysOfCulture, tvLifeStage, tvTotalStocks, tvMortality, tvDFRPerCycle;
-    private TextView tvTimeFeeding1, tvTimeFeeding2, tvABWResult, tvDFRResult, tvFeedType, tvFeedCost;
+    private TextView tvTimeFeeding1, tvTimeFeeding2, tvABWResult, tvDFRResult, tvFeedType, tvFeedCost, tvRemainingFeed;
     private EditText etSampledWeight, etNumSamples, etFeedingRate;
     private TextView tvSurvivalRate; // display-only
     private int time1Minutes = -1, time2Minutes = -1;
@@ -100,6 +100,7 @@ public class SamplingDialog extends DialogFragment {
         tvDFRResult = view.findViewById(R.id.tvDFRResult);
         tvFeedType = view.findViewById(R.id.tvFeedType);
         tvFeedCost = view.findViewById(R.id.tvFeedCost);
+        tvRemainingFeed = view.findViewById(R.id.tvRemainingFeed);
 
         // Initialize EditTexts and Survival Rate (display-only TextView)
         etSampledWeight = view.findViewById(R.id.etSampledWeight);
