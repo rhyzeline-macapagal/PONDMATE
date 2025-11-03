@@ -2,6 +2,10 @@ package com.example.pondmatev1;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
@@ -9,6 +13,7 @@ import android.text.TextWatcher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 // For OkHttp networking
 import okhttp3.Call;
@@ -62,18 +67,18 @@ public class SamplingDialog extends DialogFragment {
 
     private static final String TAG = "SamplingDialog";
 
-    private Button btnSelectTime1, btnSelectTime2;
+    private Button btnSelectTime1, btnSelectTime2, btnSave;
     private TextView tvPondName, tvNextSampling, tvDaysOfCulture, tvLifeStage, tvTotalStocks, tvMortality, tvDFRPerCycle;
     private TextView tvTimeFeeding1, tvTimeFeeding2, tvABWResult, tvDFRResult, tvFeedType, tvFeedCost, tvRemainingFeed;
     private EditText etSampledWeight, etNumSamples, etFeedingRate;
     private TextView tvSurvivalRate; // display-only
     private int time1Minutes = -1, time2Minutes = -1;
     private String formattedTime1, formattedTime2;
-
-    // state
     private String species = "";
     private long daysOfCulture = 1;
-    private Double currentPricePerKg = null; // set after fetch
+    private Double currentPricePerKg = null;
+    private String pondId = "";
+
 
     @Nullable
     @Override
@@ -81,7 +86,6 @@ public class SamplingDialog extends DialogFragment {
                              @Nullable Bundle savedInstanceState) {
 
         View view = inflater.inflate(R.layout.dialog_add_sampling, container, false);
-
         // Close button
         TextView btnClose = view.findViewById(R.id.btnClose);
         if (btnClose != null) btnClose.setOnClickListener(v -> dismiss());
@@ -100,7 +104,6 @@ public class SamplingDialog extends DialogFragment {
         tvDFRResult = view.findViewById(R.id.tvDFRResult);
         tvFeedType = view.findViewById(R.id.tvFeedType);
         tvFeedCost = view.findViewById(R.id.tvFeedCost);
-        tvRemainingFeed = view.findViewById(R.id.tvRemainingFeed);
 
         // Initialize EditTexts and Survival Rate (display-only TextView)
         etSampledWeight = view.findViewById(R.id.etSampledWeight);
@@ -116,24 +119,34 @@ public class SamplingDialog extends DialogFragment {
         setDefaultFeedingTimes();
         addTextWatchers();
 
-        Button btnSave = view.findViewById(R.id.btnSaveSampling);
+        tvRemainingFeed = view.findViewById(R.id.tvRemainingFeed);
+        btnSave = view.findViewById(R.id.btnSaveSampling);
         btnSave.setOnClickListener(v -> validateAndSave());
+        refreshFeedLevel();
 
         btnSelectTime1.setOnClickListener(v -> showTimePickerDialog(tvTimeFeeding1, 1));
         btnSelectTime2.setOnClickListener(v -> showTimePickerDialog(tvTimeFeeding2, 2));
 
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(
+                feedUpdateReceiver,
+                new IntentFilter("FEED_LEVEL_UPDATED")
+        );
+        Log.d("FEED_UI", "SamplingDialog receiver registered");
+
+        Log.d("FEED_TEST", "SamplingDialog onViewCreated: Calling refreshRemainingFeedUI()");
+        refreshRemainingFeedUI();
+
         return view;
     }
 
-    // -------------------------
-    // Load pond, compute days, life stage and trigger feed fetch
-    // -------------------------
     private void loadPondData() {
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", android.content.Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
         if (pondJson == null) return;
 
         PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+        pondId = pond.getId();
+        Log.d("FEED_TEST", "Loaded pondId for SamplingDialog = " + pondId);
         if (pond == null) return;
 
         tvPondName.setText(pond.getName());
@@ -194,9 +207,6 @@ public class SamplingDialog extends DialogFragment {
         });
     }
 
-    // -------------------------
-    // fetch feed price (background thread) and update UI on main thread
-    // -------------------------
     private void fetchFeedPrice(String breedClean, long days) {
         new Thread(() -> {
             HttpURLConnection conn = null;
@@ -282,6 +292,31 @@ public class SamplingDialog extends DialogFragment {
     }
 
     private void validateAndSave() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("FEED_LEVEL_PREF", Context.MODE_PRIVATE);
+        float remainingFeed = prefs.getFloat("feed_remaining_" + pondId, 0f);
+
+        if (remainingFeed <= 0) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Feed Container is Empty")
+                    .setMessage("You must store feeds in the container before you can save a sampling.")
+                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                    .show();
+            return;
+        }
+
+        double feedPerCycle = parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""));
+        double requiredFeed = feedPerCycle * 30; // 2x/day for 15 days
+
+        if (remainingFeed < requiredFeed) {
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Insufficient Feed")
+                    .setMessage("The remaining feed in the container is not enough to support the next 15 days of feeding.\n\n" +
+                            "Store additional feed before proceeding.")
+                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                    .show();
+            return;
+        }
+
         String sampledWeight = etSampledWeight.getText().toString().trim();
         String numSamples = etNumSamples.getText().toString().trim();
         String feedingRates = etFeedingRate.getText().toString().trim();
@@ -302,7 +337,6 @@ public class SamplingDialog extends DialogFragment {
             return;
         }
 
-        // Additional numeric validation
         try {
             double sw = Double.parseDouble(sampledWeight);
             double ns = Double.parseDouble(numSamples);
@@ -325,12 +359,11 @@ public class SamplingDialog extends DialogFragment {
             return;
         }
 
-        // Prepare payload and call upload (unchanged)
-        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", android.content.Context.MODE_PRIVATE);
-        String pondJson = prefs.getString("selected_pond", null);
+        SharedPreferences pondPrefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = pondPrefs.getString("selected_pond", null);
         PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
 
-        String pondId = pond.getId();
+        pondId = pond.getId();
         int daysOfCultureVal = Integer.parseInt(tvDaysOfCulture.getText().toString().replace(" days", ""));
         String growthStage = tvLifeStage.getText().toString();
         int totalStocks = pond.getFishCount();
@@ -363,17 +396,33 @@ public class SamplingDialog extends DialogFragment {
                         requireActivity().runOnUiThread(() -> {
                             Toast.makeText(getContext(), "Sampling record saved!", Toast.LENGTH_SHORT).show();
 
-                            // Upload to Adafruit
-                            double dfrFeedGrams = parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""));
-                            uploadDFRToAdafruit(pond.getName(), formattedTime1, formattedTime2, dfrFeedGrams);
+                            float feedPerCycle = (float) parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""));
+                            float totalToDeduct = feedPerCycle * 2f; // 2 feedings for the current day
+                            Log.d("SAMPLING_FEED", "Feed deduction computed: perCycle=" + feedPerCycle + ", totalDeduct=" + totalToDeduct);
 
+                            FeedStorage.deductFeed(requireContext(), pondId, totalToDeduct);
+
+                            float updated  = FeedStorage.getRemainingFeed(requireContext(), pondId);
+                            Log.d("SAMPLING_FEED", "After deduction, remaining feed = " + updated );
+                            tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", updated ));
+
+                            refreshFeedLevel();
+
+                            // Notify ControlsFeeder (so it updates UI too)
+                            LocalBroadcastManager.getInstance(requireContext())
+                                    .sendBroadcast(new Intent("FEED_LEVEL_UPDATED"));
+
+                            // ✅ Upload to Adafruit using feed per cycle per schedule
+                            uploadDFRToAdafruit(pond.getName(), formattedTime1, formattedTime2, feedPerCycle);
+
+                            // Refresh UI on parent fragment if needed
                             if (getParentFragment() instanceof ProductionCostFragment) {
                                 ((ProductionCostFragment) getParentFragment()).updateSamplingButtonState(pond.getId());
                             }
+
                             dismiss();
                         });
                     }
-
 
                     @Override
                     public void onError(String error) {
@@ -385,9 +434,40 @@ public class SamplingDialog extends DialogFragment {
         );
     }
 
-    // -------------------------
-    // Default feeding times
-    // -------------------------
+    private void refreshRemainingFeedUI() {
+        float remaining = FeedStorage.getRemainingFeed(requireContext(), pondId);
+        Log.d("FEED_TEST", "refreshRemainingFeedUI() -> remaining feed = " + remaining);
+        tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", remaining));
+    }
+
+    private void refreshFeedLevel() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("FEED_LEVEL_PREF", Context.MODE_PRIVATE);
+        float remainingFeed = FeedStorage.getRemainingFeed(requireContext(), pondId);
+        tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", remainingFeed));
+
+        if (remainingFeed <= 0) {
+            btnSave.setEnabled(false);
+            btnSave.setAlpha(0.5f);
+        } else {
+            btnSave.setEnabled(true);
+            btnSave.setAlpha(1f);
+        }
+    }
+
+    private final BroadcastReceiver feedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            refreshFeedLevel();
+        }
+    };
+
+    @Override
+    public void onDestroyView() {
+        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(feedUpdateReceiver);
+        super.onDestroyView();
+    }
+
+
     private void setDefaultFeedingTimes() {
         formattedTime1 = "08:00:00";
         formattedTime2 = "16:00:00";
@@ -573,5 +653,14 @@ public class SamplingDialog extends DialogFragment {
             Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+
+    private final BroadcastReceiver feedUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            float updated = FeedStorage.getRemainingFeed(context, pondId);
+            Log.d("FEED_UI", "SamplingDialog updated feed display = " + updated);
+            tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", updated));
+        }
+    };
 
 }

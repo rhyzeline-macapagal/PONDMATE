@@ -188,10 +188,25 @@ public class MainActivity extends AppCompatActivity {
                     break;
 
                 case 3:
-                    getSupportFragmentManager().beginTransaction()
-                            .replace(R.id.con, new FeederFragment())
-                            .addToBackStack(null)
-                            .commit();
+                    SharedPreferences prefs3 = getSharedPreferences("POND_PREF", MODE_PRIVATE);
+                    String pondJson3 = prefs3.getString("selected_pond", null);
+
+                    if (pondJson3 != null) {
+                        PondModel selectedPond = new Gson().fromJson(pondJson3, PondModel.class);
+                        String pondId = selectedPond.getId();
+
+                        FeederFragment feederFragment = new FeederFragment();
+                        Bundle bundle = new Bundle();
+                        bundle.putString("pond_id", pondId);
+                        feederFragment.setArguments(bundle);
+
+                        getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.con, feederFragment)
+                                .addToBackStack(null)
+                                .commit();
+                    } else {
+                        Toast.makeText(this, "No pond selected!", Toast.LENGTH_SHORT).show();
+                    }
                     break;
 
                 case 4:
