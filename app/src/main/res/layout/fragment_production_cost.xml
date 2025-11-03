@@ -147,9 +147,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingVertical="2dp"
-                android:paddingHorizontal="12dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
@@ -169,13 +167,19 @@
                     android:textSize="14sp"
                     android:textAlignment="textEnd"/>
             </LinearLayout>
+            <TextView
+
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Accumulated Feed Costs"
+                android:textStyle="bold"
+                android:textColor="#0D47A1"
+                android:textSize="14sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingVertical="2dp"
-                android:paddingHorizontal="12dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
@@ -183,7 +187,8 @@
                     android:layout_weight="1"
                     android:text="Feed Cost for Blind Feeding"
                     android:textColor="#424242"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp"
+                    android:paddingStart="5dp"/>
 
                 <TextView
                     android:id="@+id/tvSamplingFeedBreakdown"
@@ -199,17 +204,16 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingVertical="2dp"
-                android:paddingHorizontal="12dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Accumulated Feed Cost (every succeeding cycle)"
+                    android:text="Sampling Feed Cost (every succeeding cycle)"
                     android:textColor="#424242"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp"
+                    android:paddingStart="5dp"/>
 
                 <TextView
                     android:id="@+id/tvSummaryFeeds"
@@ -226,16 +230,15 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingVertical="2dp"
-                android:paddingHorizontal="12dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Other Expenses"
-                    android:textColor="#424242"
+                    android:textStyle="bold"
+                    android:textColor="#0D47A1"
                     android:textSize="14sp"/>
 
                 <TextView
@@ -256,9 +259,9 @@
                 android:layout_height="wrap_content"
                 android:text="List of Expenses"
                 android:textStyle="bold"
-                android:textColor="#0D47A1"
+                android:textColor="#424242"
                 android:textSize="14sp"
-                android:paddingStart="20dp"
+                android:paddingStart="5dp"
                 />
 
             <!-- ✅ Rows dynamically added here -->
@@ -266,16 +269,14 @@
                 android:id="@+id/layoutMaintenanceBreakdown"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="18dp"
+                android:paddingStart="10dp"
                 android:orientation="vertical"/>
 
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingVertical="2dp"
-                android:paddingHorizontal="12dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
@@ -283,7 +284,8 @@
                     android:layout_weight="1"
                     android:text="Salary"
                     android:textColor="#424242"
-                    android:textSize="14sp"/>
+                    android:textSize="14sp"
+                    android:paddingStart="5dp"/>
 
                 <TextView
                     android:id="@+id/tvSummarySalary"

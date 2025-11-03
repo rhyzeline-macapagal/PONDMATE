@@ -1,18 +1,25 @@
 package com.example.pondmatev1;
 
-import android.graphics.Color;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
+import android.text.InputType;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -23,250 +30,343 @@ import java.util.TimeZone;
 
 public class ControlsFeeder extends Fragment {
 
-    private TextView feedleveltv;
-    private Button monitorbtn;
-    private ImageView feedlvlicon;
-    private TextView textCurrentDate;
-    private TextView lastFeedingTimeTV;
-    private TextView nextFeedingTimeTV;
-    private final Handler timeHandler = new Handler();
+    private static final String TAG = "ControlsFeeder";
 
-    private int currentIndex = 0;
-    // Feeding schedule hours (24h format)
+    private TextView txtRemainingFeed;
+    private ImageView imgFeedLevel;
+    private Button btnAddFeedStock;
+
+    // Shared prefs (single source of truth) — matches ScheduleFeeder which reads/writes "FEED_STORAGE"
+    private SharedPreferences prefs;
+    private static final String PREF_FEED = "FEED_STORAGE";
+    private static final String KEY_REMAINING_FEED = "remaining_feed";
+
+    // Config (match ScheduleFeeder's maxCapacity)
+    private static final int MAX_CAPACITY = 8000;
+    private int dfrPerFeeding = 0; // fallback/default; will be set from schedule when available
+
+    // Time & schedule update
+    private final Handler timeHandler = new Handler();
     private final int[] feedingHours = {7, 12, 17}; // 7AM, 12PM, 5PM
+
+    // Live UI refresh handler
+    private final Handler liveHandler = new Handler();
+    private Runnable refreshRunnable;
+
     private final Runnable timeUpdater = new Runnable() {
         @Override
         public void run() {
-            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Manila"));
-
-            // Update current date & time display
-            SimpleDateFormat dateTimeFormat = new SimpleDateFormat("EEEE, MMMM d, yyyy - hh:mm a", Locale.ENGLISH);
-            dateTimeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Manila"));
-            String currentDateTime = dateTimeFormat.format(calendar.getTime());
-            if (textCurrentDate != null) {
-                textCurrentDate.setText(currentDateTime);
+            try {
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Manila"));
+                SimpleDateFormat dateTimeFormat = new SimpleDateFormat("EEEE, MMMM d, yyyy - hh:mm a", Locale.ENGLISH);
+                dateTimeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Manila"));
+                // (no UI field here for datetime in this fragment — keep as placeholder)
+            } catch (Exception e) {
+                Log.w(TAG, "timeUpdater error", e);
+            } finally {
+                timeHandler.postDelayed(this, 60_000);
             }
-
-            // Update feeding schedule times
-            updateFeedingTimes(calendar);
-
-            // Schedule next update in 60 seconds
-            timeHandler.postDelayed(this, 60000);
         }
     };
+
+    public ControlsFeeder() {
+        // required empty constructor
+    }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+
         View view = inflater.inflate(R.layout.controls_feeder, container, false);
 
+        txtRemainingFeed = view.findViewById(R.id.txtRemainingFeed);
+        imgFeedLevel = view.findViewById(R.id.imgFeedLevel);
+        btnAddFeedStock = view.findViewById(R.id.btnAddFeedStock);
 
-        // Update feeding times immediately on load
-        updateFeedingTimes(Calendar.getInstance(TimeZone.getTimeZone("Asia/Manila")));
+        // Single SharedPreferences instance (source of truth)
+        prefs = requireContext().getSharedPreferences(PREF_FEED, Context.MODE_PRIVATE);
 
-        // Start periodic time and feeding times update
-        timeHandler.post(timeUpdater);
+        // Initialize UI with stored values
+        updateFeedUI();
 
+        // Wire add-feed button
+        if (btnAddFeedStock != null) {
+            btnAddFeedStock.setOnClickListener(v -> openAddFeedDialog());
+        }
 
+        // Existing ESP / toggle button logic (preserve behavior)
         Button btnToggleFeeder = view.findViewById(R.id.btnToggleFeeder);
         TextView feederStatusText = view.findViewById(R.id.feederStatusText);
 
         final String baseUrl = "http://192.168.254.100"; // your ESP IP
         final boolean[] isConnected = {false};
 
-        // Initial sync
+        // Update feeding time labels immediately and start periodic updater
+        timeHandler.post(timeUpdater);
+
+        // Try initial syncs (non-blocking)
         syncTimeToESP(baseUrl);
         syncFeedingTimesToESP(baseUrl);
 
-        btnToggleFeeder.setOnClickListener(v -> {
-            new Thread(() -> {
-                try {
-                    URL url = new URL(baseUrl + "/on");
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod("GET");
-                    connection.setConnectTimeout(3000);
-                    connection.setReadTimeout(3000);
-                    int responseCode = connection.getResponseCode();
-                    connection.disconnect();
+        // Preserve existing toggle behavior, but keep it safe and non-blocking
+        if (btnToggleFeeder != null) {
+            btnToggleFeeder.setOnClickListener(v -> {
+                new Thread(() -> {
+                    try {
+                        URL url = new URL(baseUrl + "/on");
+                        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                        connection.setRequestMethod("GET");
+                        connection.setConnectTimeout(3000);
+                        connection.setReadTimeout(3000);
+                        int responseCode = connection.getResponseCode();
+                        connection.disconnect();
 
-                    if (getActivity() != null && isAdded()) {
-                        getActivity().runOnUiThread(() -> {
-                            if (!isAdded()) return;
+                        if (getActivity() != null && isAdded()) {
+                            getActivity().runOnUiThread(() -> {
+                                if (!isAdded()) return;
 
-                            if (responseCode == 200) {
-                                isConnected[0] = true;
-                                btnToggleFeeder.setText("Connected");
-                                btnToggleFeeder.setEnabled(false);
-                                feederStatusText.setText("Status: Connected ✅");
+                                if (responseCode == 200) {
+                                    isConnected[0] = true;
+                                    btnToggleFeeder.setText("Connected");
+                                    btnToggleFeeder.setEnabled(false);
+                                    if (feederStatusText != null)
+                                        feederStatusText.setText("Status: Connected ✅");
 
-                                // Manual resync after connection
-                                syncTimeToESP(baseUrl);
-                                syncFeedingTimesToESP(baseUrl);
-                            } else {
-                                feederStatusText.setText("Error: HTTP " + responseCode);
-                            }
-                        });
+                                    // Manual resync after connection
+                                    syncTimeToESP(baseUrl);
+                                    syncFeedingTimesToESP(baseUrl);
+                                } else {
+                                    if (feederStatusText != null)
+                                        feederStatusText.setText("Error: HTTP " + responseCode);
+                                }
+                            });
+                        }
+                    } catch (Exception e) {
+                        if (getActivity() != null && isAdded()) {
+                            getActivity().runOnUiThread(() -> {
+                                if (feederStatusText != null)
+                                    feederStatusText.setText("Connection failed: " + e.getMessage());
+                            });
+                        }
                     }
-
-                } catch (Exception e) {
-                    if (getActivity() != null && isAdded()) {
-                        getActivity().runOnUiThread(() -> {
-                            if (!isAdded()) return;
-                            feederStatusText.setText("Connection failed: " + e.getMessage());
-                        });
-                    }
-                }
-            }).start();
-
-        });
-
-
+                }).start();
+            });
+        }
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        // Start live UI refresh (every 3 seconds)
+        refreshRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    updateFeedUI();
+                } catch (Exception e) {
+                    Log.w(TAG, "Live refresh update error", e);
+                } finally {
+                    liveHandler.postDelayed(this, 3000);
+                }
+            }
+        };
+        liveHandler.post(refreshRunnable);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        // stop live refresh
+        liveHandler.removeCallbacks(refreshRunnable);
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         timeHandler.removeCallbacks(timeUpdater);
+        liveHandler.removeCallbacks(refreshRunnable);
     }
 
-    private void updateFeedingTimes(Calendar now) {
-        int currentHour = now.get(Calendar.HOUR_OF_DAY);
+    // ------------------------
+    // Add Feed Dialog
+    // ------------------------
+    private void openAddFeedDialog() {
+        if (!isAdded()) return;
 
-        // Find last feeding time
-        int lastHour = feedingHours[feedingHours.length - 1];
-        for (int hour : feedingHours) {
-            if (hour <= currentHour) {
-                lastHour = hour;
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Add Feed to Container (g)");
+
+        final EditText input = new EditText(requireContext());
+        input.setHint("Enter amount in grams");
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        builder.setView(input);
+
+        builder.setPositiveButton("ADD", (dialog, which) -> {
+            String txt = input.getText().toString().trim();
+            if (txt.isEmpty()) return;
+
+            int added;
+            try {
+                added = Integer.parseInt(txt);
+            } catch (NumberFormatException e) {
+                Toast.makeText(getContext(), "Invalid number", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Robust read — try int, if type mismatch occurs migrate from float
+            int current = readRemainingFeedSafely();
+            int newTotal = current + added;
+            if (newTotal > MAX_CAPACITY) newTotal = MAX_CAPACITY;
+
+            prefs.edit().putInt(KEY_REMAINING_FEED, newTotal).apply();
+            Log.d(TAG, "Manual add: +" + added + "g | New total: " + newTotal + "g");
+            updateFeedUI();
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    // ------------------------
+    // Public deduction API
+    // Other classes (ScheduleFeeder) should call this when a feed event is confirmed (status == "Fed")
+    // You may pass the dfr value (grams) from schedule row.
+    // ------------------------
+    public void deductFeedOnFed(float dfrAmount) {
+        if (!isAdded()) return;
+
+        // READ current feed safely
+        int previous = readRemainingFeedSafely();
+        int deduct = Math.round(dfrAmount);
+        int newRemaining = previous - deduct;
+        if (newRemaining < 0) newRemaining = 0;
+
+        // ✅ LOG EVERYTHING
+        Log.d("FEED_DEDUCTION",
+                "FEED EVENT → Previous: " + previous + "g | Deduct: "
+                        + deduct + "g | New Remaining: " + newRemaining + "g");
+
+        prefs.edit().putInt(KEY_REMAINING_FEED, newRemaining).apply();
+
+        if (getActivity() != null) {
+            getActivity().runOnUiThread(this::updateFeedUI);
+        }
+    }
+
+    public void deductFeedOnFed() {
+        deductFeedOnFed((float) dfrPerFeeding);
+    }
+
+    // Optional setter so another component can update the current dfrPerFeeding value
+    public void setDfrPerFeeding(int dfr) {
+        this.dfrPerFeeding = dfr;
+    }
+
+    // ------------------------
+    // Utility: robust read that handles stored ints or legacy floats
+    // ------------------------
+    private int readRemainingFeedSafely() {
+        // Try to read as int first. If app previously saved a float and getInt throws,
+        // catch the ClassCastException and read as float then convert.
+        try {
+            return prefs.getInt(KEY_REMAINING_FEED, 0);
+        } catch (ClassCastException e) {
+            // previously stored as float
+            try {
+                float oldFloat = prefs.getFloat(KEY_REMAINING_FEED, 0f);
+                int converted = Math.round(oldFloat);
+                prefs.edit().putInt(KEY_REMAINING_FEED, converted).apply();
+                Log.d(TAG, "Migrated old float remaining_feed (" + oldFloat + ") -> int " + converted);
+                return converted;
+            } catch (ClassCastException ex) {
+                // Unexpected; fallback to 0 but log
+                Log.w(TAG, "Unexpected preference type for remaining_feed", ex);
+                return 0;
+            }
+        }
+    }
+
+    private void updateFeedUI() {
+        if (!isAdded()) return;
+
+        int remaining = readRemainingFeedSafely();
+
+        if (txtRemainingFeed != null) {
+            txtRemainingFeed.setText("Remaining Feed: " + remaining + " g");
+        }
+
+        double pct = (MAX_CAPACITY > 0) ? (remaining / (double) MAX_CAPACITY) * 100.0 : 0.0;
+
+        if (imgFeedLevel != null) {
+            if (pct > 60.0) {
+                imgFeedLevel.setImageResource(R.drawable.feed_full);
+            } else if (pct > 30.0) {
+                imgFeedLevel.setImageResource(R.drawable.feed_half);
+            } else {
+                imgFeedLevel.setImageResource(R.drawable.feed_low);
             }
         }
 
-        // Find next feeding time
-        int nextHour = feedingHours[0];
-        for (int hour : feedingHours) {
-            if (hour > currentHour) {
-                nextHour = hour;
-                break;
-            }
-        }
-
-        // If current time is after last feeding hour, next feeding is tomorrow 7 AM
-        if (currentHour >= feedingHours[feedingHours.length - 1]) {
-            nextHour = feedingHours[0];
-        }
-
-        String lastTimeStr = formatHourTo12(lastHour);
-        String nextTimeStr = formatHourTo12(nextHour);
-
-        if (lastFeedingTimeTV != null && nextFeedingTimeTV != null) {
-            lastFeedingTimeTV.setText(lastTimeStr);
-            nextFeedingTimeTV.setText(nextTimeStr);
-            System.out.println("Last feeding: " + lastTimeStr + ", Next feeding: " + nextTimeStr);
-        } else {
-            System.out.println("Error: lastFeedingTimeTV or nextFeedingTimeTV is null!");
-        }
+        Log.d(TAG, "UI Updated — Remaining: " + remaining + "g (" + String.format("%.1f", pct) + "%)");
     }
 
-    private String formatHourTo12(int hour24) {
-        int hour12 = hour24 % 12;
-        if (hour12 == 0) hour12 = 12;
-        String ampm = (hour24 >= 12) ? "PM" : "AM";
-        return String.format(Locale.ENGLISH, "%02d:00 %s", hour12, ampm);
-    }
-
-    // Sync time to ESP
     private void syncTimeToESP(String baseUrl) {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Manila"));
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.ENGLISH);
-
-        String dateStr = dateFormat.format(calendar.getTime());
-        String timeStr = timeFormat.format(calendar.getTime());
-
-        String syncUrl = baseUrl + "/sync?date=" + dateStr + "&time=" + timeStr;
-
         new Thread(() -> {
             try {
-                URL url = new URL(syncUrl);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(3000);
-                connection.setReadTimeout(3000);
-                int responseCode = connection.getResponseCode();
-                connection.disconnect();
+                Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("Asia/Manila"));
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH);
+                SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.ENGLISH);
 
-                // ✅ check muna bago mag UI thread
+                String urlStr = baseUrl + "/sync?date=" + dateFormat.format(calendar.getTime()) + "&time=" + timeFormat.format(calendar.getTime());
+                URL url = new URL(urlStr);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(3000);
+                int code = conn.getResponseCode();
+                conn.disconnect();
+
                 if (getActivity() != null && isAdded()) {
                     getActivity().runOnUiThread(() -> {
-                        if (!isAdded()) return;
-                        if (responseCode == 200) {
-                            System.out.println("✅ Time synced to ESP.");
-                        } else {
-                            System.out.println("❌ Time sync failed: HTTP " + responseCode);
-                        }
+                        // optional UI feedback could go here
                     });
                 }
-
             } catch (Exception e) {
-                if (getActivity() != null && isAdded()) {
-                    getActivity().runOnUiThread(() -> {
-                        if (!isAdded()) return;
-                        System.out.println("⚠ Sync error: " + e.getMessage());
-                    });
-                }
+                Log.w(TAG, "syncTimeToESP error", e);
             }
         }).start();
-
     }
 
-    // New method: sync feeding times to ESP as comma separated string, e.g. "07,12,17"
     private void syncFeedingTimesToESP(String baseUrl) {
-        // Prepare feeding times string
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < feedingHours.length; i++) {
-            sb.append(String.format("%02d", feedingHours[i]));
-            if (i < feedingHours.length - 1) {
-                sb.append(",");
-            }
-        }
-        String feedingTimesStr = sb.toString();
-
-        String syncUrl = baseUrl + "/setFeedTimes?times=" + feedingTimesStr;
-
         new Thread(() -> {
             try {
-                URL url = new URL(syncUrl);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(3000);
-                connection.setReadTimeout(3000);
-                int responseCode = connection.getResponseCode();
-                connection.disconnect();
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < feedingHours.length; i++) {
+                    sb.append(String.format(Locale.ENGLISH, "%02d", feedingHours[i]));
+                    if (i < feedingHours.length - 1) sb.append(",");
+                }
+                String urlStr = baseUrl + "/setFeedTimes?times=" + sb.toString();
+                URL url = new URL(urlStr);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(3000);
+                int code = conn.getResponseCode();
+                conn.disconnect();
 
-                // ✅ check muna kung attached bago mag-UI update
                 if (getActivity() != null && isAdded()) {
                     getActivity().runOnUiThread(() -> {
-                        if (!isAdded()) return;
-                        if (responseCode == 200) {
-                            System.out.println("✅ Feeding times synced to ESP: " + feedingTimesStr);
-                        } else {
-                            System.out.println("❌ Feeding times sync failed: HTTP " + responseCode);
-                        }
+                        // optional UI feedback could go here
                     });
                 }
-
             } catch (Exception e) {
-                if (getActivity() != null && isAdded()) {
-                    getActivity().runOnUiThread(() -> {
-                        if (!isAdded()) return;
-                        System.out.println("⚠ Sync error: " + e.getMessage());
-                    });
-                }
+                Log.w(TAG, "syncFeedingTimesToESP error", e);
             }
         }).start();
-
     }
 }
