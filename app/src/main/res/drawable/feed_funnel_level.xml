@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Fill clipped from bottom to top -->
+    <item>
+        <clip
+            android:drawable="@drawable/feed_funnel_fill"
+            android:gravity="bottom" />
+    </item>
+
+    <!-- Funnel outline on top -->
+    <item
+        android:drawable="@drawable/feed_container_outline" />
+</layer-list>

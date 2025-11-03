@@ -1,14 +1,13 @@
 package com.example.pondmatev1;
 
-import android.Manifest;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 
 public class NotificationHelper {
 
@@ -16,7 +15,6 @@ public class NotificationHelper {
     private static final String CHANNEL_NAME = "PondMate Notifications";
     private static final String CHANNEL_DESC = "Notifications for pond activities";
 
-    // Initialize channel (call once, e.g., before sending notifications)
     public static void createNotificationChannel(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -26,22 +24,35 @@ public class NotificationHelper {
             );
             channel.setDescription(CHANNEL_DESC);
             NotificationManager manager = context.getSystemService(NotificationManager.class);
-            if (manager != null) manager.createNotificationChannel(channel);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
         }
     }
 
-    // Show local notification for activity done
-    public static void showActivityDoneNotification(Context context, String pondName, String activityTitle, String username) {
+    /**
+     * Show a local or broadcast notification banner.
+     *
+     * @param context Context
+     * @param pondName Pond name (will appear as title)
+     * @param activityMessage Full message to display in notification body
+     * @param isLocal True if local notification (username is appended automatically), false for broadcast
+     * @param username Username of the user (used only for local notification)
+     */
+    public static void showActivityDoneNotification(Context context, String pondName, String activityMessage, boolean isLocal, String username) {
         createNotificationChannel(context);
 
-        String title = "Activity Completed";
-        String message = "Pond: " + pondName + "\n" +
-                "Activity: " + activityTitle + "\n" +
-                "By: " + username;
+        String message;
+        if (isLocal && username != null && !username.isEmpty()) {
+            message = activityMessage + " completed by " + username;
+        } else {
+            // Broadcast already contains the full message
+            message = activityMessage;
+        }
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_fish) // replace with your app icon
-                .setContentTitle(title)
+                .setSmallIcon(R.drawable.ic_fish)
+                .setContentTitle(pondName)
                 .setContentText(message)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -54,9 +65,7 @@ public class NotificationHelper {
             return;
         }
 
-        int notificationId = (int) System.currentTimeMillis();
+        int notificationId = (int) System.currentTimeMillis(); // unique per notification
         notificationManager.notify(notificationId, builder.build());
     }
-
-
 }

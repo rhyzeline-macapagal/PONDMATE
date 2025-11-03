@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="64dp"
+    android:viewportWidth="48"
+    android:viewportHeight="64">
+
+    <!-- Funnel fill (same shape, but solid) -->
+    <path
+        android:fillColor="#D9C8A0"
+        android:pathData="M8,10 L40,10 L30,50 L18,50 Z"/>
+</vector>

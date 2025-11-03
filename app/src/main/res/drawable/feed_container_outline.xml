@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="64dp"
+    android:viewportWidth="48"
+    android:viewportHeight="64">
+
+    <!-- Funnel outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#00448D"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round"
+        android:pathData="M8,10 L40,10 L30,50 L18,50 Z"/>
+</vector>

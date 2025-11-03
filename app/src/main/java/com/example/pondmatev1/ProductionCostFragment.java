@@ -81,18 +81,18 @@ public class ProductionCostFragment extends Fragment {
     TextView tvBreed, tvCount, tvAmountPerPiece, tvTotalCost;
     TextView tvSummaryFingerlings, tvSummaryFeeds, tvSummaryMaintenance, tvSummaryTotal;
     TextView tvEstimatedRoI;
-    TextView tvSummarySalary;
+    TextView tvSummarySalary, tvSamplingFeedBreakdown;
+    LinearLayout LlMaintenanceBreakdown;
     private double salaryPerPond = 0.0;
 
     private double totalCost = 0.0;
     private String pondName = "";
     private String currentBreed = "";
     private int currentFishCount = 0;
-    Button btnDownload, btnFeedLogs, btnSampling, btnViewROIBreakdown;
+    Button btnFeedLogs, btnSampling, btnViewROIBreakdown;
     File generatedPdfFile;
     private int selectedCycleMonths = 6;
-    private String pondId; // place this at the top of the class
-
+    private String pondId;
 
     @Nullable
     @Override
@@ -143,6 +143,9 @@ public class ProductionCostFragment extends Fragment {
         tvEstimatedRoI = view.findViewById(R.id.tvEstimatedROI);
         btnViewROIBreakdown = view.findViewById(R.id.btnViewROIBreakdown);
 
+        tvSamplingFeedBreakdown = view.findViewById(R.id.tvSamplingFeedBreakdown);
+        LlMaintenanceBreakdown = view.findViewById(R.id.layoutMaintenanceBreakdown);
+
         computeEstimatedROI();
 
         btnSampling = view.findViewById(R.id.btnSampling);
@@ -177,6 +180,49 @@ public class ProductionCostFragment extends Fragment {
                                 Log.d("REPORT_DEBUG", "Report JSON: " + json.toString());
                                 // ✅ Standard report (no forced INACTIVE)
                                 json.put("action", "REPORT");
+
+                                // ✅ Ensure report + expenses section exists
+                                JSONObject report = json.optJSONObject("report");
+                                if (report == null) {
+                                    report = new JSONObject();
+                                    json.put("report", report);
+                                }
+
+                                JSONObject expenses = report.optJSONObject("expenses");
+                                if (expenses == null) {
+                                    expenses = new JSONObject();
+                                    report.put("expenses", expenses);
+                                }
+
+                                JSONObject fingerlings = new JSONObject();
+                                JSONArray fingerlingDetails = new JSONArray();
+                                JSONObject fingerlingEntry = new JSONObject();
+
+                                fingerlingEntry.put("description", tvBreed.getText().toString());
+                                fingerlingEntry.put("quantity", tvCount.getText().toString());
+                                fingerlingEntry.put("cost_per_unit", tvAmountPerPiece.getText().toString().replace("₱", ""));
+                                fingerlingEntry.put("amount", tvTotalCost.getText().toString().replace("₱", ""));
+                                fingerlingDetails.put(fingerlingEntry);
+
+                                fingerlings.put("details", fingerlingDetails);
+                                fingerlings.put("total_cost", tvTotalCost.getText().toString().replace("₱", ""));
+                                expenses.put("Fingerlings", fingerlings);
+
+                                JSONObject salarySection = new JSONObject();
+                                JSONArray salaryDetails = new JSONArray();
+                                JSONObject salaryEntry = new JSONObject();
+
+                                double monthlySalary = salaryPerPond; // already computed in fragment
+                                int months = selectedCycleMonths;
+                                double totalSalary = monthlySalary * months;
+
+                                salaryEntry.put("description", "Caretaker Salary (" + months + " months)");
+                                salaryEntry.put("amount", totalSalary);
+                                salaryDetails.put(salaryEntry);
+
+                                salarySection.put("details", salaryDetails);
+                                salarySection.put("total_cost", totalSalary);
+                                expenses.put("Salary", salarySection);
 
                                 File pdfFile = PondPDFGenerator.generatePDF(requireContext(), json, pondId);
                                 if (pdfFile != null && pdfFile.exists()) {
@@ -575,8 +621,14 @@ public class ProductionCostFragment extends Fragment {
                         requireActivity().runOnUiThread(() -> {
                             View view = getView();
                             if (view != null) {
-                                tvSummaryFeeds.setText("₱" + formatPrice(totalFeedCost));
-                                updateTotalCost(); // ✅ Recalculate production cost total
+                                tvSamplingFeedBreakdown.setText("₱" + formatPrice(blindFeed));
+
+                                // Accumulated Feed Cost from sampling cycles
+                                tvSummaryFeeds.setText("₱" + formatPrice(samplingFeed));
+
+                                // No total feed cost displayed anymore.
+
+                                updateTotalCost(); // keep this since other expenses still use it
                             }
                         });
                     }
@@ -656,10 +708,11 @@ public class ProductionCostFragment extends Fragment {
         if (!isAdded() || getContext() == null) return; // ✅ safe guard
 
         double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
-        double feeds = parseDouble(tvSummaryFeeds.getText().toString());
+        double blindFeed = parseDouble(tvSamplingFeedBreakdown.getText().toString()); // ✅ ADD THIS
+        double accumulatedFeed = parseDouble(tvSummaryFeeds.getText().toString());
         double maintenance = parseDouble(tvSummaryMaintenance.getText().toString());
 
-        totalCost = fingerlings + feeds + maintenance + salaryPerPond;
+        totalCost = fingerlings + blindFeed + accumulatedFeed + maintenance + salaryPerPond; // ✅ UPDATED
 
         tvSummaryTotal.setText("₱" + formatPrice(totalCost));
 
@@ -751,26 +804,87 @@ public class ProductionCostFragment extends Fragment {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder response = new StringBuilder();
                 String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);}
+                while ((line = reader.readLine()) != null) response.append(line);
                 reader.close();
 
-                String json = response.toString();
-                JSONObject obj = new JSONObject(json);
+                JSONObject obj = new JSONObject(response.toString());
 
                 if (obj.getString("status").equals("success")) {
+
                     double maintenanceCost = obj.getDouble("total_maintenance");
+                    JSONArray details = obj.optJSONArray("details");
 
                     requireActivity().runOnUiThread(() -> {
+
+                        // ✅ Show TOTAL cost only
                         tvSummaryMaintenance.setText("₱" + formatPrice(maintenanceCost));
 
-                        double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
-                        double feeds = parseDouble(tvSummaryFeeds.getText().toString());
+                        // ✅ Show breakdown separately
+                        StringBuilder breakdown = new StringBuilder();
+                        breakdown.append("Breakdown of Expenses:\n\n");
+
+                        if (details != null && details.length() > 0) {
+                            for (int i = 0; i < details.length(); i++) {
+                                JSONObject item = details.optJSONObject(i);
+                                breakdown.append("• ")
+                                        .append(item.optString("description", "-"))
+                                        .append(" — ₱")
+                                        .append(formatPrice(item.optDouble("amount", 0)))
+                                        .append("\n");
+                            }
+                        } else {
+                            breakdown.append("No maintenance expenses recorded.");
+                        }
+
+                        LlMaintenanceBreakdown.removeAllViews(); // Clear previous rows
+
+                        if (details != null && details.length() > 0) {
+                            for (int i = 0; i < details.length(); i++) {
+                                JSONObject d = details.optJSONObject(i);
+                                if (d == null) continue;
+
+                                String desc = d.optString("description", "-");
+                                double amt = d.optDouble("amount", 0);
+
+                                // Create a row
+                                LinearLayout row = new LinearLayout(requireContext());
+                                row.setOrientation(LinearLayout.HORIZONTAL);
+                                row.setPadding(12, 6, 12, 6);
+
+                                TextView tvDesc = new TextView(requireContext());
+                                tvDesc.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                                tvDesc.setText(desc);
+                                tvDesc.setTextSize(14);
+                                tvDesc.setTextColor(Color.parseColor("#424242"));
+
+                                TextView tvAmt = new TextView(requireContext());
+                                tvAmt.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                                tvAmt.setText("₱" + formatPrice(amt));
+                                tvAmt.setTextSize(14);
+                                tvAmt.setTextColor(Color.parseColor("#424242"));
+                                tvAmt.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
+
+                                row.addView(tvDesc);
+                                row.addView(tvAmt);
+                                LlMaintenanceBreakdown.addView(row);
+                            }
+                        } else {
+                            TextView empty = new TextView(requireContext());
+                            empty.setText("No maintenance records.");
+                            empty.setTextSize(14);
+                            empty.setPadding(12, 6, 12, 6);
+                            LlMaintenanceBreakdown.addView(empty);
+                        }
+
+                        // ✅ Recompute final total
+                        double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString().replace("₱",""));
+                        double feeds = parseDouble(tvSummaryFeeds.getText().toString().replace("₱",""));
                         double total = fingerlings + feeds + maintenanceCost;
 
                         tvSummaryTotal.setText("₱" + formatPrice(total));
                     });
                 }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -792,7 +906,7 @@ public class ProductionCostFragment extends Fragment {
         Button btnCancel = dialogView.findViewById(R.id.btnCancelMaintenance);
         TextView btnClose = dialogView.findViewById(R.id.btnClose);
 
-        List<String> types = Arrays.asList("Supplies & Material", "Repairs & Maintenance", "Salaries", "Miscellaneous Expenses", "Labor", "Others");
+        List<String> types = Arrays.asList("Supplies & Material", "Repairs & Maintenance", "Miscellaneous Expenses", "Labor", "Others");
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, types);
         spinnerType.setAdapter(adapter);
 
@@ -824,8 +938,8 @@ public class ProductionCostFragment extends Fragment {
                 return;}
 
             new AlertDialog.Builder(requireContext())
-                    .setTitle("Confirm Maintenance")
-                    .setMessage("Are you sure you want to add this maintenance?\n\n" +
+                    .setTitle("Confirm Expenses")
+                    .setMessage("Are you sure you want to add this Expenses?\n\n" +
                             "Pond: " + pondName + "\n" +
                             "Type: " + description + "\n" +
                             "Cost: ₱" + amount)
@@ -835,7 +949,7 @@ public class ProductionCostFragment extends Fragment {
                             public void onSuccess(Object result) {
                                 requireActivity().runOnUiThread(() -> {
                                     Toast.makeText(requireContext(),
-                                            "Maintenance added for " + pondName + ": " + description + " ₱" + amount,
+                                            "Expense added for " + pondName + ": " + description + " ₱" + amount,
                                             Toast.LENGTH_SHORT).show();
                                     loadMaintenanceTotal();
                                 });
@@ -844,7 +958,7 @@ public class ProductionCostFragment extends Fragment {
                             public void onError(String error) {
                                 requireActivity().runOnUiThread(() -> {
                                     Toast.makeText(requireContext(),
-                                            "Error uploading maintenance: " + error,
+                                            "Error uploading expenses: " + error,
                                             Toast.LENGTH_SHORT).show();
                                 });
                             }
@@ -1002,7 +1116,7 @@ public class ProductionCostFragment extends Fragment {
         addRow(table, "Misc. Expenses:", formatPeso(b.misc));
         addRow(table, "Harvesting (2%):", formatPeso(b.harvesting));
         addRow(table, "Caretaker Incentives (5%):", formatPeso(b.caretaker));
-        addRow(table, "Maintenance (2%):", formatPeso(b.maintenance));
+        addRow(table, "Other Expenses (2%):", formatPeso(b.maintenance));
 
         addSpacer(table);
         addHeader(table, "VARIABLE COSTS");
