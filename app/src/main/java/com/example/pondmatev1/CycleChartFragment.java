@@ -68,18 +68,21 @@ public class CycleChartFragment extends Fragment {
                     ponds.add(response.getJSONObject(i));
                 }
 
-                requireActivity().runOnUiThread(() -> {
-                    progressBarChart.setVisibility(View.GONE);
-                    if (ponds.isEmpty()) {
-                        noDataText.setVisibility(View.VISIBLE);
-                    } else {
-                        setupRecyclerView();
-                    }
-                });
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        progressBarChart.setVisibility(View.GONE);
+                        if (ponds.isEmpty()) {
+                            noDataText.setVisibility(View.VISIBLE);
+                        } else {
+                            setupRecyclerView();
+                        }
+                    });
+                }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                showError("Failed to fetch ponds");
+                // ✅ Only show error if fragment still alive
+                if (isAdded()) showError("Failed to fetch ponds");
             } finally {
                 if (conn != null) conn.disconnect();
             }

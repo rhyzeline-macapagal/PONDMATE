@@ -3,6 +3,7 @@ package com.example.pondmatev1;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -94,7 +95,6 @@ public class PondInfoFragment extends Fragment {
             tvMortalityRate.setText("Not yet added");
         }
 
-        // ✅ Save pond data for ROI computation
         try {
             SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
@@ -104,9 +104,6 @@ public class PondInfoFragment extends Fragment {
             editor.putFloat("pond_area", (float) pond.getPondArea());
             editor.putInt("pond_fingerlings", pond.getFishCount());
             editor.putFloat("pond_mortality_rate", (float) pond.getMortalityRate());
-
-            // Optional: if you’re tracking culture period later, save it too
-            // editor.putString("pond_culture_period", pond.getCulturePeriod());
 
             editor.apply();
         } catch (Exception e) {
@@ -119,29 +116,38 @@ public class PondInfoFragment extends Fragment {
         btnEdit.setVisibility("owner".equalsIgnoreCase(userType) ? View.VISIBLE : View.GONE);
 
         btnEdit.setOnClickListener(v -> {
-            ResetPondDialogFragment dialog = new ResetPondDialogFragment();
-            dialog.setPond(pond);
-            dialog.setOnPondResetListener(updatedPond -> {
+            if (pond == null) {
+                Toast.makeText(getContext(), "Pond data not loaded yet", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            EditPondDialog dialog = new EditPondDialog(pond, updatedPond -> {
+
                 pond = updatedPond;
                 displayPondData(updatedPond);
 
-                PondSyncManager.uploadPondToServer(requireContext(),updatedPond, "", new PondSyncManager.Callback() {
+                SharedPreferences prefs = requireContext()
+                        .getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                prefs.edit().putString("selected_pond", new Gson().toJson(updatedPond)).apply();
+
+                PondSyncManager.updatePondToServer(requireContext(), updatedPond, "", new PondSyncManager.Callback() {
                     @Override
                     public void onSuccess(Object result) {
                         Toast.makeText(getContext(), "Pond updated successfully!", Toast.LENGTH_SHORT).show();
                     }
+
                     @Override
                     public void onError(String error) {
                         Toast.makeText(getContext(), "Failed to update pond: " + error, Toast.LENGTH_LONG).show();
+                        Log.d("Pond Edit", error);
                     }
                 });
-
-                SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-                prefs.edit().putString("selected_pond", new Gson().toJson(updatedPond)).apply();
             });
-            dialog.show(getParentFragmentManager(), "ResetPondDialog");
+
+            dialog.show(getParentFragmentManager(), "EditPondDialog");
         });
     }
+
 
     private String notEmpty(String value) {
         if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {

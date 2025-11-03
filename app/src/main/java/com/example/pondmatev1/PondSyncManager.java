@@ -613,6 +613,66 @@ public class PondSyncManager {
         }).start();
     }
 
+    public static void updatePondToServer(Context context, PondModel pond, String serverUrl, Callback callback) {
+        new Thread(() -> {
+            try {
+                // ✅ Change this to your actual PHP endpoint
+                String url = serverUrl.isEmpty()
+                        ? "https://pondmate.alwaysdata.net/update_pond.php"
+                        : serverUrl;
+
+                URL endpoint = new URL(url);
+                HttpURLConnection conn = (HttpURLConnection) endpoint.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                // Prepare POST data
+                String postData = "name=" + URLEncoder.encode(pond.getName(), "UTF-8") +
+                        "&species=" + URLEncoder.encode(pond.getBreed(), "UTF-8") +
+                        "&fish_count=" + pond.getFishCount() +
+                        "&cost_per_fish=" + pond.getCostPerFish() +
+                        "&pond_area=" + pond.getPondArea() +
+                        "&mortality_rate=" + pond.getMortalityRate() +
+                        "&date_created=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
+                        "&date_stocked=" + URLEncoder.encode(pond.getDateStocking(), "UTF-8") +
+                        "&estimated_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8") +
+                        "&assigned_caretakers=" + URLEncoder.encode(pond.getCaretakers(), "UTF-8");
+
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+
+                int responseCode = conn.getResponseCode();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(
+                        responseCode == 200 ? conn.getInputStream() : conn.getErrorStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) response.append(line);
+                reader.close();
+
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (callback != null) {
+                        if (responseCode == 200) {
+                            callback.onSuccess(response.toString());
+                        } else {
+                            callback.onError("Server error: " + response);
+                        }
+                    }
+                });
+
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (callback != null) callback.onError(e.getMessage());
+                });
+            }
+        }).start();
+    }
+
+
     public static void updatePondDetails(PondModel pond, Callback callback) {
         new Thread(() -> {
             try {
