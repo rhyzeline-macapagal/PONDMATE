@@ -91,6 +91,8 @@
         <receiver
             android:name=".FeedingReminderReceiver"
             android:exported="true" />
+
+
     </application>
 
 </manifest>
