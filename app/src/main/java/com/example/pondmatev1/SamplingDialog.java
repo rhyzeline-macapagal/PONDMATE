@@ -261,26 +261,25 @@ public class SamplingDialog extends DialogFragment {
             return;
         }
 
-        // DFR value in grams (e.g., "0.45 g")
+        // ✅ Get TOTAL DFR per day (not per feeding)
         String dfrText = tvDFRResult.getText().toString().replace(" g", "").trim();
         double dfrGrams = parseDouble(dfrText);
 
-        // Convert grams → kg
-        double dfrKg = dfrGrams / 1000.0;
+        // ✅ Convert grams → kilograms
+        double dfrKgPerDay = dfrGrams / 1000.0;
 
-        double dailyCost = dfrKg * currentPricePerKg;
+        // ✅ Compute daily feed cost
+        double dailyCost = dfrKgPerDay * currentPricePerKg;
 
-        // Display
+        // ✅ Display formatted
         tvFeedCost.setText("₱" + String.format(Locale.getDefault(), "%.2f", dailyCost));
 
         Log.d(TAG, "updateFeedCost — DFR(g)=" + dfrGrams +
-                ", DFR(kg)=" + dfrKg +
+                ", DFR(kg/day)=" + dfrKgPerDay +
                 ", price/kg=" + currentPricePerKg +
-                ", cost/day=" + dailyCost);
+                ", dailyCost=" + dailyCost);
     }
-    // -------------------------
-    // Validation and save (unchanged logic aside from small null-safety)
-    // -------------------------
+
     private void validateAndSave() {
         String sampledWeight = etSampledWeight.getText().toString().trim();
         String numSamples = etNumSamples.getText().toString().trim();
@@ -340,7 +339,7 @@ public class SamplingDialog extends DialogFragment {
         double feedingRate = parseDouble(etFeedingRate.getText().toString());
         double survivalRate = parseDouble(tvSurvivalRate.getText().toString().replace("%", ""));
         double dfr = parseDouble(tvDFRResult.getText().toString().replace(" g", ""));
-        double dfrFeed = parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""));
+        double dfrFeed = parseDouble(tvDFRResult.getText().toString().replace(" g", ""));
         double dailyFeedCost = parseDouble(tvFeedCost.getText().toString().replace("₱", "").trim());
 
 
