@@ -25,6 +25,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -186,12 +191,18 @@ public class ControlsFeeder extends Fragment {
 
             Log.d(TAG, "✅ USER CONFIRMED STORE FEEDS | pondId=" + pondId + " | amount=" + addedFeed + "g");
 
-            // Store feed in SharedPrefs-based container
+            // 1) Add feed locally
             FeedStorage.addFeed(requireContext(), pondId, addedFeed);
 
-            // ✅ NEW — Log feed action to history storage
-            FeedStorage.logFeedAction(requireContext(), pondId, addedFeed, "STORE");
+            // 2) Get accurate updated remaining feed
+            float remainingAfter = FeedStorage.getRemainingFeed(requireContext(), pondId);
 
+            // 3) Log & Sync ONE TIME with correct remaining value
+            FeedStorage.logFeedAction(requireContext(), pondId, addedFeed, "STORE", remainingAfter);
+            FeedStorage.sendLogToServer(requireContext(), pondId, addedFeed, "STORE", remainingAfter);
+            FeedStorage.sendRemainingToServer(requireContext(), pondId, remainingAfter);
+
+            // 4) Refresh UI & notify components
             refreshFeedUI();
             loadFeedHistory();
             LocalBroadcastManager.getInstance(requireContext())
@@ -209,6 +220,7 @@ public class ControlsFeeder extends Fragment {
     }
 
 
+
     private void updateRemainingFeedDisplay() {
         float remaining = FeedStorage.getRemainingFeed(requireContext(), pondId);
         Log.d(TAG, "📦 Remaining feed updated → " + remaining + "g");
@@ -223,15 +235,67 @@ public class ControlsFeeder extends Fragment {
     private void syncFeedingTimesToESP(String baseUrl) {}
 
     private void loadFeedHistory() {
-        SharedPreferences prefs = requireContext().getSharedPreferences("FeedHistory_" + pondId, Context.MODE_PRIVATE);
-        Set<String> logs = prefs.getStringSet("records", new HashSet<>());
+        if (pondId == null || pondId.isEmpty()) {
+            Log.e("FEED_HISTORY", "❌ pondId is NULL — cannot load logs.");
+            return;
+        }
 
-        List<String> sortedLogs = new ArrayList<>(logs);
-        Collections.sort(sortedLogs, Collections.reverseOrder()); // newest first
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_feed_storage_logs.php?pond_id=" + pondId);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
 
-        RecyclerView logRecycler = rootView.findViewById(R.id.feedLogRecycler);
-        logRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
-        logRecycler.setAdapter(new FeedLogAdapter(requireContext(), sortedLogs));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                Log.d("FEED_HISTORY", "🌐 Server Response: " + response);
+
+                JSONArray jsonArray = new JSONArray(response.toString());
+                List<String> data = new ArrayList<>();
+
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject obj = jsonArray.getJSONObject(i);
+
+                    String action = obj.getString("action_type");  // STORE or DEDUCT
+                    String amount = obj.getString("amount");
+                    String remaining = obj.getString("remaining_after");
+                    String date = obj.getString("created_at");
+
+                    String entry;
+
+                    if (action.equalsIgnoreCase("STORE")) {
+                        entry = "Stored " + amount + "g"
+                                + " | Remaining: " + remaining + "g\n"
+                                + date;
+                    } else { // DEDUCT
+                        entry = "Deducted " + amount + "g"
+                                + " | Remaining: " + remaining + "g\n"
+                                + date;
+                    }
+
+                    data.add(entry);
+                }
+
+                requireActivity().runOnUiThread(() -> {
+                    RecyclerView logRecycler = rootView.findViewById(R.id.feedLogRecycler);
+                    logRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+                    logRecycler.setAdapter(new FeedLogAdapter(requireContext(), data));
+
+                    Log.d("FEED_HISTORY", "✅ Displayed " + data.size() + " logs.");
+                });
+
+            } catch (Exception e) {
+                Log.e("FEED_HISTORY", "❌ Error: " + e.getMessage());
+            }
+        }).start();
     }
+
 
 }
