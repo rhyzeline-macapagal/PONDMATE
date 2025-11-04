@@ -23,15 +23,7 @@
             android:layout_marginBottom="2dp"
             android:layout_gravity="center" />
 
-        <TextView
-            android:id="@+id/tvScheduleDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Date: "
-            android:textColor="#666666"
-            android:textSize="12sp"
-            android:layout_gravity="center"
-            android:layout_marginBottom="8dp" />
+
 
         <!-- Pond & Fish Info Card -->
         <!-- Pond & Fish Info Card -->

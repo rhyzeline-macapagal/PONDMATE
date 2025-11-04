@@ -1,59 +1,94 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/pondCard"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_marginEnd="8dp"
     app:cardCornerRadius="8dp"
-    app:cardElevation="6dp"
-    android:layout_marginEnd="8dp">
+    app:cardElevation="6dp">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
-        android:padding="2dp">
+        android:layout_height="match_parent">
 
-        <FrameLayout
-            android:layout_width="178dp"
-            android:layout_height="100dp">
+        <!-- Main content -->
+        <LinearLayout
+            android:id="@+id/pondContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:padding="2dp">
+
+            <FrameLayout
+                android:layout_width="178dp"
+                android:layout_height="100dp">
+
+                <ImageView
+                    android:id="@+id/pondImage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:background="@drawable/bgvector"
+                    android:src="@drawable/ic_addpond"
+                    android:clipToOutline="true" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/pondName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Pond Name"
+                android:textColor="#01082D"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:visibility="gone"
+                android:layout_marginTop="4dp"
+                android:paddingHorizontal="4dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:lineSpacingExtra="2dp" />
 
             <ImageView
-                android:id="@+id/pondImage"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:background="@drawable/bgvector"
-                android:src="@drawable/ic_addpond"
-                android:clipToOutline="true" />
+                android:id="@+id/stopIcon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="top|end"
+                android:src="@drawable/ic_stop"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:visibility="gone" />
 
+        </LinearLayout>
+
+        <!-- Lock overlay (visible only if pond is harvested/inactive) -->
+        <FrameLayout
+            android:id="@+id/lockOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#88000000"
+            android:visibility="gone"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/lockIcon"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_lock"
+                android:alpha="0.9"
+                app:tint="#FFFFFF" />
+
+            <TextView
+                android:id="@+id/lockedText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Harvested"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:layout_gravity="center|bottom"
+                android:layout_marginBottom="8dp"/>
         </FrameLayout>
 
-        <TextView
-            android:id="@+id/pondName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Pond Name"
-            android:textColor="#01082D"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:visibility="gone"
-            android:layout_marginTop="4dp"
-            android:paddingHorizontal="4dp"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:lineSpacingExtra="2dp"/>
-
-        <ImageView
-            android:id="@+id/stopIcon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="top|end"
-            android:src="@drawable/ic_stop"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:visibility="gone" />
-
-
-    </LinearLayout>
+    </FrameLayout>
 </androidx.cardview.widget.CardView>

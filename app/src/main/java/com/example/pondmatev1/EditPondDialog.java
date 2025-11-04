@@ -69,11 +69,12 @@ public class EditPondDialog extends DialogFragment {
         View view = inflater.inflate(R.layout.dialog_edit_pond, null);
 
         initViews(view);
-        populateFields();
         setupSpeciesSpinner();
+        populateFields();
         setupTextWatchers();
         setupCaretakerButton();
         setupDatePickers();
+
 
         btnClose.setOnClickListener(v -> dismiss());
         btnCancel.setOnClickListener(v -> dismiss());
@@ -154,12 +155,15 @@ public class EditPondDialog extends DialogFragment {
         selectedCaretakerIds.clear();
 
         if (pond.getCaretakerName() != null && !pond.getCaretakerName().isEmpty()) {
+            Log.d(TAG, "Raw caretakerName from pond: " + pond.getCaretakerName());
             String[] ids = pond.getCaretakerName().split(",");
             for (String id : ids) {
                 selectedCaretakerIds.add(id.trim());
             }
+            Log.d(TAG, "Parsed selectedCaretakerIds: " + selectedCaretakerIds);
         }
 
+        Log.d(TAG, "Calling refreshCaretakerChips() after populateCaretakerIds()");
         refreshCaretakerChips();
     }
 
@@ -497,6 +501,7 @@ public class EditPondDialog extends DialogFragment {
 
         if (!checkStockingDensity()) {
             return false;
+
         }
 
         return true;
@@ -682,26 +687,27 @@ public class EditPondDialog extends DialogFragment {
 
 
     private void refreshCaretakerChips() {
+        Log.d(TAG, "refreshCaretakerChips() called");
+        Log.d(TAG, "caretakerNames: " + caretakerNames);
+        Log.d(TAG, "selectedCaretakerIds (actually names): " + selectedCaretakerIds);
+
         caretakerChipContainer.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(getContext());
 
-        for (String caretakerId : selectedCaretakerIds) {
-            int index = caretakerIds.indexOf(caretakerId);
-            if (index < 0) continue;
-            String name = caretakerNames.get(index);
-
+        for (String name : selectedCaretakerIds) {
             View chip = inflater.inflate(R.layout.item_caretaker_chip, caretakerChipContainer, false);
             TextView tvName = chip.findViewById(R.id.tvCaretakerName);
             TextView btnRemove = chip.findViewById(R.id.btnRemoveChip);
             tvName.setText(name);
 
             btnRemove.setOnClickListener(v -> {
-                selectedCaretakerIds.remove(caretakerId);
+                selectedCaretakerIds.remove(name);
                 refreshCaretakerChips();
             });
             caretakerChipContainer.addView(chip);
         }
     }
+
 
     private void setupCaretakerButton() {
         loadCaretakersFromServer(); // no parameter
@@ -732,6 +738,15 @@ public class EditPondDialog extends DialogFragment {
                     caretakerNames.add(obj.getString("fullname"));
                     caretakerIds.add(obj.getString("id"));
                 }
+
+// 🟩 Once caretakers are loaded, re-populate selected IDs and refresh chips
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        populateCaretakerIds(); // 🔹 now we can map IDs to names
+                        refreshCaretakerChips();
+                    });
+                }
+
 
                 if (isAdded() && getActivity() != null && btnSelectCaretakers != null) {
                     getActivity().runOnUiThread(() -> {

@@ -322,11 +322,10 @@ public class PondDashboardActivity extends AppCompatActivity{
             }
         }).start();
     }
-
     private void showLoadingDialog() {
         runOnUiThread(() -> {
             if (loadingDialog != null && loadingDialog.isShowing()) {
-                return; // already showing, don’t recreate
+                return;
             }
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);

@@ -13,7 +13,9 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -32,6 +34,9 @@ import androidx.work.WorkManager;
 import com.google.gson.Gson;
 import com.nafis.bottomnavigation.NafisBottomNavigation;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
@@ -147,6 +152,23 @@ public class MainActivity extends AppCompatActivity {
             dialog.show();
         });
 
+        String pondName = getIntent().getStringExtra("pond_name");
+        String dateHarvest = getIntent().getStringExtra("date_harvest");
+
+        if (dateHarvest != null && !dateHarvest.isEmpty()) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date harvestDate = sdf.parse(dateHarvest);
+                Date today = new Date();
+
+                if (harvestDate != null && !today.before(harvestDate)) {
+                    showHarvestDialog(pondName);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
 
 
         bottomNavigation = findViewById(R.id.bottomNavigation);
@@ -227,6 +249,91 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        try {
+            if (isFinishing() || isDestroyed()) return;
+
+            String dateHarvest = getIntent().getStringExtra("date_harvest");
+            if (dateHarvest == null || dateHarvest.isEmpty()) return;
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+            Date harvestDate = sdf.parse(dateHarvest);
+            Date today = new Date();
+
+            if (harvestDate != null && !today.before(harvestDate)) {
+                SharedPreferences prefs = getSharedPreferences("POND_PREF", MODE_PRIVATE);
+                String pondJson = prefs.getString("selected_pond", "");
+                if (pondJson == null || pondJson.isEmpty()) return;
+
+                PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+                if (pond != null) {
+                    boolean alreadyHarvested = prefs.getBoolean("harvest_done_" + pond.getId(), false);
+                    if (!alreadyHarvested) {
+                        com.example.pondmatev1.helpers.PondActionHelper.harvestPond(this, pond, false);
+                        prefs.edit().putBoolean("harvest_done_" + pond.getId(), true).apply();
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    private void showHarvestDialog(String pondName) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_harvest_pond, null);
+        builder.setView(view);
+
+        // 🔒 Make dialog non-cancelable (can't close with back or outside tap)
+        builder.setCancelable(false);
+        AlertDialog dialog = builder.create();
+        dialog.setCanceledOnTouchOutside(false);
+
+        TextView title = view.findViewById(R.id.tvHarvestTitle);
+        TextView message = view.findViewById(R.id.tvHarvestMessage);
+        Button btnHarvest = view.findViewById(R.id.btnHarvestNow);
+        TextView btnLater = view.findViewById(R.id.btnClose);
+
+        // ✏️ Set message
+        message.setText("Pond \"" + pondName + "\" has reached its harvest date. You must harvest it to continue.");
+
+        // ✅ Force harvest
+        btnHarvest.setOnClickListener(v -> {
+            dialog.dismiss();
+
+            // Load pond from SharedPreferences
+            PondModel pond = new Gson().fromJson(
+                    getSharedPreferences("POND_PREF", MODE_PRIVATE).getString("selected_pond", ""),
+                    PondModel.class
+            );
+
+            if (pond != null) {
+                com.example.pondmatev1.helpers.PondActionHelper.harvestPond(this, pond, false);
+            } else {
+                Toast.makeText(this, "Error: No pond data found", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // 🚫 Remove “Later” / “Close” option completely
+        btnLater.setVisibility(View.GONE);
+
+        // 🪟 Style
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        // Show the dialog
+        dialog.show();
+    }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {

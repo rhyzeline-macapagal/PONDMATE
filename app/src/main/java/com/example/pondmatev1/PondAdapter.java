@@ -3,6 +3,7 @@ package com.example.pondmatev1;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.*;
@@ -21,7 +22,11 @@ import androidx.appcompat.app.AlertDialog;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
+
 import android.content.SharedPreferences;
 import com.google.gson.Gson;
 
@@ -97,6 +102,29 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         holder.pondName.setText(pond.getName());
         holder.pondName.setVisibility(View.VISIBLE);
         holder.itemView.setVisibility(View.VISIBLE);
+
+        // ✅ Highlight card green if it's harvest day or past harvest date
+        try {
+            if (pond.getDateHarvest() != null && !pond.getDateHarvest().isEmpty()) {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                Date harvestDate = sdf.parse(pond.getDateHarvest());
+                Date today = new Date();
+
+                if (harvestDate != null && !today.before(harvestDate)) {
+                    // It's harvest day or later → make background green
+                    holder.itemView.setBackgroundColor(Color.parseColor("#C8E6C9")); // light green
+                } else {
+                    // Not harvest day yet → normal background
+                    holder.itemView.setBackgroundColor(Color.WHITE);
+                }
+            } else {
+                // No harvest date set
+                holder.itemView.setBackgroundColor(Color.WHITE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            holder.itemView.setBackgroundColor(Color.WHITE);
+        }
 
         if ("owner".equalsIgnoreCase(userType)) {
             holder.stopIcon.setVisibility(View.VISIBLE);

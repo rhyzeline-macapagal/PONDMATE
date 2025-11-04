@@ -139,7 +139,6 @@ public class PondInfoFragment extends Fragment {
                     @Override
                     public void onError(String error) {
                         Toast.makeText(getContext(), "Failed to update pond: " + error, Toast.LENGTH_LONG).show();
-                        Log.d("Pond Edit", error);
                     }
                 });
             });

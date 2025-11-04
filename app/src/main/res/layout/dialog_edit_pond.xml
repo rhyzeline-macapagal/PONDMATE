@@ -10,7 +10,7 @@
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="500dp"
         android:layout_gravity="center"
         android:background="@drawable/rounded_dialog_bg"
         android:minWidth="320dp"
@@ -125,6 +125,17 @@
                                 android:text="Fish Breed"
                                 android:textColor="#01082D"
                                 android:textSize="13sp" />
+
+                            <Spinner
+                                android:id="@+id/spinnerSpecies"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:background="@drawable/textbox_background"
+                                android:spinnerMode="dropdown"
+                                android:gravity="center"
+                                android:padding="6dp"
+                                android:popupBackground="@android:color/white"
+                                android:textAlignment="center" />
 
                         </LinearLayout>
 
@@ -288,7 +299,7 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Grow-out Start Date"
+                        android:text="Grow-out Start"
                         android:textColor="#01082D"
                         android:textSize="12sp" />
 
@@ -297,7 +308,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
                         android:background="@drawable/textbox_background"
-                        android:hint="Select date created"
+                        android:hint="Select grow-start date"
                         android:focusable="false"
                         android:clickable="true"
                         android:gravity="center"

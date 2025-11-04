@@ -331,42 +331,9 @@ public class ProductionCostFragment extends Fragment {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             pondName = pond.getName();
         }
-        TextView feederTypeTv = view.findViewById(R.id.feedtypefeeders);
-
-        if (pondName != null) {
-            PondSyncManager.fetchFeederTypeByName(pondName, new PondSyncManager.Callback() {
-                @Override
-                public void onSuccess(Object result) {
-                    if (getActivity() == null) return; // prevent crash if fragment detached
-                    requireActivity().runOnUiThread(() -> {
-                        try {
-                            JSONObject json = (JSONObject) result;
-                            String feederType = json.optString("feeder_type", "N/A");
-                            int pondAgeDays = json.optInt("pond_age_days", 0);
-
-                            feederTypeTv.setText(feederType);
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Toast.makeText(requireContext(), "Parse error", Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                }
-
-                @Override
-                public void onError(String error) {
-                    if (getActivity() == null) return;
-                    requireActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "Error: " + error, Toast.LENGTH_SHORT).show()
-                    );
-                }
-            });
-        } else {
-            Toast.makeText(requireContext(), "No pond name provided", Toast.LENGTH_SHORT).show();
-        }
 
         if (!pondName.isEmpty()) {
-            SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+            SharedPreferences sp =  requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
             float savedEstimatedROI = sp.getFloat(pondName + "_roi_diff", -1f);
 
             if (savedEstimatedROI != -1f) {

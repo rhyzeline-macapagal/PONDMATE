@@ -1089,69 +1089,7 @@ public class PondSyncManager {
         }).start();
     }
 
-    public static void fetchFeederTypeByName(String pondName, Callback callback) {
-        new Thread(() -> {
-            HttpURLConnection conn = null;
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/get_feeder_type.php");
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-                conn.setDoOutput(true);
-                conn.setDoInput(true);
 
-                // 🔹 Send pond_name as form-data
-                String postData = "pond_name=" + URLEncoder.encode(pondName, "UTF-8");
-                OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes("UTF-8"));
-                os.flush();
-                os.close();
-
-                // 🔹 Read response
-                int responseCode = conn.getResponseCode();
-                InputStream is = (responseCode == 200) ? conn.getInputStream() : conn.getErrorStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line);
-                }
-                reader.close();
-
-                String response = sb.toString();
-                Log.d("Feedertype", "Code: " + responseCode + " | Body: " + response);
-
-                if (callback != null) {
-                    try {
-                        JSONObject jsonResponse = new JSONObject(response);
-                        if ("success".equalsIgnoreCase(jsonResponse.optString("status"))) {
-                            JSONObject pondObj = jsonResponse.getJSONObject("pond");
-
-                            // Extract fields
-                            String feederType = pondObj.optString("feeder_type", "N/A");
-                            int pondAgeDays = pondObj.optInt("pond_age_days", 0);
-
-                            JSONObject resultObj = new JSONObject();
-                            resultObj.put("feeder_type", feederType);
-                            resultObj.put("pond_age_days", pondAgeDays);
-
-                            callback.onSuccess(resultObj);
-                        } else {
-                            callback.onError("Server error: " + jsonResponse.optString("message"));
-                        }
-                    } catch (Exception parseEx) {
-                        callback.onError("Parse error: " + parseEx.getMessage() + "\nResponse: " + response);
-                    }
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                if (callback != null) callback.onError("Request error: " + e.getMessage());
-            } finally {
-                if (conn != null) conn.disconnect();
-            }
-        }).start();
-    }
 
     public interface OnDataSyncListener {
         void onSuccess(String response);
