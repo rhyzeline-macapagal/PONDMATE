@@ -140,9 +140,16 @@ public class PondDashboardActivity extends AppCompatActivity{
             dialog.show(getSupportFragmentManager(), "UserProfileDialog");
         });
 
-        ImageView notificationIcon = findViewById(R.id.notificationIcon); notificationIcon.setOnClickListener(v ->
-        { Toast.makeText(this, "Notification clicked!", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, NotificationActivity.class)); });
+        ImageView notificationIcon = findViewById(R.id.notificationIcon);
+        notificationIcon.setOnClickListener(v -> {
+            // Debug toast
+            Toast.makeText(this, "Notification clicked!", Toast.LENGTH_SHORT).show();
+
+            // Start NotificationActivity safely
+            Intent intent = new Intent(this, NotificationActivity.class);
+            startActivity(intent);
+        });
+
 
 
         pondRecyclerView = findViewById(R.id.pondRecyclerView);

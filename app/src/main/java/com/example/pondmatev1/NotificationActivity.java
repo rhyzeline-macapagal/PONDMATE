@@ -1,242 +1,176 @@
 package com.example.pondmatev1;
 
-import android.content.Intent;
-import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.widget.ImageButton;
+import android.os.Handler;
+import android.view.Gravity;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.ItemTouchHelper;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
 
 public class NotificationActivity extends AppCompatActivity {
 
-    private RecyclerView recyclerView;
-    private NotificationAdapter adapter;
-    private ArrayList<NotificationModel> notifList;
+    private LinearLayout notificationLayout;
+    private final Handler handler = new Handler();
+    private int lastNotifId = 0;
+    private static final int REFRESH_INTERVAL = 5000; // 5 seconds
+    private static final String NOTIF_URL = "https://pondmate.alwaysdata.net/get_notifications.php";
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_notification);
 
-        recyclerView = findViewById(R.id.notificationRecyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        notificationLayout = findViewById(R.id.notificationLayout);
 
-        // Close button
-        ImageButton btnClose = findViewById(R.id.btnClose);
-        btnClose.setOnClickListener(v -> finish());
+        // Load stored notifications first
+        ArrayList<NotificationStore.NotificationItem> saved = NotificationStore.getNotifications(this);
+        displayNotifications(saved);
+        fetchNewNotifications(); // immediately fetch latest on open
 
-        loadNotifications();
 
-        // Swipe to delete (items only, not headers)
-        ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0,
-                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-            @Override
-            public boolean onMove(RecyclerView recyclerView,
-                                  RecyclerView.ViewHolder viewHolder,
-                                  RecyclerView.ViewHolder target) {
-                return false;
-            }
-
-            @Override
-            public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-                // 🚫 disable swipe if header
-                if (viewHolder.getItemViewType() == NotificationAdapter.TYPE_HEADER) {
-                    return 0;
-                }
-                return super.getSwipeDirs(recyclerView, viewHolder);
-            }
-
-            @Override
-            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-                int position = viewHolder.getAdapterPosition();
-                NotificationModel removed = notifList.get(position);
-                notifList.remove(position);
-                adapter.notifyItemRemoved(position);
-
-                // Remove from SharedPreferences
-                SharedPreferences prefs = getSharedPreferences("notifications", MODE_PRIVATE);
-                Set<String> notifications = new HashSet<>(prefs.getStringSet("notif_list", new HashSet<>()));
-                notifications.remove(removed.toString());
-                prefs.edit().putStringSet("notif_list", notifications).apply();
-            }
-        };
-        new ItemTouchHelper(simpleCallback).attachToRecyclerView(recyclerView);
-    }
-
-    private void loadNotifications() {
-        SharedPreferences prefs = getSharedPreferences("notifications", MODE_PRIVATE);
-        Set<String> notifications = prefs.getStringSet("notif_list", new HashSet<>());
-
-        ArrayList<NotificationModel> allNotifications = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss zzz yyyy", Locale.US);
-
-        for (String notif : notifications) {
-            // Calendar activity format: PondName|ActivityName|Date
-            if (notif.contains("|")) {
-                String[] parts = notif.split("\\|");
-                if (parts.length == 3) {
-                    String pondName = parts[0];
-                    String title = parts[1];
-                    String date = parts[2];
-                    allNotifications.add(new NotificationModel(pondName, title, date));
-                    continue;
-                }
-            }
-
-            // Otherwise, parse Title - Message (Date)
-            int dateStart = notif.lastIndexOf('(');
-            int dateEnd = notif.lastIndexOf(')');
-            if (dateStart != -1 && dateEnd != -1) {
-                String titleAndMessage = notif.substring(0, dateStart - 1);
-                String dateStr = notif.substring(dateStart + 1, dateEnd);
-                String[] parts = titleAndMessage.split(" - ", 2);
-                String title = parts.length > 0 ? parts[0] : "";
-                String pondName = parts.length > 1 ? parts[1] : "";
-                allNotifications.add(new NotificationModel(pondName, title, dateStr));
-            }
+        // Get last saved notification ID (if any)
+        if (!saved.isEmpty()) {
+            lastNotifId = getLastSavedId(saved);
         }
 
-        // Sort by date descending
-        Collections.sort(allNotifications, (a, b) -> {
+        // Start real-time updates
+        startNotificationUpdates();
+    }
+
+    private void startNotificationUpdates() {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                fetchNewNotifications();
+                handler.postDelayed(this, REFRESH_INTERVAL);
+            }
+        }, 1000);
+    }
+
+    private void fetchNewNotifications() {
+        new Thread(() -> {
             try {
-                Date d1 = sdf.parse(a.date);
-                Date d2 = sdf.parse(b.date);
-                return d2.compareTo(d1);
-            } catch (ParseException e) {
-                return b.date.compareTo(a.date);
+                URL url = new URL(NOTIF_URL + "?after_id=" + lastNotifId);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) response.append(line);
+                reader.close();
+
+                JSONObject json = new JSONObject(response.toString());
+                if (json.getString("status").equals("success")) {
+                    JSONArray data = json.getJSONArray("data");
+                    if (data.length() > 0) {
+                        ArrayList<NotificationStore.NotificationItem> newNotifs = new ArrayList<>();
+
+                        for (int i = 0; i < data.length(); i++) {
+                            JSONObject n = data.getJSONObject(i);
+                            int notifId = n.getInt("id");  // ✅ track latest ID
+                            String pondName = n.optString("pond_name", "Unknown Pond");
+                            String message = n.optString("title", "") + ": " + n.optString("message", "");
+                            String timestamp = n.optString("created_at", "");
+
+                            NotificationStore.NotificationItem item =
+                                    new NotificationStore.NotificationItem(pondName, message, timestamp);
+
+                            newNotifs.add(0, item);
+
+                            // ✅ update lastNotifId with the highest ID
+                            if (notifId > lastNotifId) {
+                                lastNotifId = notifId;
+                            }
+                        }
+
+                        // Merge new + old
+                        ArrayList<NotificationStore.NotificationItem> all = NotificationStore.getNotifications(this);
+                        all.addAll(0, newNotifs);
+                        NotificationStore.saveNotifications(this, all);
+
+                        runOnUiThread(() -> displayNotifications(all));
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        });
-
-        notifList = new ArrayList<>();
-        boolean firstNewAdded = false;
-
-        for (int i = 0; i < allNotifications.size(); i++) {
-            NotificationModel n = allNotifications.get(i);
-            if (!firstNewAdded) {
-                notifList.add(new NotificationModel("HEADER", "New Notifications", ""));
-                firstNewAdded = true;
-            } else if (i == 3) {
-                notifList.add(new NotificationModel("HEADER", "Earlier Notifications", ""));
-            }
-            notifList.add(n);
-        }
-
-        adapter = new NotificationAdapter(notifList);
-        recyclerView.setAdapter(adapter);
+        }).start();
     }
 
-    // ===========================
-    // Model Class
-    // ===========================
-    private static class NotificationModel {
-        String pondName;
-        String title;
-        String date;
 
-        NotificationModel(String pondName, String title, String date) {
-            this.pondName = pondName;
-            this.title = title;
-            this.date = date;
+    private int getLastSavedId(ArrayList<NotificationStore.NotificationItem> saved) {
+        // In this version, we’ll just return 0 since local items don’t store an ID.
+        // The server sync will handle updating `lastNotifId` when new ones are fetched.
+        return 0;
+    }
+
+    private void displayNotifications(ArrayList<NotificationStore.NotificationItem> notifications) {
+        notificationLayout.removeAllViews();
+
+        if (notifications == null || notifications.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText("No notifications yet.");
+            empty.setPadding(20, 20, 20, 20);
+            empty.setTextSize(16f);
+            notificationLayout.addView(empty);
+            return;
         }
 
-        @Override
-        public String toString() {
-            return title + " - " + pondName + " (" + date + ")";
+
+        for (NotificationStore.NotificationItem notif : notifications) {
+            LinearLayout card = new LinearLayout(this);
+            card.setOrientation(LinearLayout.VERTICAL);
+            card.setPadding(30, 20, 30, 20);
+            card.setBackgroundColor(Color.WHITE);
+            card.setElevation(4f);
+
+            LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            cardParams.setMargins(0, 0, 0, 20);
+            card.setLayoutParams(cardParams);
+
+            TextView pondView = new TextView(this);
+            pondView.setText(notif.pondName);
+            pondView.setTextSize(14f);
+            pondView.setAlpha(0.7f);
+            pondView.setGravity(Gravity.START);
+
+            TextView messageView = new TextView(this);
+            messageView.setText("🔔 " + notif.message);
+            messageView.setTextSize(16f);
+            messageView.setPadding(0, 8, 0, 8);
+
+            TextView timeView = new TextView(this);
+            timeView.setText(notif.timestamp);
+            timeView.setTextSize(12f);
+            timeView.setGravity(Gravity.END);
+            timeView.setAlpha(0.6f);
+
+            card.addView(pondView);
+            card.addView(messageView);
+            card.addView(timeView);
+            notificationLayout.addView(card);
         }
     }
 
-    // ===========================
-    // Adapter Class
-    // ===========================
-    private class NotificationAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-
-        private final ArrayList<NotificationModel> notifications;
-        private static final int TYPE_HEADER = 0;
-        private static final int TYPE_ITEM = 1;
-
-        NotificationAdapter(ArrayList<NotificationModel> notifications) {
-            this.notifications = notifications;
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return notifications.get(position).pondName.equals("HEADER") ? TYPE_HEADER : TYPE_ITEM;
-        }
-
-        @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            if (viewType == TYPE_HEADER) {
-                View view = LayoutInflater.from(parent.getContext())
-                        .inflate(R.layout.item_notification_header, parent, false);
-                return new HeaderViewHolder(view);
-            } else {
-                View view = LayoutInflater.from(parent.getContext())
-                        .inflate(R.layout.item_notification, parent, false);
-                return new ItemViewHolder(view);
-            }
-        }
-
-        @Override
-        public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-            NotificationModel notif = notifications.get(position);
-            if (holder instanceof HeaderViewHolder) {
-                ((HeaderViewHolder) holder).headerText.setText(notif.title);
-            } else {
-                ItemViewHolder itemHolder = (ItemViewHolder) holder;
-                itemHolder.tvPondName.setText(notif.pondName);
-                itemHolder.tvTitle.setText(notif.title);
-                itemHolder.tvDate.setText(notif.date);
-
-                itemHolder.itemView.setOnClickListener(v -> {
-                    Intent intent = new Intent();
-                    intent.putExtra("selected_date", notif.date);
-                    intent.putExtra("pond_name", notif.pondName);
-                    setResult(RESULT_OK, intent);
-                    finish();
-                });
-            }
-        }
-
-        @Override
-        public int getItemCount() {
-            return notifications.size();
-        }
-
-        class HeaderViewHolder extends RecyclerView.ViewHolder {
-            TextView headerText;
-
-            HeaderViewHolder(View itemView) {
-                super(itemView);
-                headerText = itemView.findViewById(R.id.tvSectionHeader);
-            }
-        }
-
-        class ItemViewHolder extends RecyclerView.ViewHolder {
-            TextView tvPondName, tvTitle, tvDate;
-
-            ItemViewHolder(View itemView) {
-                super(itemView);
-                tvPondName = itemView.findViewById(R.id.tvNotificationPondName);
-                tvTitle = itemView.findViewById(R.id.tvNotificationTitle);
-                tvDate = itemView.findViewById(R.id.tvNotificationDate);
-            }
-        }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
     }
 }
