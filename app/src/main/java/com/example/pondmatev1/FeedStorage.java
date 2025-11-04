@@ -5,6 +5,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
+
 public class FeedStorage {
 
     private static final String PREF_NAME = "FEED_LEVEL_PREF";
@@ -40,5 +46,25 @@ public class FeedStorage {
         // notify UI components that feed changed
         context.sendBroadcast(new Intent("FEED_LEVEL_UPDATED"));
     }
+
+    public static void logFeedAction(Context context, String pondId, float amount, String actionType) {
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+        String record = timestamp + " | " + actionType + " | " + amount + "g";
+
+        SharedPreferences prefs = context.getSharedPreferences("FeedHistory_" + pondId, Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+
+        // ✅ Clone the set to avoid reference issues
+        Set<String> logs = new HashSet<>(prefs.getStringSet("records", new HashSet<>()));
+
+        logs.add(record);
+
+        editor.putStringSet("records", logs);
+        editor.apply();
+
+        Log.d("FEED_LOG", "📌 Logged feed action: " + record);
+    }
+
+
 
 }

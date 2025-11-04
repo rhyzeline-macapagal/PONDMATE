@@ -11,6 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.text.InputType;
 import android.util.Log;
@@ -26,8 +28,13 @@ import android.widget.Toast;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 
 public class ControlsFeeder extends Fragment {
@@ -45,6 +52,7 @@ public class ControlsFeeder extends Fragment {
     private final int[] feedingHours = {7, 12, 17};
     private final Handler liveHandler = new Handler();
     private Runnable refreshRunnable;
+    private View rootView;
 
     private final android.content.BroadcastReceiver feedUpdateReceiver = new android.content.BroadcastReceiver() {
         @Override
@@ -62,7 +70,8 @@ public class ControlsFeeder extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
 
-        View view = inflater.inflate(R.layout.controls_feeder, container, false);
+        rootView = inflater.inflate(R.layout.controls_feeder, container, false);
+        View view = rootView;
 
         if (getArguments() != null) {
             pondId = getArguments().getString("pond_id");
@@ -136,6 +145,7 @@ public class ControlsFeeder extends Fragment {
             }).start());
         }
 
+        loadFeedHistory();
         return view;
     }
 
@@ -155,6 +165,8 @@ public class ControlsFeeder extends Fragment {
     }
 
     private void showStoreFeedDialog() {
+        Log.d(TAG, "📥 Store Feed dialog opened for pondId=" + pondId);
+
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Store Feeds");
 
@@ -172,19 +184,30 @@ public class ControlsFeeder extends Fragment {
 
             float addedFeed = Float.parseFloat(value);
 
-            Log.d(TAG, "➕ Adding feed: pondId=" + pondId + " amount=" + addedFeed);
+            Log.d(TAG, "✅ USER CONFIRMED STORE FEEDS | pondId=" + pondId + " | amount=" + addedFeed + "g");
+
+            // Store feed in SharedPrefs-based container
             FeedStorage.addFeed(requireContext(), pondId, addedFeed);
 
+            // ✅ NEW — Log feed action to history storage
+            FeedStorage.logFeedAction(requireContext(), pondId, addedFeed, "STORE");
+
             refreshFeedUI();
+            loadFeedHistory();
             LocalBroadcastManager.getInstance(requireContext())
                     .sendBroadcast(new Intent("FEED_LEVEL_UPDATED"));
 
             Toast.makeText(requireContext(), "Stored " + addedFeed + "g feed!", Toast.LENGTH_SHORT).show();
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.setNegativeButton("Cancel", (dialog, which) -> {
+            Log.d(TAG, "❌ Store Feed dialog canceled");
+            dialog.dismiss();
+        });
+
         builder.show();
     }
+
 
     private void updateRemainingFeedDisplay() {
         float remaining = FeedStorage.getRemainingFeed(requireContext(), pondId);
@@ -198,4 +221,17 @@ public class ControlsFeeder extends Fragment {
 
     private void syncTimeToESP(String baseUrl) {}
     private void syncFeedingTimesToESP(String baseUrl) {}
+
+    private void loadFeedHistory() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("FeedHistory_" + pondId, Context.MODE_PRIVATE);
+        Set<String> logs = prefs.getStringSet("records", new HashSet<>());
+
+        List<String> sortedLogs = new ArrayList<>(logs);
+        Collections.sort(sortedLogs, Collections.reverseOrder()); // newest first
+
+        RecyclerView logRecycler = rootView.findViewById(R.id.feedLogRecycler);
+        logRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+        logRecycler.setAdapter(new FeedLogAdapter(requireContext(), sortedLogs));
+    }
+
 }
