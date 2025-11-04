@@ -127,7 +127,7 @@
 
             <!-- **Remaining Feed Display** -->
             <TextView
-                android:id="@+id/txtRemainingFeed"
+                android:id="@+id/tvRemainingFeed"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Remaining Feed: 0 g"
@@ -137,10 +137,10 @@
 
             <!-- **Add Feed Button** -->
             <Button
-                android:id="@+id/btnAddFeedStock"
+                android:id="@+id/btnStoreFeeds"
                 android:layout_width="200dp"
                 android:layout_height="wrap_content"
-                android:text=" + CONTAINER "
+                android:text="STORE FEEDS"
                 android:textColor="#FFFFFF"
                 android:backgroundTint="#00448D"
                 android:textStyle="bold"
@@ -151,4 +151,4 @@
         </LinearLayout>
     </LinearLayout>
     </LinearLayout>
-    </ScrollView>
+</ScrollView>

@@ -122,7 +122,6 @@ public class ScheduleFeeder extends Fragment {
         return view;
     }
 
-
     private void populateFeedingScheduleTable(JSONArray dataArray, String pondId) {
 
         if (SummaryT == null) return;
@@ -142,9 +141,18 @@ public class ScheduleFeeder extends Fragment {
                 FeedingScheduleRow r = new FeedingScheduleRow();
 
                 r.feedingDate = o.getString("feeding_date");
-                r.originalTime = o.getString("feeding_time");  // store original time for DB insert
-                r.dfrPerFeeding = o.getString("dfr_per_feeding");
+                r.originalTime = o.getString("feeding_time");
 
+
+                String rawDailyFeed = o.getString("dfr_per_feeding");
+                rawDailyFeed = rawDailyFeed.replace(",", "");
+                float dailyFeed = Float.parseFloat(rawDailyFeed);
+
+                // ✅ Divide daily feed into 2 feedings
+                float perFeeding = dailyFeed / 2f;
+                r.dfrPerFeeding = String.format(Locale.getDefault(), "%.2f", perFeeding);
+
+                // Parse time for sorting + display
                 Date dt = fullFormat.parse(r.feedingDate + " " + r.originalTime);
                 r.timeMillis = dt.getTime();
                 r.feedingTimeDisplay = showTime.format(dt);
@@ -163,32 +171,28 @@ public class ScheduleFeeder extends Fragment {
 
             tr.addView(makeCell(row.feedingDate));
             tr.addView(makeCell(row.feedingTimeDisplay));
-            tr.addView(makeCell(row.dfrPerFeeding + " g"));
+            tr.addView(makeCell(row.dfrPerFeeding + " g")); // ✅ now correct per feeding
 
             long diff = row.timeMillis - now;
-
             String deductionKey = pondId + "_" + row.feedingDate + "_" + row.originalTime;
 
             String statusText;
             if (diff <= 0) {
                 statusText = "Fed";
 
-                // ✅ Deduct feed ONLY once
+                // ✅ Deduct feed ONCE
                 if (!wasDeducted(deductionKey)) {
                     try {
-                        // parse dfr_per_feeding (may be decimal) and round to nearest gram
-                        float feedUsedFloat = Float.parseFloat(row.dfrPerFeeding);
+                        float feedUsedFloat = Float.parseFloat(row.dfrPerFeeding.replace(",", ""));
                         int feedUsed = Math.round(feedUsedFloat);
 
                         SharedPreferences stockPrefs = requireContext().getSharedPreferences("FEED_STORAGE", Context.MODE_PRIVATE);
                         int stock = stockPrefs.getInt("remaining_feed", 0);
 
-                        stock -= feedUsed;
-                        if (stock < 0) stock = 0;
+                        stock = Math.max(stock - feedUsed, 0);
 
                         stockPrefs.edit().putInt("remaining_feed", stock).apply();
                         markDeducted(deductionKey);
-
                         updateFeedFunnelLevel(stock);
 
                         Log.d(TAG, "Deducted " + feedUsed + "g. Remaining: " + stock + "g");
@@ -197,7 +201,6 @@ public class ScheduleFeeder extends Fragment {
                         Log.e(TAG, "Deduction error: ", e);
                     }
                 }
-
             } else {
                 statusText = (diff / (1000 * 60 * 60)) + "h " + ((diff / (1000 * 60)) % 60) + "m left";
             }
@@ -209,10 +212,10 @@ public class ScheduleFeeder extends Fragment {
             SummaryT.addView(tr);
         }
 
-        Log.d(TAG, "Table pop complete. Uploading to DB...");
-
+        Log.d(TAG, "Table populated. Uploading schedule...");
         uploadScheduleToServer(rows, pondId);
     }
+
 
 
     private void uploadScheduleToServer(List<FeedingScheduleRow> rows, String pondId) {
