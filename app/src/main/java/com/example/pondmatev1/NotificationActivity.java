@@ -1,6 +1,7 @@
 package com.example.pondmatev1;
 
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.Gravity;
@@ -9,6 +10,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -131,41 +133,58 @@ public class NotificationActivity extends AppCompatActivity {
 
 
         for (NotificationStore.NotificationItem notif : notifications) {
-            LinearLayout card = new LinearLayout(this);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setPadding(30, 20, 30, 20);
-            card.setBackgroundColor(Color.WHITE);
-            card.setElevation(4f);
+            // Create CardView
+            CardView card = new CardView(this);
+            card.setRadius(16f); // Rounded corners
+            card.setCardElevation(6f); // Shadow
+            card.setUseCompatPadding(true);
+            card.setCardBackgroundColor(Color.WHITE);
 
             LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             );
-            cardParams.setMargins(0, 0, 0, 20);
+            cardParams.setMargins(0, 0, 0, 24); // Bottom spacing between cards
             card.setLayoutParams(cardParams);
 
+            // Inner layout
+            LinearLayout innerLayout = new LinearLayout(this);
+            innerLayout.setOrientation(LinearLayout.VERTICAL);
+            innerLayout.setPadding(24, 16, 24, 16);
+
+            // Pond name (secondary info)
             TextView pondView = new TextView(this);
             pondView.setText(notif.pondName);
             pondView.setTextSize(14f);
             pondView.setAlpha(0.7f);
             pondView.setGravity(Gravity.START);
 
+            // Notification message
             TextView messageView = new TextView(this);
             messageView.setText("🔔 " + notif.message);
             messageView.setTextSize(16f);
+            messageView.setTypeface(Typeface.DEFAULT_BOLD);
             messageView.setPadding(0, 8, 0, 8);
 
+            // Timestamp
             TextView timeView = new TextView(this);
             timeView.setText(notif.timestamp);
             timeView.setTextSize(12f);
             timeView.setGravity(Gravity.END);
             timeView.setAlpha(0.6f);
 
-            card.addView(pondView);
-            card.addView(messageView);
-            card.addView(timeView);
+            // Add views to inner layout
+            innerLayout.addView(pondView);
+            innerLayout.addView(messageView);
+            innerLayout.addView(timeView);
+
+            // Add inner layout to card
+            card.addView(innerLayout);
+
+            // Add card to parent layout
             notificationLayout.addView(card);
         }
+
     }
 
     @Override
