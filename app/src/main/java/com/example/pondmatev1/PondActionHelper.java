@@ -97,7 +97,7 @@ public class PondActionHelper {
                             public void onSuccess(Object resp) {
                                 ((Activity) context).runOnUiThread(() -> {
                                     hideLoading();
-                                    Toast.makeText(context, "Pond harvested successfully", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(context, "Pond harvested successfully! \n Pond Information was transferred in Pond History.", Toast.LENGTH_SHORT).show();
 
                                     // ✅ Return to PondDashboardActivity
                                     Intent intent = new Intent(context, PondDashboardActivity.class);

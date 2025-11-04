@@ -22,6 +22,8 @@ public class PondModel {
     private String extraData;
     private float actualROI;
     private float estimatedROI;
+    private String caretakerIds;
+
     private String pdfPath;
     private double mortalityRate;
     private String caretakers;
@@ -69,6 +71,15 @@ public class PondModel {
     // --- Getters and Setters ---
     public String getCaretakerName() { return caretakerName; }
     public void setCaretakerName(String caretakerName) { this.caretakerName = caretakerName; }
+
+    public String getCaretakerIds() {
+        return caretakerIds;
+    }
+
+    public void setCaretakerIds(String caretakerIds) {
+        this.caretakerIds = caretakerIds;
+    }
+
     public boolean isAssigned() {
         return assigned;
     }

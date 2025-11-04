@@ -469,7 +469,11 @@ public class EditPondDialog extends DialogFragment {
                     pond.setDateStocking(stockingDate);
                     pond.setDateHarvest(harvestDate);
                     pond.setBreed(selectedBreed);
-                    pond.setCaretakerName(String.join(",", selectedCaretakerIds));
+
+// Caretakers
+                    pond.setCaretakerName(getSelectedCaretakerNames()); // 🟢 store names for display
+                    pond.setCaretakerIds(String.join(",", selectedCaretakerIds)); // 🟢 store IDs for server
+
 
                     // 6️⃣ Send to server
                     updatePondOnServer(pond);
@@ -478,6 +482,17 @@ public class EditPondDialog extends DialogFragment {
                 .setNegativeButton("No", null)
                 .show();
     }
+
+    private String getSelectedCaretakerNames() {
+        List<String> selectedNames = new ArrayList<>();
+        for (int i = 0; i < caretakerIds.size(); i++) {
+            if (selectedCaretakerIds.contains(caretakerIds.get(i))) {
+                selectedNames.add(caretakerNames.get(i));
+            }
+        }
+        return String.join(",", selectedNames);
+    }
+
 
 
     // Validate required fields before saving
@@ -688,25 +703,31 @@ public class EditPondDialog extends DialogFragment {
 
     private void refreshCaretakerChips() {
         Log.d(TAG, "refreshCaretakerChips() called");
-        Log.d(TAG, "caretakerNames: " + caretakerNames);
-        Log.d(TAG, "selectedCaretakerIds (actually names): " + selectedCaretakerIds);
-
         caretakerChipContainer.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(getContext());
 
-        for (String name : selectedCaretakerIds) {
+        for (String caretakerId : selectedCaretakerIds) {
+            // Try to get the name from caretakerIds → caretakerNames mapping
+            int index = caretakerIds.indexOf(caretakerId);
+            String displayName = (index >= 0 && index < caretakerNames.size())
+                    ? caretakerNames.get(index)
+                    : caretakerId; // fallback if not found
+
             View chip = inflater.inflate(R.layout.item_caretaker_chip, caretakerChipContainer, false);
             TextView tvName = chip.findViewById(R.id.tvCaretakerName);
             TextView btnRemove = chip.findViewById(R.id.btnRemoveChip);
-            tvName.setText(name);
+
+            tvName.setText(displayName);
 
             btnRemove.setOnClickListener(v -> {
-                selectedCaretakerIds.remove(name);
+                selectedCaretakerIds.remove(caretakerId);
                 refreshCaretakerChips();
             });
+
             caretakerChipContainer.addView(chip);
         }
     }
+
 
 
     private void setupCaretakerButton() {

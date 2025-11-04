@@ -92,14 +92,6 @@
                         android:textColor="#000"/>
 
                     <TextView
-                        android:text="Feed Type"
-                        android:padding="8dp"
-                        android:gravity="center"
-                        android:background="@drawable/cell_bg"
-                        android:textStyle="bold"
-                        android:textColor="#000"/>
-
-                    <TextView
                         android:text="Price/kg"
                         android:padding="8dp"
                         android:gravity="center"

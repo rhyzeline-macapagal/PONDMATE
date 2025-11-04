@@ -40,7 +40,7 @@
 
     <!-- Button Row with Labels -->
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
@@ -68,7 +68,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Caretaker"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textColor="#333333"
                 android:layout_marginTop="4dp"/>
         </LinearLayout>
@@ -92,7 +92,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Farmgate Price"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textColor="#333333"
                 android:layout_marginTop="4dp"/>
         </LinearLayout>
@@ -118,7 +118,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Feeds Price"
-                android:textSize="14sp"
+                android:textSize="12sp"
                 android:textColor="#333333"
                 android:layout_marginTop="4dp"/>
         </LinearLayout>
