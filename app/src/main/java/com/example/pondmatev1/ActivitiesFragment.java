@@ -44,7 +44,7 @@ public class ActivitiesFragment extends Fragment {
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable notificationPollRunnable;
-    private int pollInterval = 5000;
+    private int pollInterval = 5000; // 5 seconds
 
     private JsonObject fetchedActivities;
     private ArrayList<String> fetchedNotifications = new ArrayList<>();
@@ -149,29 +149,41 @@ public class ActivitiesFragment extends Fragment {
                     editor.putBoolean(key, true).apply();
                     showToast("Marked as done ✅");
 
+                    // Get current user info
                     SessionManager session = new SessionManager(requireContext());
                     String username = session.getUsername();
-                    String userId = session.getUserId(); // current user
 
-                    // Local notification for the user who checked the box
-                    NotificationHelper.showActivityDoneNotification(
-                            requireContext(),
-                            pondName,
-                            title,
-                            true,  // local
-                            username
-                    );
+                    // Prepare notification
+                    String notifMessage = title + " completed by " + username;
+                    String scheduledFor = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
 
-                    // Broadcast to all OTHER users only
-                    addNotificationToServer(
+                    // Add to local notification store
+                    NotificationStore.NotificationItem notifItem = new NotificationStore.NotificationItem(pondName, notifMessage, scheduledFor);
+                    NotificationStore.addNotification(requireContext(), notifItem);
+
+                    // Send notification to server
+                    ActivitiesFragment.sendNotification(
                             pondId,
-                            "", // empty title for broadcast
-                            title + " completed by " + username, // full message
-                            actDate,
-                            userId // pass current user's ID so server can skip sending to them
+                            title,           // Title of activity
+                            notifMessage,    // Message to display
+                            scheduledFor,    // Scheduled timestamp
+                            username,        // User who marked done
+                            new PondSyncManager.Callback() {
+                                @Override
+                                public void onSuccess(Object response) {
+                                    Log.d("SEND_NOTIFICATION", "Success: " + response);
+                                }
+
+                                @Override
+                                public void onError(String error) {
+                                    Log.e("SEND_NOTIFICATION", "Error: " + error);
+                                }
+                            }
                     );
                 }
             });
+
+
 
 
             TextView descView = new TextView(getContext());
@@ -190,38 +202,44 @@ public class ActivitiesFragment extends Fragment {
         }
     }
 
-    private void addNotificationToServer(String pondId, String title, String message, String scheduledFor, String userId) {
+    public static void sendNotification(String pondId, String title, String message, String scheduledFor, String username, PondSyncManager.Callback callback) {
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/add_notification.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                 conn.setDoOutput(true);
 
-                JSONObject payload = new JSONObject();
-                payload.put("ponds_id", pondId);
-                payload.put("title", title);
-                payload.put("message", message);
-                payload.put("scheduled_for", scheduledFor);
-                payload.put("user_id", userId);
+                JSONObject json = new JSONObject();
+                json.put("pond_id", pondId);
+                json.put("title", title);
+                json.put("message", message);
+                json.put("username", username);
+                json.put("scheduled_for", scheduledFor);
 
                 OutputStream os = conn.getOutputStream();
-                os.write(payload.toString().getBytes());
-                os.flush();
+                os.write(json.toString().getBytes("UTF-8"));
                 os.close();
 
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = in.readLine()) != null) response.append(line);
-                in.close();
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        response.append(line);
+                    }
+                    in.close();
+
+                    if (callback != null) callback.onSuccess(response.toString());
+                } else {
+                    if (callback != null) callback.onError("Server error: " + responseCode);
+                }
+
                 conn.disconnect();
-
-                Log.d("ADD_NOTIFICATION", "Response: " + response);
-
             } catch (Exception e) {
-                Log.e("ADD_NOTIFICATION", "Error: " + e.getMessage(), e);
+                if (callback != null) callback.onError("Exception: " + e.getMessage());
             }
         }).start();
     }
@@ -250,23 +268,27 @@ public class ActivitiesFragment extends Fragment {
 
                                     String notifMessage = notif.get("message").getAsString();
 
-                                    // Display broadcast or user notifications (5 args)
-                                    NotificationHelper.showActivityDoneNotification(
-                                            requireContext(),
-                                            pondName,
-                                            notifMessage, // full message already includes username
-                                            false,        // broadcast
-                                            ""            // username ignored for broadcast
-                                    );
+                                    // ✅ Switch to UI thread before showing notification
+                                    requireActivity().runOnUiThread(() -> {
+                                        NotificationHelper.showActivityDoneNotification(
+                                                requireContext(),
+                                                pondName,
+                                                notifMessage,
+                                                false, // broadcast
+                                                ""     // username ignored for broadcast
+                                        );
+                                    });
                                 }
 
                                 if (hasNew) {
-                                    CalendarDay selected = calendarView.getSelectedDate();
-                                    if (selected != null) {
-                                        String formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d",
-                                                selected.getYear(), selected.getMonth() + 1, selected.getDay());
-                                        showActivitiesForDate(formatted);
-                                    }
+                                    requireActivity().runOnUiThread(() -> {
+                                        CalendarDay selected = calendarView.getSelectedDate();
+                                        if (selected != null) {
+                                            String formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d",
+                                                    selected.getYear(), selected.getMonth() + 1, selected.getDay());
+                                            showActivitiesForDate(formatted);
+                                        }
+                                    });
                                 }
                             }
                         } catch (Exception e) {
@@ -286,6 +308,7 @@ public class ActivitiesFragment extends Fragment {
         handler.post(notificationPollRunnable);
     }
 
+
     @Override
     public void onResume() {
         super.onResume();
@@ -299,6 +322,7 @@ public class ActivitiesFragment extends Fragment {
     }
 
     private void showToast(String msg) {
-        new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show());
+        new Handler(Looper.getMainLooper()).post(() ->
+                Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show());
     }
 }

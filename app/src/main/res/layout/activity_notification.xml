@@ -1,55 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:fitsSystemWindows="true"
-    android:background="#A6C4F1FF">
+    android:padding="16dp">
 
-    <!-- Top bar -->
     <LinearLayout
-        android:id="@+id/topBar"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:background="#A7D8F5"
-        android:elevation="4dp">
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
 
-        <!-- Notification Title -->
+        <!-- Notification title -->
         <TextView
-            android:id="@+id/tvNotificationTitleBar"
-            android:layout_width="0dp"
+            android:id="@+id/notificationTitle"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="Notification"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:gravity="center"
-            android:textColor="#000000"/>
+            android:paddingBottom="8dp" />
 
-        <!-- Close Button -->
-        <ImageButton
-            android:id="@+id/btnClose"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_alignParentEnd="true"
-            android:layout_marginTop="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Close"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:tint="#000000" />
-
+        <!-- Notification container -->
+        <LinearLayout
+            android:id="@+id/notificationLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
 
     </LinearLayout>
 
-    <!-- RecyclerView -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/notificationRecyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/topBar"
-        android:padding="12dp"/>
-</RelativeLayout>
+</ScrollView>

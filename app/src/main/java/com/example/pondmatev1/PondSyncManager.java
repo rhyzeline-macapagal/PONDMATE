@@ -1498,40 +1498,6 @@ public class PondSyncManager {
         }).start();
     }
 
-    public static void sendNotification(String pondId, String title, String message, String scheduledFor) {
-        new Thread(() -> {
-            try {
-                URL url = new URL("https://pondmate.alwaysdata.net/add_notification.php");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setDoOutput(true);
-
-                JSONObject payload = new JSONObject();
-                payload.put("ponds_id", pondId);
-                payload.put("title", title);
-                payload.put("message", message);
-                payload.put("scheduled_for", scheduledFor);
-
-                OutputStream os = conn.getOutputStream();
-                os.write(payload.toString().getBytes());
-                os.flush();
-                os.close();
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = in.readLine()) != null) response.append(line);
-                in.close();
-                conn.disconnect();
-
-                Log.d("SEND_NOTIFICATION", "Response: " + response);
-
-            } catch (Exception e) {
-                Log.e("SEND_NOTIFICATION", "Error: " + e.getMessage(), e);
-            }
-        }).start();
-    }
 
 
 
