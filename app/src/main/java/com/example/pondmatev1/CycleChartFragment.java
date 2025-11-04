@@ -22,7 +22,6 @@ import java.util.*;
 public class CycleChartFragment extends Fragment {
 
     private static final String GET_PONDS_URL = "https://pondmate.alwaysdata.net/get_ponds.php";
-    private static final String GET_POND_ACTIVITIES_URL = "https://pondmate.alwaysdata.net/get_pond_activities.php";
 
     private ProgressBar progressBarChart;
     private TextView noDataText;
@@ -103,7 +102,6 @@ public class CycleChartFragment extends Fragment {
     // ===================== ADAPTER =====================
     private class PondAdapter extends RecyclerView.Adapter<PondAdapter.PondViewHolder> {
         private final List<JSONObject> pondList;
-        private final Map<String, Integer> cachedProgress = new HashMap<>();
 
         PondAdapter(List<JSONObject> pondList) {
             this.pondList = pondList;
@@ -160,99 +158,44 @@ public class CycleChartFragment extends Fragment {
             JSONObject pond = pondList.get(position);
             String name = pond.optString("name", "Unnamed Pond");
             String breed = pond.optString("breed", "Tilapia");
-            String dateCreated = pond.optString("date_created", "");
+            String dateStarted = pond.optString("date_started", "");
+            String dateStocking = pond.optString("date_stocking", "");
+            String dateHarvest = pond.optString("date_harvest", "");
 
             holder.pondName.setText(name);
 
-            if (cachedProgress.containsKey(name)) {
-                updateUI(holder, breed, cachedProgress.get(name));
-                return;
-            }
+            long startMillis = parseDateToMillis(dateStarted);
+            long stockingMillis = parseDateToMillis(dateStocking);
+            long harvestMillis = parseDateToMillis(dateHarvest);
+            long now = System.currentTimeMillis();
 
-            holder.pondPhase.setText("Loading progress...");
-            holder.pondLifeStage.setText("");
-            holder.pondProgressText.setText("");
-            holder.pondProgressCircle.setProgress(0);
-
-            new Thread(() -> fetchPondActivities(name, breed, holder)).start();
-        }
-
-        private void fetchPondActivities(String pondName, String breed, PondViewHolder holder) {
-            HttpURLConnection conn = null;
-            try {
-                conn = (HttpURLConnection) new URL(GET_POND_ACTIVITIES_URL).openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(6000);
-                conn.setReadTimeout(6000);
-
-                String postData = "pond_name=" + pondName;
-                OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
-                os.flush();
-                os.close();
-
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) sb.append(line);
-                reader.close();
-
-                JSONObject response = new JSONObject(sb.toString().trim());
-                if (!response.optString("status").equals("success")) return;
-
-                JSONArray activities = response.getJSONArray("data");
-                if (activities.length() == 0) return;
-
-                String firstDate = activities.getJSONObject(0).getString("date");
-                String lastDate = activities.getJSONObject(activities.length() - 1).getString("date");
-
-                long startMillis = parseDateToMillis(firstDate);
-                long endMillis = parseDateToMillis(lastDate);
-                long now = System.currentTimeMillis();
-
-                int progress = (int) (((double) (now - startMillis) / (endMillis - startMillis)) * 100);
-                progress = Math.max(0, Math.min(progress, 100));
-
-                cachedProgress.put(pondName, progress);
-
-                int finalProgress = progress;
-                requireActivity().runOnUiThread(() -> updateUI(holder, breed, finalProgress));
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                if (conn != null) conn.disconnect();
-            }
-        }
-
-        private void updateUI(PondViewHolder holder, String breed, int progress) {
+            int progress;
             String phaseName, lifeStage;
 
-            if (progress < 10) {
+            if (now < stockingMillis) {
                 phaseName = "Pond Preparation";
                 lifeStage = "Not Applicable";
                 holder.pondProgressCircle.setIndicatorColor(Color.GRAY);
-            } else if (progress < 30) {
-                phaseName = "Stocking";
-                lifeStage = "Fingerling";
+                progress = 0;
+            } else if (now < harvestMillis) {
+                phaseName = "Stocked / Growing";
+                lifeStage = breed.equalsIgnoreCase("Tilapia") ? "Juvenile → Sub-adult" : "Sub-adult → Grow-out";
                 holder.pondProgressCircle.setIndicatorColor(Color.BLUE);
-            } else if (progress < 90) {
-                phaseName = "Daily Maintenance";
-                lifeStage = breed.equalsIgnoreCase("Tilapia")
-                        ? "Juvenile → Sub-adult"
-                        : "Sub-adult → Grow-out";
-                holder.pondProgressCircle.setIndicatorColor(Color.CYAN);
+                progress = (int) (((double) (now - stockingMillis) / (harvestMillis - stockingMillis)) * 100);
+                progress = Math.max(0, Math.min(progress, 100));
             } else {
                 phaseName = "Harvesting";
                 lifeStage = "Adult / Ready to Harvest";
                 holder.pondProgressCircle.setIndicatorColor(Color.GREEN);
+                progress = 100;
             }
 
             holder.pondPhase.setText("Phase: " + phaseName);
             holder.pondLifeStage.setText("Life Stage: " + lifeStage);
-            holder.pondProgressText.setText("Progress: " + progress + "%");
             holder.pondProgressCircle.setProgress(progress);
+
+            // Remove percentage text
+            holder.pondProgressText.setText("");
         }
 
         private long parseDateToMillis(String dateStr) {
