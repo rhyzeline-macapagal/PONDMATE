@@ -398,10 +398,12 @@ public class MainActivity extends AppCompatActivity {
         String pondJson = new Gson().toJson(pond);
         editor.putString("selected_pond", pondJson);
         editor.apply();
-        TextView pondNameLabel = findViewById(R.id.pondNameLabel);
 
+        FeedStorage.fetchRemainingFeed(this, pond.getId());
+
+        TextView pondNameLabel = findViewById(R.id.pondNameLabel);
         if (pondNameLabel != null) {
-            pondNameLabel.setText(pond.getName()); // or pond.getName() depending on your model
+            pondNameLabel.setText(pond.getName());
             pondNameLabel.setVisibility(View.VISIBLE);
         }
 

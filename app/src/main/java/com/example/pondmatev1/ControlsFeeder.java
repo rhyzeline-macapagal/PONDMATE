@@ -11,6 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.text.InputType;
 import android.util.Log;
@@ -23,11 +25,21 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 
 public class ControlsFeeder extends Fragment {
@@ -45,6 +57,7 @@ public class ControlsFeeder extends Fragment {
     private final int[] feedingHours = {7, 12, 17};
     private final Handler liveHandler = new Handler();
     private Runnable refreshRunnable;
+    private View rootView;
 
     private final android.content.BroadcastReceiver feedUpdateReceiver = new android.content.BroadcastReceiver() {
         @Override
@@ -62,7 +75,8 @@ public class ControlsFeeder extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
 
-        View view = inflater.inflate(R.layout.controls_feeder, container, false);
+        rootView = inflater.inflate(R.layout.controls_feeder, container, false);
+        View view = rootView;
 
         if (getArguments() != null) {
             pondId = getArguments().getString("pond_id");
@@ -136,6 +150,7 @@ public class ControlsFeeder extends Fragment {
             }).start());
         }
 
+        loadFeedHistory();
         return view;
     }
 
@@ -155,6 +170,8 @@ public class ControlsFeeder extends Fragment {
     }
 
     private void showStoreFeedDialog() {
+        Log.d(TAG, "📥 Store Feed dialog opened for pondId=" + pondId);
+
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Store Feeds");
 
@@ -172,19 +189,37 @@ public class ControlsFeeder extends Fragment {
 
             float addedFeed = Float.parseFloat(value);
 
-            Log.d(TAG, "➕ Adding feed: pondId=" + pondId + " amount=" + addedFeed);
+            Log.d(TAG, "✅ USER CONFIRMED STORE FEEDS | pondId=" + pondId + " | amount=" + addedFeed + "g");
+
+            // 1) Add feed locally
             FeedStorage.addFeed(requireContext(), pondId, addedFeed);
 
+            // 2) Get accurate updated remaining feed
+            float remainingAfter = FeedStorage.getRemainingFeed(requireContext(), pondId);
+
+            // 3) Log & Sync ONE TIME with correct remaining value
+            FeedStorage.logFeedAction(requireContext(), pondId, addedFeed, "STORE", remainingAfter);
+            FeedStorage.sendLogToServer(requireContext(), pondId, addedFeed, "STORE", remainingAfter);
+            FeedStorage.sendRemainingToServer(requireContext(), pondId, remainingAfter);
+
+            // 4) Refresh UI & notify components
             refreshFeedUI();
+            loadFeedHistory();
             LocalBroadcastManager.getInstance(requireContext())
                     .sendBroadcast(new Intent("FEED_LEVEL_UPDATED"));
 
             Toast.makeText(requireContext(), "Stored " + addedFeed + "g feed!", Toast.LENGTH_SHORT).show();
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.setNegativeButton("Cancel", (dialog, which) -> {
+            Log.d(TAG, "❌ Store Feed dialog canceled");
+            dialog.dismiss();
+        });
+
         builder.show();
     }
+
+
 
     private void updateRemainingFeedDisplay() {
         float remaining = FeedStorage.getRemainingFeed(requireContext(), pondId);
@@ -198,4 +233,69 @@ public class ControlsFeeder extends Fragment {
 
     private void syncTimeToESP(String baseUrl) {}
     private void syncFeedingTimesToESP(String baseUrl) {}
+
+    private void loadFeedHistory() {
+        if (pondId == null || pondId.isEmpty()) {
+            Log.e("FEED_HISTORY", "❌ pondId is NULL — cannot load logs.");
+            return;
+        }
+
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_feed_storage_logs.php?pond_id=" + pondId);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                Log.d("FEED_HISTORY", "🌐 Server Response: " + response);
+
+                JSONArray jsonArray = new JSONArray(response.toString());
+                List<String> data = new ArrayList<>();
+
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject obj = jsonArray.getJSONObject(i);
+
+                    String action = obj.getString("action_type");  // STORE or DEDUCT
+                    String amount = obj.getString("amount");
+                    String remaining = obj.getString("remaining_after");
+                    String date = obj.getString("created_at");
+
+                    String entry;
+
+                    if (action.equalsIgnoreCase("STORE")) {
+                        entry = "Stored " + amount + "g"
+                                + " | Remaining: " + remaining + "g\n"
+                                + date;
+                    } else { // DEDUCT
+                        entry = "Deducted " + amount + "g"
+                                + " | Remaining: " + remaining + "g\n"
+                                + date;
+                    }
+
+                    data.add(entry);
+                }
+
+                requireActivity().runOnUiThread(() -> {
+                    RecyclerView logRecycler = rootView.findViewById(R.id.feedLogRecycler);
+                    logRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
+                    logRecycler.setAdapter(new FeedLogAdapter(requireContext(), data));
+
+                    Log.d("FEED_HISTORY", "✅ Displayed " + data.size() + " logs.");
+                });
+
+            } catch (Exception e) {
+                Log.e("FEED_HISTORY", "❌ Error: " + e.getMessage());
+            }
+        }).start();
+    }
+
+
 }
