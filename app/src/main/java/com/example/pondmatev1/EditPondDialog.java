@@ -470,7 +470,6 @@ public class EditPondDialog extends DialogFragment {
                     pond.setDateHarvest(harvestDate);
                     pond.setBreed(selectedBreed);
 
-// Caretakers
                     pond.setCaretakerName(getSelectedCaretakerNames()); // 🟢 store names for display
                     pond.setCaretakerIds(String.join(",", selectedCaretakerIds)); // 🟢 store IDs for server
 
@@ -550,7 +549,8 @@ public class EditPondDialog extends DialogFragment {
                 if (pond.getDateStarted() != null && !pond.getDateStarted().isEmpty())
                     paramsMap.put("date_created", pond.getDateStarted());
                 if (pond.getDateStocking() != null && !pond.getDateStocking().isEmpty())
-                    paramsMap.put("date_stocked", pond.getDateStocking()); // ✅ FIXED key
+                    paramsMap.put("stocking_date", pond.getDateStocking());
+                if (pond.getDateHarvest() != null && !pond.getDateHarvest().isEmpty())
                 if (pond.getDateHarvest() != null && !pond.getDateHarvest().isEmpty())
                     paramsMap.put("estimated_harvest", pond.getDateHarvest());
                 if (!selectedCaretakerIds.isEmpty())

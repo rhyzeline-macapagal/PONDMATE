@@ -29,6 +29,7 @@ public class PondModel {
     private String caretakers;
     private String caretakerName;
     private boolean assigned;
+    private String deviceId;
 
     private List<ActivityItem> activities = new ArrayList<>();
 
@@ -140,6 +141,14 @@ public class PondModel {
 
     public String getDateStocking() { return dateStocking; }
     public void setDateStocking(String dateStocking) { this.dateStocking = dateStocking; }
+
+    public String getDeviceId() {
+        return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
 
     public double getMortalityRate() { return mortalityRate; }
     public void setMortalityRate(double mortalityRate) { this.mortalityRate = mortalityRate; }

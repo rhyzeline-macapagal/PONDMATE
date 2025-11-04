@@ -18,6 +18,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 // For OkHttp networking
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.FormBody;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -412,8 +413,29 @@ public class SamplingDialog extends DialogFragment {
                             LocalBroadcastManager.getInstance(requireContext())
                                     .sendBroadcast(new Intent("FEED_LEVEL_UPDATED"));
 
-                            // ✅ Upload to Adafruit using feed per cycle per schedule
-                            uploadDFRToAdafruit(pond.getName(), formattedTime1, formattedTime2, feedPerCycle);
+                            if (true)  {
+                                checkFeederAssignmentAndUpload(
+                                        "feeder_001", // fixed feeder ID
+                                        pond.getId(),
+                                        pond.getName(),
+                                        formattedTime1,
+                                        formattedTime2,
+                                        feedPerCycle
+                                );
+                            } else {
+                                new AlertDialog.Builder(requireContext())
+                                        .setTitle("No Feeder Connected")
+                                        .setMessage("Would you like to assign feeder_001 to this pond and upload the schedule?")
+                                        .setPositiveButton("Yes", (dialog, which) -> {
+                                            assignFeederToPondAndUpload(pond.getId(), pond.getName(), formattedTime1, formattedTime2, feedPerCycle);
+                                        })
+                                        .setNegativeButton("No", (dialog, which) -> {
+                                            Toast.makeText(getContext(), "Sampling saved without feeder update.", Toast.LENGTH_SHORT).show();
+                                        })
+                                        .show();
+                            }
+
+
 
                             // Refresh UI on parent fragment if needed
                             if (getParentFragment() instanceof ProductionCostFragment) {
@@ -433,6 +455,175 @@ public class SamplingDialog extends DialogFragment {
                 }
         );
     }
+
+    // ✅ 1. Check if feeder_001 is already assigned
+    private void checkFeederAssignmentAndUpload(String feederId, String pondId, String pondName,
+                                                String feedingOne, String feedingTwo, double dfrFeedGrams) {
+        OkHttpClient client = new OkHttpClient();
+        String url = "https://pondmate.alwaysdata.net/get_feeder_assignment.php?feeder_id=" + feederId;
+
+        Request request = new Request.Builder().url(url).build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Failed to check feeder assignment", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "Error checking feeder assignment", Toast.LENGTH_SHORT).show());
+                    return;
+                }
+
+                String result = response.body().string();
+
+                try {
+                    JSONObject json = new JSONObject(result);
+                    boolean assigned = json.optBoolean("assigned", false);
+                    String assignedPondName = json.optString("pond_name", null);
+                    String assignedPondId = json.optString("pond_id", null);
+
+                    requireActivity().runOnUiThread(() -> {
+                        if (!assigned) {
+                            // ❌ No feeder assignment yet
+                            new AlertDialog.Builder(requireContext())
+                                    .setTitle("No Feeder Connected")
+                                    .setMessage("Would you like to assign feeder_001 to this pond and upload the feeding schedule?")
+                                    .setPositiveButton("Yes", (dialog, which) -> {
+                                        assignFeederToPondAndUpload(pondId, pondName, feedingOne, feedingTwo, dfrFeedGrams);
+                                    })
+                                    .setNegativeButton("No", (dialog, which) -> {
+                                        Toast.makeText(getContext(), "Sampling saved without feeder update.", Toast.LENGTH_SHORT).show();
+                                    })
+                                    .show();
+
+                        } else if (assigned && !pondId.equals(assignedPondId)) {
+                            // ⚠️ Feeder is assigned to a different pond
+                            new AlertDialog.Builder(requireContext())
+                                    .setTitle("Feeder Already Assigned")
+                                    .setMessage("Feeder_001 is currently assigned to pond \"" + assignedPondName +
+                                            "\".\n\nDo you want to reassign it to \"" + pondName + "\" instead?")
+                                    .setPositiveButton("Reassign", (dialog, which) -> {
+                                        assignFeederToPondAndUpload(pondId, pondName, feedingOne, feedingTwo, dfrFeedGrams);
+                                    })
+                                    .setNegativeButton("Cancel", (dialog, which) -> {
+                                        Toast.makeText(getContext(), "Feeder not reassigned.", Toast.LENGTH_SHORT).show();
+                                    })
+                                    .show();
+
+                        } else {
+                            // ✅ Already assigned to same pond, upload directly
+                            uploadDFRToAdafruit(pondName, feedingOne, feedingTwo, dfrFeedGrams);
+                        }
+                    });
+
+                } catch (JSONException e) {
+                    Log.e("SamplingDialog", "JSON parse error: " + e.getMessage());
+                }
+            }
+        });
+    }
+
+
+    // ✅ 2. Assign feeder to pond
+    private void assignFeederToPondAndUpload(String pondId, String pondName, String feedingOne,
+                                             String feedingTwo, double dfrFeedGrams) {
+        String feederId = "feeder_001"; // fixed ID
+        OkHttpClient client = new OkHttpClient();
+
+        RequestBody body = new FormBody.Builder()
+                .add("feeder_id", feederId)
+                .add("pond_id", pondId)
+                .build();
+
+        Request request = new Request.Builder()
+                .url("https://pondmate.alwaysdata.net/update_feeder_assignment.php")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Failed to assign feeder", Toast.LENGTH_LONG).show());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Feeder_001 assigned successfully!", Toast.LENGTH_SHORT).show();
+                        uploadDFRToAdafruit(pondName, feedingOne, feedingTwo, dfrFeedGrams);
+                    });
+                } else {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "Server error assigning feeder", Toast.LENGTH_LONG).show());
+                }
+            }
+        });
+    }
+
+
+
+
+
+    private void updateFeederAssignment(String feederId, String pondId, String pondName,
+                                        String feedingOne, String feedingTwo, double dfrFeed) {
+
+        OkHttpClient client = new OkHttpClient();
+        JSONObject json = new JSONObject();
+
+        try {
+            json.put("feeder_id", feederId);
+            json.put("pond_id", pondId);
+            json.put("pond_name", pondName);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        RequestBody body = RequestBody.create(
+                json.toString(),
+                MediaType.parse("application/json; charset=utf-8")
+        );
+
+        Request request = new Request.Builder()
+                .url("https://pondmate.alwaysdata.net/update_feeder_assignment.php")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Failed to update feeder assignment: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String jsonResponse = response.body().string();
+                try {
+                    JSONObject res = new JSONObject(jsonResponse);
+                    if (res.getString("status").equals("success")) {
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(getContext(), "Feeder successfully paired!", Toast.LENGTH_SHORT).show();
+                            uploadDFRToAdafruit(pondName, feedingOne, feedingTwo, dfrFeed);
+                        });
+                    } else {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Error updating feeder assignment", Toast.LENGTH_SHORT).show());
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+
 
     private void refreshRemainingFeedUI() {
         float remaining = FeedStorage.getRemainingFeed(requireContext(), pondId);

@@ -148,6 +148,13 @@ public class MainActivity extends AppCompatActivity {
                 dialog.dismiss();
             });
 
+            ImageButton btnDeviceId = dialogView.findViewById(R.id.btnDeviceId);
+            btnDeviceId.setOnClickListener(v1 -> {
+                FeederPairingDialog feederDialog = new FeederPairingDialog();
+                feederDialog.show(getSupportFragmentManager(), "feeder_dialog");
+                dialog.dismiss();
+            });
+
             // Show dialog
             dialog.show();
         });

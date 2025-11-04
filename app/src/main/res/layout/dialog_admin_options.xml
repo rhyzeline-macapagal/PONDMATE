@@ -7,6 +7,7 @@
     android:orientation="vertical"
     android:gravity="center"
     android:padding="24dp"
+    android:layout_gravity="center"
     android:background="@drawable/rounded_dialog_bg">
 
     <!-- Close Button -->
@@ -38,93 +39,128 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
-    <!-- Button Row with Labels -->
-    <LinearLayout
-        android:layout_width="match_parent"
+    <GridLayout
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_gravity="center"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp"
+        android:alignmentMode="alignMargins"
+        android:columnCount="2"
         android:gravity="center"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="8dp">
+        android:padding="8dp"
+        android:rowCount="2">
 
         <!-- Caretaker Dashboard -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_gravity="center"
+            android:layout_margin="16dp"
             android:gravity="center"
-            android:layout_margin="8dp">
+            android:orientation="vertical">
 
             <ImageButton
                 android:id="@+id/btnCaretaker"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:background="@drawable/circle_button_background"
-                android:src="@drawable/ic_caretaker"
                 android:contentDescription="Caretaker Dashboard"
+                android:src="@drawable/ic_caretaker"
                 app:tint="@android:color/white" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:text="Caretaker"
-                android:textSize="12sp"
                 android:textColor="#333333"
-                android:layout_marginTop="4dp"/>
+                android:textSize="12sp" />
         </LinearLayout>
+
+        <!-- Farmgate Price -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_gravity="center"
+            android:layout_margin="16dp"
             android:gravity="center"
-            android:layout_margin="8dp">
+            android:orientation="vertical">
 
             <ImageButton
                 android:id="@+id/btnFarmgatePrice"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:background="@drawable/circle_button_background"
+                android:contentDescription="Farmgate Price"
                 android:src="@drawable/farmgate"
-                android:contentDescription="Feeds Prices"
                 app:tint="@android:color/white" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Farmgate Price"
-                android:textSize="12sp"
+                android:layout_marginTop="4dp"
+                android:text="Farmgate \n Price"
+                android:layout_gravity="center"
+                android:gravity="center"
                 android:textColor="#333333"
-                android:layout_marginTop="4dp"/>
+                android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- Feeds Prices -->
+        <!-- Feeds Price -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_gravity="center"
+            android:layout_margin="16dp"
             android:gravity="center"
-            android:layout_margin="8dp">
+            android:orientation="vertical">
 
             <ImageButton
                 android:id="@+id/btnFeedsPrice"
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:background="@drawable/circle_button_background"
+                android:contentDescription="Feeds Price"
                 android:src="@drawable/ic_feeds"
-                android:contentDescription="Feeds Prices"
                 app:tint="@android:color/white" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:text="Feeds Price"
-                android:textSize="12sp"
                 android:textColor="#333333"
-                android:layout_marginTop="4dp"/>
+                android:textSize="12sp" />
         </LinearLayout>
 
+        <!-- Feeder ID -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="16dp"
+            android:gravity="center"
+            android:orientation="vertical">
 
+            <ImageButton
+                android:id="@+id/btnDeviceId"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/circle_button_background"
+                android:contentDescription="Feeder ID"
+                android:src="@drawable/outline_brick_24"
+                app:tint="@android:color/white" />
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Feeder"
+                android:textColor="#333333"
+                android:textSize="12sp" />
+        </LinearLayout>
 
-    </LinearLayout>
+    </GridLayout>
+
 </LinearLayout>
