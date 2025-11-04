@@ -1,6 +1,7 @@
 package com.example.pondmatev1;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,17 +42,17 @@ public class FeederFragment extends Fragment {
     }
 
     private void setupViewPager() {
-        adapter = new FeederAdapter(getChildFragmentManager(), getLifecycle());
-        viewPager.setAdapter(adapter);
+        String pondId = getArguments() != null ? getArguments().getString("pond_id") : null;
+        if (pondId == null) {
+            Log.e("FEED_TEST", "FeederFragment: pondId is NULL!");
+        } else {
+            Log.d("FEED_TEST", "FeederFragment received pondId = " + pondId);
+        }
 
-        // Smooth page transitions
-        viewPager.setPageTransformer((page, position) -> {
-            final float normalizedPosition = Math.abs(Math.abs(position) - 1);
-            page.setScaleX(0.85f + normalizedPosition * 0.15f);
-            page.setScaleY(0.85f + normalizedPosition * 0.15f);
-            page.setAlpha(0.5f + normalizedPosition * 0.5f);
-        });
+        adapter = new FeederAdapter(getChildFragmentManager(), getLifecycle(), pondId);
+        viewPager.setAdapter(adapter);
     }
+
 
     // Updated TabLayoutMediator setup without icons
     private void setupTabLayout() {
