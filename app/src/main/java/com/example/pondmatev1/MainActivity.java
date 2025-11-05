@@ -295,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
                 if (pond != null) {
                     boolean alreadyHarvested = prefs.getBoolean("harvest_done_" + pond.getId(), false);
                     if (!alreadyHarvested) {
-                        com.example.pondmatev1.helpers.PondActionHelper.harvestPond(this, pond, false);
+                        com.example.pondmatev1.PondActionHelper.harvestPond(this, pond, false);
                         prefs.edit().putBoolean("harvest_done_" + pond.getId(), true).apply();
                     }
                 }
@@ -338,7 +338,7 @@ public class MainActivity extends AppCompatActivity {
             );
 
             if (pond != null) {
-                com.example.pondmatev1.helpers.PondActionHelper.harvestPond(this, pond, false);
+                com.example.pondmatev1.PondActionHelper.harvestPond(this, pond, false);
             } else {
                 Toast.makeText(this, "Error: No pond data found", Toast.LENGTH_SHORT).show();
             }

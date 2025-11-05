@@ -530,6 +530,22 @@ public class ProductionCostFragment extends Fragment {
         }
     }
 
+    public void refreshAfterStocking() {
+        // Get updated pond from SharedPreferences
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
+        PondModel pond = null;
+        if (pondJson != null) {
+            pond = new Gson().fromJson(pondJson, PondModel.class);
+        }
+
+        // Update the visibility of buttons and sections
+        handleFingerlingVisibility(getView(), pond);
+
+    }
+
+
+
     private void handleFingerlingStockedStatus(View view, PondModel pond) {
         Button btnStockFingerlings = view.findViewById(R.id.btnStockFingerlings);
 

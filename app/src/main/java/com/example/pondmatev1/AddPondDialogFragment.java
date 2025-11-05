@@ -266,9 +266,15 @@ public class AddPondDialogFragment extends DialogFragment {
 
                     // ✅ Notify listener
                     if (listener != null) listener.onPondAdded(pond);
-
                     Toast.makeText(getContext(), "Pond added successfully!", Toast.LENGTH_SHORT).show();
                     dismiss();
+
+                    if (getActivity() != null) {
+                        Intent intent = new Intent(getActivity(), PondDashboardActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                    }
+
 
                 } catch (Exception e) {
                     Toast.makeText(getContext(), "Failed to parse response.", Toast.LENGTH_SHORT).show();

@@ -1,4 +1,4 @@
-package com.example.pondmatev1.helpers;
+package com.example.pondmatev1;
 
 import android.app.Activity;
 import android.app.AlertDialog;

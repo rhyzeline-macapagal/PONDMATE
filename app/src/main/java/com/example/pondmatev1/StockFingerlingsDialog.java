@@ -2,6 +2,7 @@ package com.example.pondmatev1;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -22,6 +23,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.google.gson.Gson;
 
@@ -224,10 +228,19 @@ public class StockFingerlingsDialog extends DialogFragment {
                                 spinnerMortality.getText().toString().trim(),
                                 rawHarvestDate,
                                 new PondSyncManager.Callback() {
-                                    @Override
-                                    public void onSuccess(Object result) {
-                                        Toast.makeText(getContext(), "✅ Fingerlings stocked successfully!", Toast.LENGTH_SHORT).show();
-                                        dismiss();
+
+                                        @Override
+                                        public void onSuccess(Object result) {
+                                            Toast.makeText(getContext(), "✅ Fingerlings stocked successfully!", Toast.LENGTH_SHORT).show();
+                                            dismiss();
+
+                                            if (getActivity() != null) {
+                                                FragmentManager fm = getActivity().getSupportFragmentManager();
+                                                ProductionCostFragment fragment = (ProductionCostFragment) fm.findFragmentById(R.id.prodcostcont); // your container ID
+
+                                                if (fragment != null) {
+                                                    fragment.refreshAfterStocking();
+                                                }}
                                     }
 
                                     @Override

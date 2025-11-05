@@ -117,6 +117,7 @@ public class BlindFeedingFragment extends DialogFragment {
         etFeedDate.setOnClickListener(v -> showDateSelectionDialog());
         btnAddFeed.setOnClickListener(v -> addFeedLog());
         btnCancelFeed.setOnClickListener(v -> dismiss());
+        hideLoadingDialog();
         btnClose.setOnClickListener(v -> dismiss());
         etFeedQuantity.addTextChangedListener(new android.text.TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -911,7 +912,8 @@ public class BlindFeedingFragment extends DialogFragment {
             }
         });
 
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss() );
+        hideLoadingDialog();
         builder.show();
     }
 

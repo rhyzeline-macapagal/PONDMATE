@@ -472,7 +472,11 @@ public class EditPondDialog extends DialogFragment {
                         etCaretakers.setError("Required");
                         return;
                     } else {
-                        etCaretakers.setError(null);
+                        if (selectedCaretakerIds.isEmpty()) {
+                            Toast.makeText(requireContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
                     }
 
 
