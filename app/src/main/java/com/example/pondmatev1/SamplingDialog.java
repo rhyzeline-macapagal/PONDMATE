@@ -314,17 +314,8 @@ public class SamplingDialog extends DialogFragment {
             return;
         }
 
-        double feedPerCycle = parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""));
-        double requiredFeed = feedPerCycle * 30; // 2x/day for 15 days
-
-        if (remainingFeed < requiredFeed) {
-            new AlertDialog.Builder(requireContext())
-                    .setTitle("Insufficient Feed")
-                    .setMessage("The remaining feed in the container is not enough to support the next 15 days of feeding.\n\n" +
-                            "Store additional feed before proceeding.")
-                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
-                    .show();
-            return;
+        if (remainingFeed < 2000) {
+            Toast.makeText(getContext(), "⚠️ Feed is below 2,000g — refill soon.", Toast.LENGTH_LONG).show();
         }
 
 
