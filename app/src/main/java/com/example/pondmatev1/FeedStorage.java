@@ -33,7 +33,38 @@ public class FeedStorage {
 
     public static void addFeed(Context context, String pondId, float amount) {
         float current = getRemainingFeed(context, pondId);
-        setRemainingFeed(context, pondId, current + amount);
+        float maxCapacity = 10000f; // 10kg = 10000 grams
+
+        float newLevel = current + amount;
+
+        // ✅ If new total exceeds capacity, notify user and stop
+        if (newLevel > maxCapacity) {
+
+            // How much can still be stored
+            float spaceLeft = maxCapacity - current;
+
+            new android.app.AlertDialog.Builder(context)
+                    .setTitle("Max Capacity Reached")
+                    .setMessage("The container can only hold up to 10,000g.\n\n" +
+                            "Current level: " + current + "g\n" +
+                            "You attempted to add: " + amount + "g\n\n" +
+                            "Only " + spaceLeft + "g more can be stored.")
+                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                    .show();
+
+            return; // ❗ DO NOT STORE ANYTHING
+        }
+
+        // ✅ Normal store (within limit)
+        setRemainingFeed(context, pondId, newLevel);
+
+        Log.d("FEED_STORAGE", "🔺 Added feed: " + amount + "g | New Level: " + newLevel + "g");
+
+        logFeedAction(context, pondId, amount, "ADD", newLevel);
+        sendLogToServer(context, pondId, amount, "ADD", newLevel);
+        sendRemainingToServer(context, pondId, newLevel);
+
+        context.sendBroadcast(new Intent("FEED_LEVEL_UPDATED"));
     }
 
     public static void deductFeed(Context context, String pondId, float amount) {
