@@ -157,18 +157,17 @@ public class EditPondDialog extends DialogFragment {
     private void populateCaretakerIds() {
         selectedCaretakerIds.clear();
 
-        if (pond.getCaretakerName() != null && !pond.getCaretakerName().isEmpty()) {
-            Log.d(TAG, "Raw caretakerName from pond: " + pond.getCaretakerName());
-            String[] ids = pond.getCaretakerName().split(",");
+        if (pond.getCaretakerIds() != null && !pond.getCaretakerIds().isEmpty()) {
+            String[] ids = pond.getCaretakerIds().split(",");
             for (String id : ids) {
                 selectedCaretakerIds.add(id.trim());
             }
             Log.d(TAG, "Parsed selectedCaretakerIds: " + selectedCaretakerIds);
         }
 
-        Log.d(TAG, "Calling refreshCaretakerChips() after populateCaretakerIds()");
         refreshCaretakerChips();
     }
+
 
     private void applyEditRestrictions() {
         if (!hasFingerlingStock) {
@@ -452,22 +451,30 @@ public class EditPondDialog extends DialogFragment {
                     String harvestDate = etHarvestDate.getText().toString().trim();
                     if (harvestDate.isEmpty()) harvestDate = pond.getDateHarvest();
 
-                    String selectedBreed = pond.getBreed(); // default to existing
+                    String selectedBreed = pond.getBreed();
 
-                    if (spinnerSpecies.getSelectedItem() != null) {
+                    if (spinnerSpecies.getVisibility() == View.VISIBLE && spinnerSpecies.getSelectedItem() != null) {
                         String spinnerValue = spinnerSpecies.getSelectedItem().toString();
                         // only update if user actually picked something valid
                         if (!spinnerValue.equalsIgnoreCase("Select species")) {
                             selectedBreed = spinnerValue;
                         }
+                    } else {
+                        // Spinner hidden → no change to species
+                        selectedBreed = pond.getBreed();
                     }
+
 
 
                     // 3️⃣ Caretakers
                     if (selectedCaretakerIds.isEmpty()) {
                         Toast.makeText(requireContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
+                        etCaretakers.setError("Required");
                         return;
+                    } else {
+                        etCaretakers.setError(null);
                     }
+
 
                     // 4️⃣ Stocking density check
                     rawPondArea = pondArea; // update raw pond area for validation

@@ -727,39 +727,36 @@ public class SamplingDialog extends DialogFragment {
             String feedingRateStr = etFeedingRate.getText().toString().trim();
             String survivalText = tvSurvivalRate.getText().toString().replace("%", "").trim();
 
-            if (sampledWeightStr.isEmpty() || numSamplesStr.isEmpty() || feedingRateStr.isEmpty() || survivalText.isEmpty()) {
-                Log.d(TAG, "computeValues: missing inputs");
-                tvABWResult.setText("0.00 g");
-                tvDFRResult.setText("0.00 g");
-                tvDFRPerCycle.setText("0.00 g");
-                updateFeedCost();
-                return;
+            // 1️⃣ Compute ABW first, even if feedingRate/survival are empty
+            double abw = 0;
+            if (!sampledWeightStr.isEmpty() && !numSamplesStr.isEmpty()) {
+                double sampledWeight = parseDouble(sampledWeightStr);
+                double numSamples = parseDouble(numSamplesStr);
+                abw = (numSamples > 0) ? (sampledWeight / numSamples) : 0;
+                if (Double.isNaN(abw) || Double.isInfinite(abw)) abw = 0;
             }
-
-            double sampledWeight = parseDouble(sampledWeightStr);
-            double numSamples = parseDouble(numSamplesStr);
-            double feedingRate = parseDouble(feedingRateStr);
-            double survivalRate = parseDouble(survivalText);
-
-            double abw = (numSamples > 0) ? (sampledWeight / numSamples) : 0;
-            if (Double.isNaN(abw) || Double.isInfinite(abw)) abw = 0;
             tvABWResult.setText(String.format(Locale.getDefault(), "%.2f g", abw));
             Log.d(TAG, "ABW (g): " + abw);
 
-            double totalStocks = parseDouble(tvTotalStocks.getText().toString());
-            Log.d(TAG, "Total Stocks: " + totalStocks);
+            // 2️⃣ Compute DFR only if feedingRate and survival are provided
+            double dfrGrams = 0;
+            if (!feedingRateStr.isEmpty() && !survivalText.isEmpty()) {
+                double feedingRate = parseDouble(feedingRateStr);
+                double survivalRate = parseDouble(survivalText);
 
-            double feedingRateDecimal = feedingRate / 100.0;
-            double survivalDecimal = survivalRate / 100.0;
+                double totalStocks = parseDouble(tvTotalStocks.getText().toString());
+                double feedingRateDecimal = feedingRate / 100.0;
+                double survivalDecimal = survivalRate / 100.0;
 
-            double dfrGrams = feedingRateDecimal * survivalDecimal * abw * totalStocks;
-            if (Double.isNaN(dfrGrams) || Double.isInfinite(dfrGrams)) dfrGrams = 0;
+                dfrGrams = feedingRateDecimal * survivalDecimal * abw * totalStocks;
+                if (Double.isNaN(dfrGrams) || Double.isInfinite(dfrGrams)) dfrGrams = 0;
+            }
 
             tvDFRResult.setText(String.format(Locale.getDefault(), "%.2f g", dfrGrams));
             tvDFRPerCycle.setText(String.format(Locale.getDefault(), "%.2f g", (dfrGrams / 2.0)));
             Log.d(TAG, "DFR (g): " + dfrGrams);
 
-            // Recalculate cost now that DFR changed
+            // 3️⃣ Update feed cost (optional)
             updateFeedCost();
 
         } catch (Exception e) {
@@ -770,6 +767,7 @@ public class SamplingDialog extends DialogFragment {
             updateFeedCost();
         }
     }
+
 
     private double parseDouble(String s) {
         if (s == null) return 0.0;
