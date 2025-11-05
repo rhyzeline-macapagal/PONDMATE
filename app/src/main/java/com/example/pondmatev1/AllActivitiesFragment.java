@@ -3,6 +3,7 @@ package com.example.pondmatev1;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -232,13 +233,9 @@ public class AllActivitiesFragment extends Fragment {
         ));
     }
 
-
     private void showActivitiesForDate(String date) {
         activitiesLayout.removeAllViews();
         boolean found = false;
-
-        SharedPreferences prefs = requireContext().getSharedPreferences("ALL_ACTIVITY_PREFS", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         String todayStr = sdf.format(new Date());
@@ -254,31 +251,22 @@ public class AllActivitiesFragment extends Fragment {
                 String title = act.get("title").getAsString();
                 String description = act.get("description").getAsString();
 
-                String key = pondName + "_" + actDate + "_" + title;
-
                 LinearLayout wrapper = new LinearLayout(getContext());
                 wrapper.setOrientation(LinearLayout.VERTICAL);
                 wrapper.setPadding(10, 10, 10, 10);
 
-                CheckBox cb = new CheckBox(getContext());
-                cb.setText(pondName + ": " + title);
-                cb.setChecked(prefs.getBoolean(key, false));
-                cb.setEnabled(actDate.equals(todayStr));
+                // Title (Pond name + Activity title)
+                TextView titleView = new TextView(getContext());
+                titleView.setText(pondName + ": " + title);
+                titleView.setTextSize(16);
+                titleView.setTypeface(null, Typeface.BOLD);
 
-                cb.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                    if (actDate.equals(todayStr)) {
-                        editor.putBoolean(key, isChecked);
-                        editor.apply();
-                        if (isChecked)
-                            Toast.makeText(getContext(), "Marked as done ✅", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
+                // Description
                 TextView desc = new TextView(getContext());
                 desc.setText(description);
-                desc.setPadding(40, 0, 0, 0);
+                desc.setPadding(40, 5, 0, 10);
 
-                wrapper.addView(cb);
+                wrapper.addView(titleView);
                 wrapper.addView(desc);
                 activitiesLayout.addView(wrapper);
             }
@@ -290,6 +278,7 @@ public class AllActivitiesFragment extends Fragment {
             activitiesLayout.addView(empty);
         }
     }
+
 
     private void showToast(String msg) {
         new Handler(Looper.getMainLooper()).post(() ->

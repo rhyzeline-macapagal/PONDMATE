@@ -4,15 +4,18 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.*;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 
 import com.google.android.flexbox.FlexboxLayout;
@@ -169,23 +172,32 @@ public class EditPondDialog extends DialogFragment {
 
     private void applyEditRestrictions() {
         if (!hasFingerlingStock) {
-            // Disable fingerling-related inputs
-            etFishCount.setEnabled(false);
-            etCostPerFish.setEnabled(false);
-            etMortalityRate.setEnabled(false);
-            spinnerSpecies.setEnabled(false);
-            tvTotalFingerlingsCost.setText("—");
-            tvTotalFingerlingsCost.setEnabled(false);
+            // Hide fields not yet relevant
+            etFishCount.setVisibility(View.GONE);
+            etCostPerFish.setVisibility(View.GONE);
+            etMortalityRate.setVisibility(View.GONE);
+            spinnerSpecies.setVisibility(View.GONE);
+            etHarvestDate.setVisibility(View.GONE);
 
-            // Optional: visually indicate they’re locked
-            etFishCount.setHint("No fingerlings stocked");
-            etCostPerFish.setHint("N/A");
-            etMortalityRate.setHint("N/A");
+            // Keep stocking date visible
+            etStockingDate.setVisibility(View.VISIBLE);
 
-            Toast.makeText(requireContext(),
-                    "This pond has no fingerling stock. Only name, area, and dates can be edited.",
-                    Toast.LENGTH_LONG).show();
+            // Optional: add info label
+            TextView notice = new TextView(requireContext());
+            notice.setText("No fingerlings stocked yet.\nYou can update pond info and set a stocking date.");
+            notice.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray));
+            notice.setTextSize(14);
+            notice.setGravity(Gravity.CENTER);
+        } else {
+            // Show all fields normally
+            etFishCount.setVisibility(View.VISIBLE);
+            etCostPerFish.setVisibility(View.VISIBLE);
+            etMortalityRate.setVisibility(View.VISIBLE);
+            spinnerSpecies.setVisibility(View.VISIBLE);
+            etStockingDate.setVisibility(View.VISIBLE);
+            etHarvestDate.setVisibility(View.VISIBLE);
         }
+
     }
 
     private void computeTotalCost() {
@@ -440,14 +452,16 @@ public class EditPondDialog extends DialogFragment {
                     String harvestDate = etHarvestDate.getText().toString().trim();
                     if (harvestDate.isEmpty()) harvestDate = pond.getDateHarvest();
 
-                    // 2️⃣ Species
-                    String selectedBreed = spinnerSpecies.getSelectedItem() != null
-                            ? spinnerSpecies.getSelectedItem().toString()
-                            : pond.getBreed();
-                    if (selectedBreed.equalsIgnoreCase("Select species")) {
-                        Toast.makeText(requireContext(), "Please select a species.", Toast.LENGTH_SHORT).show();
-                        return;
+                    String selectedBreed = pond.getBreed(); // default to existing
+
+                    if (spinnerSpecies.getSelectedItem() != null) {
+                        String spinnerValue = spinnerSpecies.getSelectedItem().toString();
+                        // only update if user actually picked something valid
+                        if (!spinnerValue.equalsIgnoreCase("Select species")) {
+                            selectedBreed = spinnerValue;
+                        }
                     }
+
 
                     // 3️⃣ Caretakers
                     if (selectedCaretakerIds.isEmpty()) {
@@ -591,12 +605,23 @@ public class EditPondDialog extends DialogFragment {
 
                             if (status.equalsIgnoreCase("success")) {
                                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+
                                 if (listener != null) listener.onPondUpdated(pond);
+
+                                // Dismiss the dialog first
                                 dismiss();
+
+                                // Reload PondDashboardActivity
+                                if (getActivity() != null) {
+                                    Intent intent = new Intent(getActivity(), PondDashboardActivity.class);
+                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                                    startActivity(intent);
+                                }
                             } else {
                                 Toast.makeText(requireContext(), "Failed: " + message, Toast.LENGTH_LONG).show();
                                 Log.d("UpdateFail", message);
                             }
+
                         } catch (Exception e) {
                             Toast.makeText(requireContext(), "Invalid server response.", Toast.LENGTH_LONG).show();
                             e.printStackTrace();

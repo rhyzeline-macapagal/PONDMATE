@@ -35,6 +35,15 @@ import android.util.Log;
 // For Toast
 import android.widget.Toast;
 
+import android.os.Handler;
+import android.os.Looper;
+import org.json.JSONObject;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+
 
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -318,6 +327,8 @@ public class SamplingDialog extends DialogFragment {
             return;
         }
 
+
+
         String sampledWeight = etSampledWeight.getText().toString().trim();
         String numSamples = etNumSamples.getText().toString().trim();
         String feedingRates = etFeedingRate.getText().toString().trim();
@@ -365,6 +376,78 @@ public class SamplingDialog extends DialogFragment {
         PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
 
         pondId = pond.getId();
+
+        new Thread(() -> {
+            try {
+                String feederId = "feeder_001";
+                URL url = new URL("https://pondmate.alwaysdata.net/get_feeder_assignment.php?feeder_id=" + feederId);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) result.append(line);
+                reader.close();
+
+                JSONObject json = new JSONObject(result.toString());
+                String assignedPondId = json.optString("pond_id", "none");
+
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (assignedPondId.equals("none")) {
+                        // ❌ No feeder assigned
+                        new AlertDialog.Builder(requireContext())
+                                .setTitle("Feeder Not Assigned")
+                                .setMessage("The feeder device is not connected to any pond.\n\nWould you like to assign it to this pond now?")
+                                .setPositiveButton("Yes", (dialog, which) -> {
+                                    assignFeederToPondAndUpload(pond.getId(), pond.getName(),
+                                            formattedTime1, formattedTime2,
+                                            parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""))
+                                    );
+                                })
+                                .setNegativeButton("No", (dialog, which) ->
+                                        Toast.makeText(requireContext(), "Sampling not saved. Please connect feeder first.", Toast.LENGTH_SHORT).show()
+                                )
+                                .show();
+                    } else if (!assignedPondId.equals(pond.getId())) {
+                        // ❌ Assigned to a different pond
+                        new AlertDialog.Builder(requireContext())
+                                .setTitle("Feeder Connected to Another Pond")
+                                .setMessage("The feeder is currently connected to another pond.\n\nWould you like to reassign it to this pond?")
+                                .setPositiveButton("Reassign", (dialog, which) -> {
+                                    assignFeederToPondAndUpload(
+                                            pond.getId(),
+                                            pond.getName(),
+                                            formattedTime1,
+                                            formattedTime2,
+                                            parseDouble(tvDFRPerCycle.getText().toString().replace(" g", ""))
+                                    );
+                                })
+                                .setNegativeButton("Cancel", (dialog, which) -> {
+                                    // ✅ User canceled reassignment — save to SQL only
+                                    Toast.makeText(requireContext(), "Sampling saved locally. Feeder remains with previous pond.", Toast.LENGTH_SHORT).show();
+                                    saveSamplingRecord(pond);
+                                })
+                                .show();
+
+
+                    } else {
+
+                        saveSamplingRecord(pond);
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                new Handler(Looper.getMainLooper()).post(() ->
+                        Toast.makeText(requireContext(), "Error checking feeder assignment.", Toast.LENGTH_SHORT).show()
+                );
+            }
+        }).start();
+    }
+
+    private void saveSamplingRecord(PondModel pond) {
+
         int daysOfCultureVal = Integer.parseInt(tvDaysOfCulture.getText().toString().replace(" days", ""));
         String growthStage = tvLifeStage.getText().toString();
         int totalStocks = pond.getFishCount();
@@ -412,28 +495,6 @@ public class SamplingDialog extends DialogFragment {
                             // Notify ControlsFeeder (so it updates UI too)
                             LocalBroadcastManager.getInstance(requireContext())
                                     .sendBroadcast(new Intent("FEED_LEVEL_UPDATED"));
-
-                            if (true)  {
-                                checkFeederAssignmentAndUpload(
-                                        "feeder_001", // fixed feeder ID
-                                        pond.getId(),
-                                        pond.getName(),
-                                        formattedTime1,
-                                        formattedTime2,
-                                        feedPerCycle
-                                );
-                            } else {
-                                new AlertDialog.Builder(requireContext())
-                                        .setTitle("No Feeder Connected")
-                                        .setMessage("Would you like to assign feeder_001 to this pond and upload the schedule?")
-                                        .setPositiveButton("Yes", (dialog, which) -> {
-                                            assignFeederToPondAndUpload(pond.getId(), pond.getName(), formattedTime1, formattedTime2, feedPerCycle);
-                                        })
-                                        .setNegativeButton("No", (dialog, which) -> {
-                                            Toast.makeText(getContext(), "Sampling saved without feeder update.", Toast.LENGTH_SHORT).show();
-                                        })
-                                        .show();
-                            }
 
 
 
@@ -558,6 +619,7 @@ public class SamplingDialog extends DialogFragment {
                     requireActivity().runOnUiThread(() -> {
                         Toast.makeText(getContext(), "Feeder_001 assigned successfully!", Toast.LENGTH_SHORT).show();
                         uploadDFRToAdafruit(pondName, feedingOne, feedingTwo, dfrFeedGrams);
+                        dismiss();
                     });
                 } else {
                     requireActivity().runOnUiThread(() ->
@@ -566,64 +628,6 @@ public class SamplingDialog extends DialogFragment {
             }
         });
     }
-
-
-
-
-
-    private void updateFeederAssignment(String feederId, String pondId, String pondName,
-                                        String feedingOne, String feedingTwo, double dfrFeed) {
-
-        OkHttpClient client = new OkHttpClient();
-        JSONObject json = new JSONObject();
-
-        try {
-            json.put("feeder_id", feederId);
-            json.put("pond_id", pondId);
-            json.put("pond_name", pondName);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        RequestBody body = RequestBody.create(
-                json.toString(),
-                MediaType.parse("application/json; charset=utf-8")
-        );
-
-        Request request = new Request.Builder()
-                .url("https://pondmate.alwaysdata.net/update_feeder_assignment.php")
-                .post(body)
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Failed to update feeder assignment: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String jsonResponse = response.body().string();
-                try {
-                    JSONObject res = new JSONObject(jsonResponse);
-                    if (res.getString("status").equals("success")) {
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(getContext(), "Feeder successfully paired!", Toast.LENGTH_SHORT).show();
-                            uploadDFRToAdafruit(pondName, feedingOne, feedingTwo, dfrFeed);
-                        });
-                    } else {
-                        requireActivity().runOnUiThread(() ->
-                                Toast.makeText(getContext(), "Error updating feeder assignment", Toast.LENGTH_SHORT).show());
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
-
 
     private void refreshRemainingFeedUI() {
         float remaining = FeedStorage.getRemainingFeed(requireContext(), pondId);
@@ -835,6 +839,7 @@ public class SamplingDialog extends DialogFragment {
                     if (isAdded()) {
                         requireActivity().runOnUiThread(() ->
                                 Toast.makeText(requireContext(), "DFR posted to Adafruit!", Toast.LENGTH_SHORT).show());
+
                     }
                 }
             });
