@@ -287,6 +287,7 @@ public class BlindFeedingFragment extends DialogFragment {
                                             .setTitle("✅ Blind Feeding Complete")
                                             .setMessage("You have completed all 30 blind feeding logs.\n\nNo further entries are required.")
                                             .setCancelable(false)
+
                                             .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
                                             .show();
 
@@ -362,8 +363,9 @@ public class BlindFeedingFragment extends DialogFragment {
                 .setSingleChoiceItems(displayDates, 0, (dialog, which) -> selectedIndex[0] = which)
                 .setPositiveButton("OK", (dialog, which) -> etFeedDate.setText(displayDates[selectedIndex[0]])) // display friendly format
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
-                .show();
 
+                .show();
+hideLoadingDialog();
         // Later, when sending to server, use: serverDates[selectedIndex[0]]
     }
 
@@ -644,9 +646,11 @@ public class BlindFeedingFragment extends DialogFragment {
     }
 
     private void loadFeedLogs() {
-        showLoadingDialog("Loading feed records...");
+
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
+        showLoadingDialog("Loading feed records...");
+
         if (pondJson == null) {
 
             return;
@@ -658,7 +662,7 @@ public class BlindFeedingFragment extends DialogFragment {
         PondSyncManager.fetchBlindFeedLogs(pondName, new PondSyncManager.Callback() {
             @Override
             public void onSuccess(Object response) {
-
+                hideLoadingDialog();
                 if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
                     try {
@@ -939,6 +943,7 @@ public class BlindFeedingFragment extends DialogFragment {
                 new Handler(Looper.getMainLooper()).post(() -> {
                     Toast.makeText(getContext(), "Feed log deleted!", Toast.LENGTH_SHORT).show();
                     loadFeedLogs();
+                    hideLoadingDialog();
                 });
             }
 

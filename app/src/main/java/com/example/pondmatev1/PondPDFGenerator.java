@@ -53,14 +53,14 @@ public class PondPDFGenerator {
             Font titleFont;
 
             if (action.equals("EMERGENCY_HARVEST")) {
-                titleText = "EMERGENCY HARVEST REPORT";
-                titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, BaseColor.RED);
+                titleText = "COLLEGE OF FISHERIES AQUATIC SCIENCES AND TECHNOLOGY (CFAST) AQUACULTURE FARM\nEMERGENCY HARVEST REPORT";
+                titleFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD, BaseColor.RED);
             } else if (action.equals("INACTIVE")) {
-                titleText = "INACTIVE POND REPORT";
-                titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, new BaseColor(80, 80, 80));
+                titleText = "COLLEGE OF FISHERIES AQUATIC SCIENCES AND TECHNOLOGY (CFAST) AQUACULTURE FARM\nINACTIVE POND REPORT";
+                titleFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD, new BaseColor(80, 80, 80));
             } else {
-                titleText = "POND REPORT";
-                titleFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, BaseColor.BLACK);
+                titleText = "COLLEGE OF FISHERIES AQUATIC SCIENCES AND TECHNOLOGY (CFAST) AQUACULTURE FARM\nPOND REPORT";
+                titleFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD, BaseColor.BLACK);
             }
 
             Paragraph title = new Paragraph(titleText, titleFont);
@@ -101,11 +101,15 @@ public class PondPDFGenerator {
         return pdfFile;
     }
 
+    private static String formatPeso(double value) {
+        return "P " + String.format("%,.2f", value);
+    }
+
     private static void addPondDetails(Document document, JSONObject report) throws Exception {
         JSONObject pondDetails = report.optJSONObject("pond_details");
         if (pondDetails != null) {
             document.add(new Paragraph("POND DETAILS",
-                    new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
+                    new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD)));
             document.add(new Paragraph("\n"));
 
             Font labelFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD);
@@ -129,7 +133,7 @@ public class PondPDFGenerator {
         JSONObject fingerlings = expenses.optJSONObject("Fingerlings");
         if (fingerlings != null) {
             document.add(new Paragraph("FINGERLINGS",
-                    new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
+                    new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD)));
             document.add(new Paragraph("\n"));
 
             PdfPTable table = new PdfPTable(4);
@@ -145,8 +149,8 @@ public class PondPDFGenerator {
                     JSONObject item = details.getJSONObject(i);
                     table.addCell(item.optString("description", "-"));
                     table.addCell(item.optString("quantity", "0"));
-                    table.addCell("₱" + item.optString("cost_per_unit", "0"));
-                    table.addCell("₱" + item.optString("amount", "0"));
+                    table.addCell(formatPeso(item.optDouble("cost_per_unit", 0)));
+                    table.addCell(formatPeso(item.optDouble("amount", 0)));
                 }
             } else {
                 PdfPCell noData = new PdfPCell(new Phrase("No fingerlings data available"));
@@ -155,8 +159,7 @@ public class PondPDFGenerator {
                 table.addCell(noData);
             }
 
-            PdfPCell totalCell = new PdfPCell(new Phrase("Total: ₱" +
-                    String.format("%.2f", fingerlings.optDouble("total_cost", 0))));
+            PdfPCell totalCell = new PdfPCell(new Phrase("Total: " + formatPeso(fingerlings.optDouble("total_cost", 0))));
             totalCell.setColspan(4);
             totalCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(totalCell);
@@ -170,7 +173,7 @@ public class PondPDFGenerator {
         JSONObject feeds = expenses.optJSONObject("Feeds");
         if (feeds != null) {
             document.add(new Paragraph("ACCUMULATED FEED COST",
-                    new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
+                    new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD)));
             document.add(new Paragraph("\n"));
 
             PdfPTable table = new PdfPTable(2);
@@ -184,8 +187,7 @@ public class PondPDFGenerator {
                     JSONObject item = details.getJSONObject(i);
                     table.addCell(item.optString("description", "-"));
 
-                    PdfPCell amountCell = new PdfPCell(
-                            new Phrase("₱" + String.format("%.2f", item.optDouble("amount", 0))));
+                    PdfPCell amountCell = new PdfPCell(new Phrase(formatPeso(item.optDouble("amount", 0))));
                     amountCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
                     table.addCell(amountCell);
                 }
@@ -205,8 +207,7 @@ public class PondPDFGenerator {
                 blindLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
                 table.addCell(blindLabel);
 
-                PdfPCell blindValue = new PdfPCell(
-                        new Phrase("₱" + String.format("%.2f", blindFeedCost)));
+                PdfPCell blindValue = new PdfPCell(new Phrase(formatPeso(blindFeedCost)));
                 blindValue.setHorizontalAlignment(Element.ALIGN_RIGHT);
                 table.addCell(blindValue);
             }
@@ -215,8 +216,7 @@ public class PondPDFGenerator {
             totalLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
             table.addCell(totalLabel);
 
-            PdfPCell totalValue = new PdfPCell(
-                    new Phrase("₱" + String.format("%.2f", combinedFeedTotal)));
+            PdfPCell totalValue = new PdfPCell(new Phrase(formatPeso(combinedFeedTotal)));
             totalValue.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(totalValue);
 
@@ -229,7 +229,7 @@ public class PondPDFGenerator {
         JSONObject others = expenses.optJSONObject("Other Expenses");
         if (others != null) {
             document.add(new Paragraph("OTHER EXPENSES",
-                    new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
+                    new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD)));
             document.add(new Paragraph("\n"));
 
             PdfPTable table = new PdfPTable(3);
@@ -244,7 +244,7 @@ public class PondPDFGenerator {
                     JSONObject item = details.getJSONObject(i);
                     table.addCell(item.optString("cost_type", "-"));
                     table.addCell(item.optString("description", "-"));
-                    table.addCell("₱" + item.optString("amount", "0"));
+                    table.addCell(formatPeso(item.optDouble("amount", 0)));
                 }
             } else {
                 PdfPCell noData = new PdfPCell(new Phrase("No other expenses available"));
@@ -253,13 +253,16 @@ public class PondPDFGenerator {
                 table.addCell(noData);
             }
 
-            PdfPCell totalCell = new PdfPCell(new Phrase("Total: ₱" +
-                    String.format("%.2f", others.optDouble("total_cost", 0))));
+            // ✅ Correct total row
+            PdfPCell totalCell = new PdfPCell(new Phrase("Total:" + formatPeso(others.optDouble("total_cost", 0))));
             totalCell.setColspan(3);
             totalCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            totalCell.setPaddingTop(6f);
+            totalCell.setPaddingBottom(6f);
             table.addCell(totalCell);
 
             document.add(table);
+            document.add(new Paragraph("\n"));
         }
     }
 
@@ -281,16 +284,13 @@ public class PondPDFGenerator {
                     JSONObject item = details.getJSONObject(i);
                     table.addCell(item.optString("description", "-"));
 
-                    PdfPCell amountCell = new PdfPCell(
-                            new Phrase("₱" + String.format("%.2f", item.optDouble("amount", 0))));
+                    PdfPCell amountCell = new PdfPCell(new Phrase(formatPeso(item.optDouble("amount", 0))));
                     amountCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
                     table.addCell(amountCell);
                 }
             }
 
-            PdfPCell totalCell = new PdfPCell(new Phrase("Total Salary: ₱" +
-                    String.format("%.2f", salary.optDouble("total_cost", 0))));
-            totalCell.setColspan(2);
+            PdfPCell totalCell = new PdfPCell(new Phrase("Total Salary:" + formatPeso(salary.optDouble("total_cost", 0))));totalCell.setColspan(2);
             totalCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(totalCell);
 
@@ -320,9 +320,10 @@ public class PondPDFGenerator {
             totalCapital += expenses.optJSONObject("Salary").optDouble("total_cost", 0);
         }
 
-        document.add(new Paragraph("\nTOTAL CAPITAL / EXPENSES: ₱" +
-                String.format("%.2f", totalCapital),
+        document.add(new Paragraph("\nTOTAL CAPITAL / EXPENSES:" +
+                formatPeso(totalCapital),
                 new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD)));
+
     }
 
     private static PdfPCell headerCell(String text) {
