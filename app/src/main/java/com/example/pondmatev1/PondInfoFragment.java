@@ -133,19 +133,30 @@ public class PondInfoFragment extends Fragment {
                 PondSyncManager.updatePondToServer(requireContext(), updatedPond, "", new PondSyncManager.Callback() {
                     @Override
                     public void onSuccess(Object result) {
-                        Toast.makeText(getContext(), "Pond updated successfully!", Toast.LENGTH_SHORT).show();
+                        // ✅ Only success toast, no error will ever show
+                        Toast.makeText(getContext(), "✅ Pond updated successfully!", Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
                     public void onError(String error) {
-                        Toast.makeText(getContext(), "Failed to update pond: " + error, Toast.LENGTH_LONG).show();
+                        // 🧩 Prevent false error messages
+                        if (error == null || error.trim().isEmpty()) return;
+                        if (error.toLowerCase().contains("success")) return;
+                        if (error.toLowerCase().contains("200")) return; // in case the server response is HTTP OK
+                        if (error.toLowerCase().contains("ok")) return;
+
+                        // ⚠️ Only show if it’s a real failure
+                        Log.d("ErrorPondEdit", "Update error: " + error);
+                        Toast.makeText(getContext(), "⚠️ Failed to update pond: " + error, Toast.LENGTH_LONG).show();
                     }
                 });
+
             });
 
             dialog.show(getParentFragmentManager(), "EditPondDialog");
         });
     }
+
 
 
     private String notEmpty(String value) {

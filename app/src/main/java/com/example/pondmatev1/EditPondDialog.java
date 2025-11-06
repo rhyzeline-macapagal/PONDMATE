@@ -414,98 +414,91 @@ public class EditPondDialog extends DialogFragment {
 
 
     private void saveChanges() {
-        new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Save")
                 .setMessage("Are you sure you want to save these changes?")
-                .setPositiveButton("Yes", (dialog, which) -> {
-
-                    // 1️⃣ Safely read EditText values, fallback to existing pond data
-                    String pondName = etPondName.getText().toString().trim();
-                    if (pondName.isEmpty()) pondName = pond.getName();
-
-                    String pondAreaStr = etPondArea.getText().toString().trim();
-                    double pondArea = pondAreaStr.isEmpty() ? pond.getPondArea() : Double.parseDouble(pondAreaStr);
-
-                    int fishCount = pond.getFishCount();
-                    double costPerFish = pond.getCostPerFish();
-                    double mortalityRate = pond.getMortalityRate();
-
-                    if (hasFingerlingStock) {
-                        String fishCountStr = etFishCount.getText().toString().trim();
-                        if (!fishCountStr.isEmpty()) fishCount = Integer.parseInt(fishCountStr);
-
-                        String costStr = etCostPerFish.getText().toString().trim();
-                        if (!costStr.isEmpty()) costPerFish = Double.parseDouble(costStr);
-
-                        String mortalityStr = etMortalityRate.getText().toString().trim();
-                        if (!mortalityStr.isEmpty()) mortalityRate = Double.parseDouble(mortalityStr);
-                    }
-
-
-                    String dateCreated = etDateCreated.getText().toString().trim();
-                    if (dateCreated.isEmpty()) dateCreated = pond.getDateStarted();
-
-                    String stockingDate = etStockingDate.getText().toString().trim();
-                    if (stockingDate.isEmpty()) stockingDate = pond.getDateStocking();
-
-                    String harvestDate = etHarvestDate.getText().toString().trim();
-                    if (harvestDate.isEmpty()) harvestDate = pond.getDateHarvest();
-
-                    String selectedBreed = pond.getBreed();
-
-                    if (spinnerSpecies.getVisibility() == View.VISIBLE && spinnerSpecies.getSelectedItem() != null) {
-                        String spinnerValue = spinnerSpecies.getSelectedItem().toString();
-                        // only update if user actually picked something valid
-                        if (!spinnerValue.equalsIgnoreCase("Select species")) {
-                            selectedBreed = spinnerValue;
-                        }
-                    } else {
-                        // Spinner hidden → no change to species
-                        selectedBreed = pond.getBreed();
-                    }
-
-
-
-                    // 3️⃣ Caretakers
-                    if (selectedCaretakerIds.isEmpty()) {
-                        Toast.makeText(requireContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
-                        etCaretakers.setError("Required");
-                        return;
-                    } else {
-                        if (selectedCaretakerIds.isEmpty()) {
-                            Toast.makeText(requireContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                    }
-
-
-                    // 4️⃣ Stocking density check
-                    rawPondArea = pondArea; // update raw pond area for validation
-                    if (!checkStockingDensity()) return;
-
-                    // 5️⃣ Update pond model
-                    pond.setName(pondName);
-                    pond.setPondArea(pondArea);
-                    pond.setFishCount(fishCount);
-                    pond.setCostPerFish(costPerFish);
-                    pond.setMortalityRate(mortalityRate);
-                    pond.setDateStarted(dateCreated);
-                    pond.setDateStocking(stockingDate);
-                    pond.setDateHarvest(harvestDate);
-                    pond.setBreed(selectedBreed);
-
-                    pond.setCaretakerName(getSelectedCaretakerNames()); // 🟢 store names for display
-                    pond.setCaretakerIds(String.join(",", selectedCaretakerIds)); // 🟢 store IDs for server
-
-
-                    // 6️⃣ Send to server
-                    updatePondOnServer(pond);
-
-                })
+                .setPositiveButton("Yes", null) // set to null first so we can override later
                 .setNegativeButton("No", null)
-                .show();
+                .create();
+
+        dialog.setOnShowListener(dlg -> {
+            Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positive.setOnClickListener(v -> {
+
+                // 1️⃣ Safely read EditText values
+                String pondName = etPondName.getText().toString().trim();
+                if (pondName.isEmpty()) pondName = pond.getName();
+
+                String pondAreaStr = etPondArea.getText().toString().trim();
+                double pondArea = pondAreaStr.isEmpty() ? pond.getPondArea() : Double.parseDouble(pondAreaStr);
+
+                int fishCount = pond.getFishCount();
+                double costPerFish = pond.getCostPerFish();
+                double mortalityRate = pond.getMortalityRate();
+
+                if (hasFingerlingStock) {
+                    String fishCountStr = etFishCount.getText().toString().trim();
+                    if (!fishCountStr.isEmpty()) fishCount = Integer.parseInt(fishCountStr);
+
+                    String costStr = etCostPerFish.getText().toString().trim();
+                    if (!costStr.isEmpty()) costPerFish = Double.parseDouble(costStr);
+
+                    String mortalityStr = etMortalityRate.getText().toString().trim();
+                    if (!mortalityStr.isEmpty()) mortalityRate = Double.parseDouble(mortalityStr);
+                }
+
+                String dateCreated = etDateCreated.getText().toString().trim();
+                if (dateCreated.isEmpty()) dateCreated = pond.getDateStarted();
+
+                String stockingDate = etStockingDate.getText().toString().trim();
+                if (stockingDate.isEmpty()) stockingDate = pond.getDateStocking();
+
+                String harvestDate = etHarvestDate.getText().toString().trim();
+                if (harvestDate.isEmpty()) harvestDate = pond.getDateHarvest();
+
+                String selectedBreed = pond.getBreed();
+
+                if (spinnerSpecies.getVisibility() == View.VISIBLE && spinnerSpecies.getSelectedItem() != null) {
+                    String spinnerValue = spinnerSpecies.getSelectedItem().toString();
+                    if (!spinnerValue.equalsIgnoreCase("Select species")) {
+                        selectedBreed = spinnerValue;
+                    }
+                }
+
+                // 3️⃣ Caretaker validation — STOP here if none selected
+                if (selectedCaretakerIds.isEmpty()) {
+                    Toast.makeText(requireContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
+                    etCaretakers.setError("Required");
+                    return; // 🚫 don't dismiss dialog
+                }
+
+                // 4️⃣ Stocking density check
+                rawPondArea = pondArea;
+                if (!checkStockingDensity()) return;
+
+                // 5️⃣ Update pond model
+                pond.setName(pondName);
+                pond.setPondArea(pondArea);
+                pond.setFishCount(fishCount);
+                pond.setCostPerFish(costPerFish);
+                pond.setMortalityRate(mortalityRate);
+                pond.setDateStarted(dateCreated);
+                pond.setDateStocking(stockingDate);
+                pond.setDateHarvest(harvestDate);
+                pond.setBreed(selectedBreed);
+                pond.setCaretakerName(getSelectedCaretakerNames());
+                pond.setCaretakerIds(String.join(",", selectedCaretakerIds));
+
+                // 6️⃣ Send to server
+                updatePondOnServer(pond);
+
+                dialog.dismiss(); // ✅ only close if validation passed
+            });
+        });
+
+        dialog.show();
     }
+
 
     private String getSelectedCaretakerNames() {
         List<String> selectedNames = new ArrayList<>();
@@ -518,33 +511,6 @@ public class EditPondDialog extends DialogFragment {
     }
 
 
-
-    // Validate required fields before saving
-    private boolean validateInputs() {
-        if (etPondName.getText().toString().trim().isEmpty() ||
-                etPondArea.getText().toString().trim().isEmpty() ||
-                etFishCount.getText().toString().trim().isEmpty() ||
-                etCostPerFish.getText().toString().trim().isEmpty() ||
-                etMortalityRate.getText().toString().trim().isEmpty() ||
-                etDateCreated.getText().toString().trim().isEmpty() ||
-                etStockingDate.getText().toString().trim().isEmpty() ||
-                etHarvestDate.getText().toString().trim().isEmpty()) {
-            Toast.makeText(requireContext(), "Please fill all pond details.", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        if (selectedCaretakerIds.isEmpty()) {
-            Toast.makeText(requireContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        if (!checkStockingDensity()) {
-            return false;
-
-        }
-
-        return true;
-    }
 
     private void updatePondOnServer(PondModel pond) {
         new Thread(() -> {
