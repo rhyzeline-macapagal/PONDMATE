@@ -99,7 +99,7 @@ public class EditPondDialog extends DialogFragment {
             // MINIMAL LAYOUT (for ponds NOT yet stocked)
             view = inflater.inflate(R.layout.dialog_edit_pond_minimal, null);
         }
-
+        Log.d("POND", "caretakerIds stored: " + pond.getCaretakerIds());
         initViews(view);
         if (hasFingerlingStock && spinnerSpecies != null) {
             setupSpeciesSpinner();
@@ -237,29 +237,30 @@ public class EditPondDialog extends DialogFragment {
         });
     }
 
-
-
-
-
     private void populateCaretakerIds() {
         selectedCaretakerIds.clear();
 
-        if (pond.getCaretakerIds() != null && !pond.getCaretakerIds().isEmpty()) {
-            String[] ids = pond.getCaretakerIds().split(",");
-            for (String id : ids) {
-                String trimmedId = id.trim();
-                if (!trimmedId.isEmpty()) {
-                    selectedCaretakerIds.add(trimmedId);
-                }
-            }
-            Log.d(TAG, "[populateCaretakerIds] Parsed selectedCaretakerIds from pond: " + selectedCaretakerIds);
-        } else {
-            Log.d(TAG, "[populateCaretakerIds] Pond has no caretakers assigned yet");
+        String raw = pond.getCaretakerIds();
+        Log.d(TAG, "[populateCaretakerIds] Raw caretakerIds from model: \"" + raw + "\"");
+
+        if (raw == null || raw.trim().isEmpty() || raw.equals("[]") || raw.equals("{}")) {
+            Log.d(TAG, "[populateCaretakerIds] No caretakers assigned in model");
+            return;
         }
 
-        // Update summary field
-        etCaretakers.setText(getSelectedCaretakerNames());
-        Log.d(TAG, "[populateCaretakerIds] etCaretakers set to: " + etCaretakers.getText());
+        // Strip brackets
+        raw = raw.replace("[", "").replace("]", "").trim();
+
+        // Split into IDs
+        String[] parts = raw.split(",");
+        for (String p : parts) {
+            String id = p.trim();
+            if (!id.isEmpty()) {
+                selectedCaretakerIds.add(id);
+            }
+        }
+
+        Log.d(TAG, "[populateCaretakerIds] Parsed caretaker IDs: " + selectedCaretakerIds);
     }
 
 
