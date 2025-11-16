@@ -44,7 +44,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="12dp"
-        android:text="Below are the current farmgate prices per breed and feed type. Tap 'Edit' to update the prices."
+        android:text="Below are the current farmgate prices per species and feed type. Tap 'Edit' to update the prices."
         android:textSize="14sp"
         android:textColor="#444"
         android:gravity="center"/>
@@ -84,7 +84,7 @@
                         android:textColor="#000"/>
 
                     <TextView
-                        android:text="Breed"
+                        android:text="Species"
                         android:padding="8dp"
                         android:gravity="center"
                         android:background="@drawable/cell_bg"

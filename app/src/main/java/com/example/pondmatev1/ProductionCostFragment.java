@@ -1,6 +1,7 @@
 package com.example.pondmatev1;
 
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -23,6 +24,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -35,6 +37,8 @@ import android.widget.Toast;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import androidx.annotation.NonNull;
@@ -42,7 +46,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.google.gson.Gson;
 import com.itextpdf.text.BaseColor;
@@ -93,6 +99,7 @@ public class ProductionCostFragment extends Fragment {
     File generatedPdfFile;
     private int selectedCycleMonths = 6;
     private String pondId;
+    private View view;
 
     @Nullable
     @Override
@@ -114,7 +121,6 @@ public class ProductionCostFragment extends Fragment {
             currentBreed = pond.getBreed();
             currentFishCount = pond.getFishCount();
             pondId = pond.getId();
-            handleFingerlingVisibility(view, pond);
             setupStockFingerlingsButton(view, pond);
             handleFingerlingStockedStatus(view, pond);
         }
@@ -342,10 +348,275 @@ public class ProductionCostFragment extends Fragment {
         }
     }
 
+
+
+    private void showStockFingerlingsDialog(PondModel pond) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_stock_fingerlings, null);
+        builder.setView(dialogView);
+
+        // ✅ Pond info fields
+        TextView tvPondName = dialogView.findViewById(R.id.tvPondName);
+        TextView tvPondArea = dialogView.findViewById(R.id.tvPondArea);
+        TextView tvStockingDate = dialogView.findViewById(R.id.tvDateStocking);
+        TextView tvHarvestDate = dialogView.findViewById(R.id.tvHarvestDate);
+
+        // ✅ Set pond details
+        double rawPondArea = pond != null ? pond.getPondArea() : 0;
+        if (pond != null) {
+            tvPondName.setText(pond.getName() != null ? pond.getName() : "—");
+            tvPondArea.setText(String.format(Locale.getDefault(), "%.2f sqm", pond.getPondArea()));
+            tvStockingDate.setText(pond.getDateStocking() != null ? pond.getDateStocking() : "—");
+            tvHarvestDate.setText(pond.getDateHarvest() != null ? pond.getDateHarvest() : "—");
+        }
+
+        // ✅ Input fields
+        Spinner spinnerSpecies = dialogView.findViewById(R.id.spinnerSpecies);
+        EditText etFishCount = dialogView.findViewById(R.id.etFishCount);
+        EditText etUnitCost = dialogView.findViewById(R.id.etUnitCost);
+        TextView tvTotalCost = dialogView.findViewById(R.id.tvTotalFingerlingsCost);
+        Button btnConfirm = dialogView.findViewById(R.id.btnSavePond);
+        TextView btnCancel = dialogView.findViewById(R.id.btnClose);
+
+        // ✅ Species options
+        List<String> speciesList = new ArrayList<>();
+        speciesList.add("Bangus");
+        speciesList.add("Tilapia");
+
+        ArrayAdapter<String> speciesAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                speciesList
+        );
+        spinnerSpecies.setAdapter(speciesAdapter);
+
+        // ✅ Compute total
+        final Runnable computeTotal = () -> {
+            String fishCountStr = etFishCount.getText().toString().trim();
+            String unitCostStr = etUnitCost.getText().toString().trim();
+
+            if (fishCountStr.isEmpty() || unitCostStr.isEmpty()) {
+                tvTotalCost.setText("₱0.00");
+                return;
+            }
+
+            try {
+                double total = Double.parseDouble(fishCountStr) * Double.parseDouble(unitCostStr);
+                tvTotalCost.setText(String.format(Locale.getDefault(), "₱%.2f", total));
+            } catch (NumberFormatException e) {
+                tvTotalCost.setText("₱0.00");
+            }
+        };
+
+        // ✅ Real-time stocking density checker
+        final Runnable checkStockingDensityRealtime = () -> {
+            String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
+            String fishCountStr = etFishCount.getText().toString().trim();
+
+            if (fishCountStr.isEmpty() || rawPondArea <= 0) {
+                etFishCount.setError(null);
+                return;
+            }
+
+            try {
+                double fishCount = Double.parseDouble(fishCountStr);
+                double pondArea = rawPondArea;
+                double density = fishCount / pondArea;
+
+                double minRecommended = 0;
+                double maxAllowed = 0;
+
+                switch (breed) {
+                    case "Tilapia":
+                        minRecommended = 2.0;
+                        maxAllowed = 4.0;
+                        break;
+                    case "Bangus":
+                        minRecommended = 0.8;
+                        maxAllowed = 1.2;
+                        break;
+                }
+
+                double minFishCount = minRecommended * pondArea;
+                double maxFishCount = maxAllowed * pondArea;
+
+                if (density > maxAllowed) {
+                    etFishCount.setError(String.format(Locale.getDefault(),
+                            "⚠️ Overstocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
+                } else if (density < minRecommended) {
+                    etFishCount.setError(String.format(Locale.getDefault(),
+                            "⚠️ Understocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
+                } else {
+                    etFishCount.setError(null);
+                }
+
+            } catch (NumberFormatException e) {
+                etFishCount.setError(null);
+            }
+        };
+
+        // ✅ Auto-set unit cost by species
+        spinnerSpecies.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selected = spinnerSpecies.getSelectedItem().toString();
+                if (selected.equalsIgnoreCase("Bangus")) {
+                    etUnitCost.setText("0.50");
+                } else {
+                    etUnitCost.setText("0.35");
+                }
+                computeTotal.run();
+                checkStockingDensityRealtime.run();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        // ✅ Real-time total + density checking
+        TextWatcher watcher = new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                computeTotal.run();
+                checkStockingDensityRealtime.run();
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        };
+        etFishCount.addTextChangedListener(watcher);
+        etUnitCost.addTextChangedListener(watcher);
+
+        // ✅ Dialog creation
+        AlertDialog dialog = builder.create();
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnConfirm.setOnClickListener(v -> {
+            String species = spinnerSpecies.getSelectedItem().toString();
+            String fishCountStr = etFishCount.getText().toString().trim();
+            String unitCostStr = etUnitCost.getText().toString().trim();
+            String totalCostStr = tvTotalCost.getText().toString().replace("₱", "").trim();
+
+            if (fishCountStr.isEmpty() || unitCostStr.isEmpty()) {
+                Toast.makeText(requireContext(), "Please fill in all fields.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            try {
+                double fishCount = Double.parseDouble(fishCountStr);
+                double pondArea = rawPondArea;
+                double density = fishCount / pondArea;
+
+                double minRecommended = 0;
+                double maxAllowed = 0;
+
+                switch (species) {
+                    case "Tilapia":
+                        minRecommended = 2.0;
+                        maxAllowed = 4.0;
+                        break;
+                    case "Bangus":
+                        minRecommended = 0.8;
+                        maxAllowed = 1.2;
+                        break;
+                }
+
+                if (density > maxAllowed) {
+                    Toast.makeText(requireContext(),
+                            "❌ Overstocked! Please reduce fish count.", Toast.LENGTH_LONG).show();
+                    return;
+                } else if (density < minRecommended) {
+                    Toast.makeText(requireContext(),
+                            "⚠️ Understocked! Please increase fish count.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                // ✅ Confirmation dialog before saving
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("Confirm Stocking")
+                        .setMessage("Are you sure you want to add these fingerlings?")
+                        .setPositiveButton("Yes", (dialogConfirm, which) -> {
+
+                            // 🔹 Now sync with your PHP server
+                            PondSyncManager.stockFingerlingsOnServer(
+                                    tvPondName.getText().toString(),
+                                    spinnerSpecies.getSelectedItem().toString(),
+                                    Integer.parseInt(etFishCount.getText().toString()),
+                                    Double.parseDouble(etUnitCost.getText().toString()),
+                                    "0", // mortality placeholder (if not yet used)
+                                    tvHarvestDate.getText().toString(),
+                                    new PondSyncManager.Callback() {
+                                        @Override
+                                        public void onSuccess(Object result) {
+                                            // ✅ Update local data after successful sync
+                                            PondModel updatedPond = pond;
+                                            updatedPond.setBreed(species);
+                                            updatedPond.setFishCount((int) fishCount);
+                                            updatedPond.setCostPerFish(Double.parseDouble(unitCostStr));
+
+                                            SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                                            prefs.edit().putString("selected_pond", new Gson().toJson(updatedPond)).apply();
+
+                                            updateProductionCostUI(updatedPond);
+                                            updateTotalCost(species, (int) fishCount);
+                                            Toast.makeText(requireContext(), "✅ Fingerlings stocked successfully!", Toast.LENGTH_SHORT).show();
+                                            handleFingerlingStockedStatus(requireView(), updatedPond);
+                                            dialog.dismiss();
+                                        }
+
+                                        @Override
+                                        public void onError(String error) {
+                                            Toast.makeText(requireContext(), "❌ Error: " + error, Toast.LENGTH_LONG).show();
+                                        }
+                                    }
+                            );
+
+                        })
+                        .setNegativeButton("Cancel", (dialog1, which) -> dialog1.dismiss())
+                        .show();
+
+            } catch (NumberFormatException e) {
+                Toast.makeText(requireContext(), "Invalid number format.", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
+
+        dialog.show();
+    }
+
+
+    private void updateProductionCostUI(PondModel pond) {
+        if (pond == null || getView() == null) return;
+
+        TextView tvBreed = getView().findViewById(R.id.fishbreedpcostdisplay);
+        TextView tvTotalStocks = getView().findViewById(R.id.numoffingerlings);
+        TextView tvUnitCost = getView().findViewById(R.id.amtperpiece);
+        TextView tvTotalCost = getView().findViewById(R.id.amtoffingerlings);
+        TextView tvSummaryFingerlings = getView().findViewById(R.id.tvSummaryFingerlings);
+
+        // Species (breed)
+        tvBreed.setText(pond.getBreed() != null ? pond.getBreed() : "--");
+
+        // Total stocks
+        tvTotalStocks.setText(String.valueOf(pond.getFishCount()));
+
+        // Unit cost
+        tvUnitCost.setText(String.format(Locale.getDefault(), "₱%.2f", pond.getCostPerFish()));
+
+        // Total cost
+        double totalCost = pond.getFishCount() * pond.getCostPerFish();
+        tvTotalCost.setText(String.format(Locale.getDefault(), "₱%.2f", totalCost));
+
+        // Total fingerlings cost in summary table
+        tvSummaryFingerlings.setText(String.format(Locale.getDefault(), "₱%.2f", totalCost));
+    }
+    
+
     private void openSamplingDialog() {
         SamplingDialog dialog = new SamplingDialog();
         dialog.show(getParentFragmentManager(), "SamplingDialog");
     }
+
 
     public void updateSamplingButtonState(String pondId) {
         if (!isAdded()) return;
@@ -452,10 +723,8 @@ public class ProductionCostFragment extends Fragment {
                             ContextCompat.getColorStateList(requireContext(), R.color.blue_pond_btn)
                     );
 
-                    btnStockFingerlings.setOnClickListener(v -> {
-                        StockFingerlingsDialog dialog = new StockFingerlingsDialog(pond);
-                        dialog.show(getParentFragmentManager(), "StockFingerlingsDialog");
-                    });
+                    btnStockFingerlings.setOnClickListener(v -> showStockFingerlingsDialog(pond));
+
                 }
             } catch (ParseException e) {
                 e.printStackTrace();
@@ -487,62 +756,7 @@ public class ProductionCostFragment extends Fragment {
         }
     }
 
-    private void handleFingerlingVisibility(View view, PondModel pond) {
-        Button btnAddProductionCost = view.findViewById(R.id.btnAddProductionCost);
-        Button btnStockFingerlings = view.findViewById(R.id.btnStockFingerlings);
-        Button btnGenerateReport = view.findViewById(R.id.btnGenerateReport);
 
-        LinearLayout pondInfoSection = view.findViewById(R.id.pondInformationSection);
-        LinearLayout productionCostSummary = view.findViewById(R.id.productionCostSummarySection);
-        LinearLayout roiSection = view.findViewById(R.id.roiSection);
-
-        if (pond == null) {
-            btnAddProductionCost.setVisibility(View.VISIBLE);
-            btnStockFingerlings.setVisibility(View.VISIBLE);
-            btnGenerateReport.setVisibility(View.GONE);
-
-            pondInfoSection.setVisibility(View.GONE);
-            productionCostSummary.setVisibility(View.GONE);
-            roiSection.setVisibility(View.GONE);
-            return;
-        }
-
-        if (pond.getBreed() == null ||
-                pond.getBreed().trim().isEmpty() ||
-                pond.getBreed().equalsIgnoreCase("null")) {
-            btnAddProductionCost.setVisibility(View.VISIBLE);
-            btnStockFingerlings.setVisibility(View.VISIBLE);
-            btnGenerateReport.setVisibility(View.GONE);
-
-            pondInfoSection.setVisibility(View.GONE);
-            productionCostSummary.setVisibility(View.GONE);
-            roiSection.setVisibility(View.GONE);
-
-            Toast.makeText(requireContext(), "Please stock fingerlings first before viewing production cost.", Toast.LENGTH_SHORT).show();
-        } else {
-            btnAddProductionCost.setVisibility(View.VISIBLE);
-            btnStockFingerlings.setVisibility(View.VISIBLE);
-            btnGenerateReport.setVisibility(View.VISIBLE);
-
-            pondInfoSection.setVisibility(View.VISIBLE);
-            productionCostSummary.setVisibility(View.VISIBLE);
-            roiSection.setVisibility(View.VISIBLE);
-        }
-    }
-
-    public void refreshAfterStocking() {
-        // Get updated pond from SharedPreferences
-        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-        String pondJson = prefs.getString("selected_pond", null);
-        PondModel pond = null;
-        if (pondJson != null) {
-            pond = new Gson().fromJson(pondJson, PondModel.class);
-        }
-
-        // Update the visibility of buttons and sections
-        handleFingerlingVisibility(getView(), pond);
-
-    }
 
 
 

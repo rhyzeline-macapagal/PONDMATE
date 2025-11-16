@@ -84,7 +84,7 @@ public class FeederPairingDialog extends DialogFragment {
                     if (isAdded()) {
                         requireActivity().runOnUiThread(() -> {
                             if (pondName != null && !pondName.equals("null") && !pondName.isEmpty()) {
-                                tvCurrentConnection.setText("Connected to: " + pondName);
+                                tvCurrentConnection.setText("Connected to Pond: " + pondName);
                             } else {
                                 tvCurrentConnection.setText("❌ No pond connected ❌");
                             }

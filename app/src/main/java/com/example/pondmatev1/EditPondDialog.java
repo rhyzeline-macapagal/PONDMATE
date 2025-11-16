@@ -3,8 +3,8 @@ package com.example.pondmatev1;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
-import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -12,13 +12,15 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.*;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.flexbox.FlexboxLayout;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -29,31 +31,48 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+/**
+ * EditPondDialog — updated to use a RecyclerView-based caretaker chooser instead of chips.
+ */
 public class EditPondDialog extends DialogFragment {
 
     private EditText etPondName, etPondArea, etFishCount, etCostPerFish, etMortalityRate;
-    private EditText etDateCreated, etStockingDate, etHarvestDate, etCaretakers;
+    private EditText etDateCreated, etStockingDate, etHarvestDate, etCaretakers; // etCaretakers used as read-only summary
     private Spinner spinnerSpecies;
-    private Button btnSave, btnCancel, btnSelectCaretakers;
+    private Button btnSave, btnCancel;
     private TextView btnClose;
-    private FlexboxLayout caretakerChipContainer;
+
     private TextView tvTotalFingerlingsCost;
 
     private boolean hasFingerlingStock = false;
 
+    private RecyclerView rvCaretakers;
 
     private PondModel pond; // existing pond data
     private OnPondUpdatedListener listener;
+
+    private String rawDateCreatedForDB = "";
+    private String rawStockingDateForDB = "";
+    private String rawHarvestDateForDB = "";
+    private final SimpleDateFormat dbFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+    private final SimpleDateFormat displayFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.getDefault()); // January 1, 2025
+
+    private ArrayList<CaretakerModel> caretakerModels = new ArrayList<>();
+
 
     private static final String TAG = "EditPondDialog";
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private double rawPondArea = 0;
-    private String rawStockingDateForDB = "";
 
+    // simple arrays to store caretakers loaded from server
     private final List<String> caretakerNames = new ArrayList<>();
     private final List<String> caretakerIds = new ArrayList<>();
+    // selection set stores caretaker ids (strings)
     private final Set<String> selectedCaretakerIds = new HashSet<>();
+
+    // Adapter-backed state (checked booleans) used by the RecyclerView chooser
+    private final List<Boolean> caretakerCheckedState = new ArrayList<>();
 
     public interface OnPondUpdatedListener {
         void onPondUpdated(PondModel updatedPond);
@@ -69,15 +88,27 @@ public class EditPondDialog extends DialogFragment {
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_edit_pond, null);
+
+        hasFingerlingStock = pond.getFishCount() > 0 && pond.getCostPerFish() > 0;
+
+        View view;
+        if (hasFingerlingStock) {
+            // FULL LAYOUT (with fish count, species, etc.)
+            view = inflater.inflate(R.layout.dialog_edit_pond, null);
+        } else {
+            // MINIMAL LAYOUT (for ponds NOT yet stocked)
+            view = inflater.inflate(R.layout.dialog_edit_pond_minimal, null);
+        }
 
         initViews(view);
-        setupSpeciesSpinner();
+        if (hasFingerlingStock && spinnerSpecies != null) {
+            setupSpeciesSpinner();
+        }
         populateFields();
+        populateCaretakerIds();
         setupTextWatchers();
         setupCaretakerButton();
         setupDatePickers();
-
 
         btnClose.setOnClickListener(v -> dismiss());
         btnCancel.setOnClickListener(v -> dismiss());
@@ -88,119 +119,152 @@ public class EditPondDialog extends DialogFragment {
     }
 
     private void initViews(View v) {
-        Log.d(TAG, "initViews() called");
+        if (v == null) return;
+
+
+        // --- Basic fields ---
+        rvCaretakers = v.findViewById(R.id.rvCaretakers);
         etPondName = v.findViewById(R.id.etPondName);
         etPondArea = v.findViewById(R.id.etPondArea);
+
+        if (etPondName != null) etPondName.setText("");
+        if (etPondArea != null) etPondArea.setText("");
+
+        // --- Full layout fields (may not exist in minimal layout) ---
         etFishCount = v.findViewById(R.id.etFishCount);
         etCostPerFish = v.findViewById(R.id.etCostPerFish);
         etMortalityRate = v.findViewById(R.id.etMortalityRate);
+
         etDateCreated = v.findViewById(R.id.etDateCreated);
         etStockingDate = v.findViewById(R.id.etStockingDate);
         etHarvestDate = v.findViewById(R.id.etHarvestDate);
-        spinnerSpecies = v.findViewById(R.id.spinnerSpecies);
+
+        spinnerSpecies = v.findViewById(R.id.spinnerBreed);
+        if (spinnerSpecies != null) {
+            // Optional: set a default empty adapter to prevent NPE
+            spinnerSpecies.setAdapter(new ArrayAdapter<>(requireContext(),
+                    android.R.layout.simple_spinner_item,
+                    new String[]{ "Select species" }));
+        }
+
         btnSave = v.findViewById(R.id.btnSave);
         btnCancel = v.findViewById(R.id.btnCancel);
         btnClose = v.findViewById(R.id.btnClose);
-        btnSelectCaretakers = v.findViewById(R.id.btnSelectCaretakers);
-        caretakerChipContainer = v.findViewById(R.id.caretakerChipContainer);
+
+        etCaretakers = v.findViewById(R.id.etCaretakers);
         tvTotalFingerlingsCost = v.findViewById(R.id.tvTotalFingerlingsCost);
-        Log.d(TAG, "Views initialized");
+
+
+        // --- Optional: clear total cost initially ---
+        if (tvTotalFingerlingsCost != null) {
+            tvTotalFingerlingsCost.setText("₱0.00");
+        }
     }
+
+
     private void populateFields() {
-        if (pond == null) {
-            Log.d(TAG, "No pond data provided");
-            return;
+        if (pond == null) return;
+
+        // --- Basic fields (exist in both layouts) ---
+        if (etPondName != null)
+            etPondName.setText(pond.getName() != null ? pond.getName() : "");
+
+        if (etPondArea != null)
+            etPondArea.setText(pond.getPondArea() > 0 ? String.valueOf(pond.getPondArea()) : "");
+
+        if (etCaretakers != null)
+            etCaretakers.setText(pond.getCaretakerName() != null ? pond.getCaretakerName() : "");
+
+        // --- Species ---
+        if (spinnerSpecies != null && pond.getBreed() != null && !pond.getBreed().isEmpty()) {
+            setupSpeciesSpinner(); // will also select the breed
         }
 
-        Log.d(TAG, "Pond data exists: " + pond.getName());
+        // --- Only populate fingerling-related fields if stocked ---
+        if (hasFingerlingStock) {
+            if (etFishCount != null) etFishCount.setText(String.valueOf(pond.getFishCount()));
+            if (etCostPerFish != null) etCostPerFish.setText(String.valueOf(pond.getCostPerFish()));
+            if (etMortalityRate != null) etMortalityRate.setText(String.valueOf(pond.getMortalityRate()));
 
-        // Basic pond info
-        if (etPondName != null) etPondName.setText(pond.getName());
-        if (etPondArea != null) {
-            etPondArea.setText(String.valueOf(pond.getPondArea()));
-            rawPondArea = pond.getPondArea();
+            if (tvTotalFingerlingsCost != null) {
+                double totalCost = pond.getFishCount() * pond.getCostPerFish();
+                tvTotalFingerlingsCost.setText(String.format(Locale.getDefault(), "₱%.2f", totalCost));
+            }
         }
-        if (etFishCount != null) etFishCount.setText(String.valueOf(pond.getFishCount()));
-        if (etCostPerFish != null) etCostPerFish.setText(String.format(Locale.getDefault(), "%.2f", pond.getCostPerFish()));
-        if (etMortalityRate != null) etMortalityRate.setText(String.valueOf(pond.getMortalityRate()));
-        if (etDateCreated != null) etDateCreated.setText(pond.getDateStarted());
-        if (etStockingDate != null) etStockingDate.setText(pond.getDateStocking());
-        if (etHarvestDate != null) etHarvestDate.setText(pond.getDateHarvest());
 
-        // Species spinner
-        if (spinnerSpecies != null && pond.getBreed() != null) {
-            String[] speciesList = getResources().getStringArray(R.array.fish_species);
+        // --- Dates ---
+        trySetDate(etDateCreated, pond.getDateStarted());
+        trySetDate(etStockingDate, pond.getDateStocking());
+        trySetDate(etHarvestDate, pond.getDateHarvest());
+    }
+
+    private void trySetDate(EditText et, String dbDate) {
+        if (et != null && dbDate != null && !dbDate.isEmpty()) {
+            try {
+                Date date = dbFormat.parse(dbDate);
+                et.setText(displayFormat.format(date));
+            } catch (Exception e) {
+                et.setText(dbDate); // fallback
+            }
+        }
+    }
+
+    private void setupSpeciesSpinner() {
+        if (spinnerSpecies == null) return;
+        String[] speciesList = getResources().getStringArray(R.array.fish_species);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, speciesList);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerSpecies.setAdapter(adapter);
+
+        // Pre-select if breed exists
+        if (pond != null && pond.getBreed() != null && !pond.getBreed().isEmpty()) {
             for (int i = 0; i < speciesList.length; i++) {
                 if (speciesList[i].equalsIgnoreCase(pond.getBreed())) {
                     spinnerSpecies.setSelection(i);
                     break;
                 }
-
-
             }
         }
 
-        // Initialize caretakers
-        // Determine if pond has fingerling stock
-        hasFingerlingStock = pond.getFishCount() > 0 && pond.getCostPerFish() > 0;
+        spinnerSpecies.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateUnitCostBasedOnSpecies();
+                checkStockingDensityRealtime();
+            }
 
-// Apply edit restrictions if no fingerlings
-        applyEditRestrictions();
-
-        populateCaretakerIds();
-
-        Log.d(TAG, "Fields populated");
-        computeTotalCost(); // safe call
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
     }
 
-    // This will parse pond's existing caretakers into selectedCaretakerIds
+
+
+
+
     private void populateCaretakerIds() {
         selectedCaretakerIds.clear();
 
         if (pond.getCaretakerIds() != null && !pond.getCaretakerIds().isEmpty()) {
             String[] ids = pond.getCaretakerIds().split(",");
             for (String id : ids) {
-                selectedCaretakerIds.add(id.trim());
+                String trimmedId = id.trim();
+                if (!trimmedId.isEmpty()) {
+                    selectedCaretakerIds.add(trimmedId);
+                }
             }
-            Log.d(TAG, "Parsed selectedCaretakerIds: " + selectedCaretakerIds);
-        }
-
-        refreshCaretakerChips();
-    }
-
-
-    private void applyEditRestrictions() {
-        if (!hasFingerlingStock) {
-            // Hide fields not yet relevant
-            etFishCount.setVisibility(View.GONE);
-            etCostPerFish.setVisibility(View.GONE);
-            etMortalityRate.setVisibility(View.GONE);
-            spinnerSpecies.setVisibility(View.GONE);
-            etHarvestDate.setVisibility(View.GONE);
-
-            // Keep stocking date visible
-            etStockingDate.setVisibility(View.VISIBLE);
-
-            // Optional: add info label
-            TextView notice = new TextView(requireContext());
-            notice.setText("No fingerlings stocked yet.\nYou can update pond info and set a stocking date.");
-            notice.setTextColor(ContextCompat.getColor(requireContext(), R.color.gray));
-            notice.setTextSize(14);
-            notice.setGravity(Gravity.CENTER);
+            Log.d(TAG, "[populateCaretakerIds] Parsed selectedCaretakerIds from pond: " + selectedCaretakerIds);
         } else {
-            // Show all fields normally
-            etFishCount.setVisibility(View.VISIBLE);
-            etCostPerFish.setVisibility(View.VISIBLE);
-            etMortalityRate.setVisibility(View.VISIBLE);
-            spinnerSpecies.setVisibility(View.VISIBLE);
-            etStockingDate.setVisibility(View.VISIBLE);
-            etHarvestDate.setVisibility(View.VISIBLE);
+            Log.d(TAG, "[populateCaretakerIds] Pond has no caretakers assigned yet");
         }
 
+        // Update summary field
+        etCaretakers.setText(getSelectedCaretakerNames());
+        Log.d(TAG, "[populateCaretakerIds] etCaretakers set to: " + etCaretakers.getText());
     }
+
+
 
     private void computeTotalCost() {
-
         if (tvTotalFingerlingsCost == null) {
             Log.d(TAG, "tvTotalFingerlingsCost is null, returning");
             return;
@@ -226,105 +290,49 @@ public class EditPondDialog extends DialogFragment {
     }
 
 
-    private void setupSpeciesSpinner() {
-        Log.d(TAG, "setupSpeciesSpinner() called");
-
-        // Get species from resources
-        String[] speciesList = getResources().getStringArray(R.array.fish_species);
-
-        // Create an ArrayAdapter
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                requireContext(),
-                android.R.layout.simple_spinner_item,  // simple layout for items
-                speciesList
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-        // Attach adapter to spinner
-        spinnerSpecies.setAdapter(adapter);
-
-        // Restore selected breed if pond exists
-        if (pond != null && pond.getBreed() != null) {
-            for (int i = 0; i < speciesList.length; i++) {
-                if (speciesList[i].equalsIgnoreCase(pond.getBreed())) {
-                    spinnerSpecies.setSelection(i);
-                    break;
+    private void setupTextWatchers() {
+        if (etFishCount != null) {
+            etFishCount.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    computeTotalCost();
+                    checkStockingDensityRealtime();
                 }
-            }
+                @Override public void afterTextChanged(Editable s) { }
+            });
         }
 
-        // Set listener
-        spinnerSpecies.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Log.d(TAG, "Species selected: " + speciesList[position]);
-                updateUnitCostBasedOnSpecies();
-                checkStockingDensityRealtime();
-            }
+        if (etCostPerFish != null) {
+            etCostPerFish.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    computeTotalCost();
+                }
+                @Override public void afterTextChanged(Editable s) { }
+            });
+        }
 
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
-        });
-    }
-
-
-    private void setupTextWatchers() {
-        etFishCount.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                computeTotalCost();
-                checkStockingDensityRealtime();
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) { }
-        });
-
-        etCostPerFish.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                computeTotalCost();
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) { }
-        });
-
-        etPondArea.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String areaStr = s.toString().trim();
-                if (!areaStr.isEmpty()) {
-                    try {
-                        rawPondArea = Double.parseDouble(areaStr);
-                    } catch (NumberFormatException e) {
+        if (etPondArea != null) {
+            etPondArea.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    String areaStr = s.toString().trim();
+                    if (!areaStr.isEmpty()) {
+                        try {
+                            rawPondArea = Double.parseDouble(areaStr);
+                        } catch (NumberFormatException e) {
+                            rawPondArea = 0;
+                        }
+                    } else {
                         rawPondArea = 0;
                     }
-                } else {
-                    rawPondArea = 0;
+                    checkStockingDensityRealtime();
                 }
-                // Call density check in real-times
-                checkStockingDensityRealtime();
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) { }
-        });
-
+                @Override public void afterTextChanged(Editable s) { }
+            });
+        }
     }
-
-
     private void setupDatePickers() {
-        final SimpleDateFormat dbFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
 
         // Date Created picker
         setDatePicker(etDateCreated, selectedDate -> {
@@ -332,21 +340,26 @@ public class EditPondDialog extends DialogFragment {
                 Calendar cal = Calendar.getInstance();
                 cal.setTime(dbFormat.parse(selectedDate));
 
+                // Save DB-format
+                rawDateCreatedForDB = dbFormat.format(cal.getTime());
+
+                // Display formatted
+                if (etDateCreated != null)
+                    etDateCreated.setText(displayFormat.format(cal.getTime()));
+
                 // Stocking = DateCreated + 14 days
                 Calendar calStocking = (Calendar) cal.clone();
                 calStocking.add(Calendar.DAY_OF_MONTH, 14);
-                String stockingDate = dbFormat.format(calStocking.getTime());
-                if (etStockingDate != null) etStockingDate.setText(stockingDate);
+                rawStockingDateForDB = dbFormat.format(calStocking.getTime());
+                if (etStockingDate != null) etStockingDate.setText(displayFormat.format(calStocking.getTime()));
 
                 // Harvest = Stocking + 180 days
                 Calendar calHarvest = (Calendar) calStocking.clone();
                 calHarvest.add(Calendar.DAY_OF_MONTH, 180);
-                String harvestDate = dbFormat.format(calHarvest.getTime());
-                if (etHarvestDate != null) etHarvestDate.setText(harvestDate);
+                rawHarvestDateForDB = dbFormat.format(calHarvest.getTime());
+                if (etHarvestDate != null) etHarvestDate.setText(displayFormat.format(calHarvest.getTime()));
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         });
 
         // Stocking Date picker
@@ -355,21 +368,22 @@ public class EditPondDialog extends DialogFragment {
                 Calendar cal = Calendar.getInstance();
                 cal.setTime(dbFormat.parse(selectedDate));
 
+                rawStockingDateForDB = dbFormat.format(cal.getTime());
+                if (etStockingDate != null) etStockingDate.setText(displayFormat.format(cal.getTime()));
+
                 // DateCreated = Stocking - 14 days
                 Calendar calCreated = (Calendar) cal.clone();
                 calCreated.add(Calendar.DAY_OF_MONTH, -14);
-                String createdDate = dbFormat.format(calCreated.getTime());
-                if (etDateCreated != null) etDateCreated.setText(createdDate);
+                rawDateCreatedForDB = dbFormat.format(calCreated.getTime());
+                if (etDateCreated != null) etDateCreated.setText(displayFormat.format(calCreated.getTime()));
 
                 // Harvest = Stocking + 180 days
                 Calendar calHarvest = (Calendar) cal.clone();
                 calHarvest.add(Calendar.DAY_OF_MONTH, 180);
-                String harvestDate = dbFormat.format(calHarvest.getTime());
-                if (etHarvestDate != null) etHarvestDate.setText(harvestDate);
+                rawHarvestDateForDB = dbFormat.format(calHarvest.getTime());
+                if (etHarvestDate != null) etHarvestDate.setText(displayFormat.format(calHarvest.getTime()));
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         });
 
         // Harvest Date picker
@@ -378,52 +392,63 @@ public class EditPondDialog extends DialogFragment {
                 Calendar cal = Calendar.getInstance();
                 cal.setTime(dbFormat.parse(selectedDate));
 
+                rawHarvestDateForDB = dbFormat.format(cal.getTime());
+                if (etHarvestDate != null) etHarvestDate.setText(displayFormat.format(cal.getTime()));
+
                 // Stocking = Harvest - 180 days
                 Calendar calStocking = (Calendar) cal.clone();
                 calStocking.add(Calendar.DAY_OF_MONTH, -180);
-                String stockingDate = dbFormat.format(calStocking.getTime());
-                if (etStockingDate != null) etStockingDate.setText(stockingDate);
+                rawStockingDateForDB = dbFormat.format(calStocking.getTime());
+                if (etStockingDate != null) etStockingDate.setText(displayFormat.format(calStocking.getTime()));
 
                 // DateCreated = Stocking - 14 days
                 Calendar calCreated = (Calendar) calStocking.clone();
                 calCreated.add(Calendar.DAY_OF_MONTH, -14);
-                String createdDate = dbFormat.format(calCreated.getTime());
-                if (etDateCreated != null) etDateCreated.setText(createdDate);
+                rawDateCreatedForDB = dbFormat.format(calCreated.getTime());
+                if (etDateCreated != null) etDateCreated.setText(displayFormat.format(calCreated.getTime()));
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            } catch (Exception e) { e.printStackTrace(); }
         });
     }
 
 
     private void setDatePicker(EditText target, OnDateSelectedListener listener) {
+        if (target == null) return;
+        final SimpleDateFormat dbFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        final SimpleDateFormat displayFormat = new SimpleDateFormat("MMMM d, yyyy", Locale.getDefault());
+
         target.setOnClickListener(v -> {
             final Calendar c = Calendar.getInstance();
             new DatePickerDialog(requireContext(), (view, year, month, day) -> {
-                String date = String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, day);
-                target.setText(date);
-                if (listener != null) listener.onDateSelected(date);
+                Calendar pickedCal = Calendar.getInstance();
+                pickedCal.set(year, month, day);
+                String dbDate = dbFormat.format(pickedCal.getTime());           // To send to database
+                String displayDate = displayFormat.format(pickedCal.getTime()); // For EditText display
+                target.setText(displayDate);
+                if (listener != null) listener.onDateSelected(dbDate);          // Send DB date to listener
             }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
         });
     }
+
 
     private interface OnDateSelectedListener {
         void onDateSelected(String selectedDate);
     }
 
-
     private void saveChanges() {
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Save")
                 .setMessage("Are you sure you want to save these changes?")
-                .setPositiveButton("Yes", null) // set to null first so we can override later
+                .setPositiveButton("Yes", null)
                 .setNegativeButton("No", null)
                 .create();
 
         dialog.setOnShowListener(dlg -> {
             Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             positive.setOnClickListener(v -> {
+
+                // ⚡ 0️⃣ Save selections from RecyclerView before any validation
+                saveSelectedCaretakers();
 
                 // 1️⃣ Safely read EditText values
                 String pondName = etPondName.getText().toString().trim();
@@ -447,17 +472,21 @@ public class EditPondDialog extends DialogFragment {
                     if (!mortalityStr.isEmpty()) mortalityRate = Double.parseDouble(mortalityStr);
                 }
 
-                String dateCreated = etDateCreated.getText().toString().trim();
-                if (dateCreated.isEmpty()) dateCreated = pond.getDateStarted();
+                // 2️⃣ Use internal DB-format dates instead of EditText text
+                String dateCreated = (rawDateCreatedForDB != null && !rawDateCreatedForDB.isEmpty())
+                        ? rawDateCreatedForDB
+                        : pond.getDateStarted();
 
-                String stockingDate = etStockingDate.getText().toString().trim();
-                if (stockingDate.isEmpty()) stockingDate = pond.getDateStocking();
+                String stockingDate = (rawStockingDateForDB != null && !rawStockingDateForDB.isEmpty())
+                        ? rawStockingDateForDB
+                        : pond.getDateStocking();
 
-                String harvestDate = etHarvestDate.getText().toString().trim();
-                if (harvestDate.isEmpty()) harvestDate = pond.getDateHarvest();
+                String harvestDate = (rawHarvestDateForDB != null && !rawHarvestDateForDB.isEmpty())
+                        ? rawHarvestDateForDB
+                        : pond.getDateHarvest();
 
+                // 3️⃣ Breed
                 String selectedBreed = pond.getBreed();
-
                 if (spinnerSpecies.getVisibility() == View.VISIBLE && spinnerSpecies.getSelectedItem() != null) {
                     String spinnerValue = spinnerSpecies.getSelectedItem().toString();
                     if (!spinnerValue.equalsIgnoreCase("Select species")) {
@@ -465,18 +494,18 @@ public class EditPondDialog extends DialogFragment {
                     }
                 }
 
-                // 3️⃣ Caretaker validation — STOP here if none selected
+                // 4️⃣ Caretaker validation
                 if (selectedCaretakerIds.isEmpty()) {
                     Toast.makeText(requireContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
-                    etCaretakers.setError("Required");
-                    return; // 🚫 don't dismiss dialog
+                    if (etCaretakers != null) etCaretakers.setError("Required");
+                    return;
                 }
 
-                // 4️⃣ Stocking density check
+                // 5️⃣ Stocking density check
                 rawPondArea = pondArea;
                 if (!checkStockingDensity()) return;
 
-                // 5️⃣ Update pond model
+                // 6️⃣ Update pond model
                 pond.setName(pondName);
                 pond.setPondArea(pondArea);
                 pond.setFishCount(fishCount);
@@ -489,10 +518,10 @@ public class EditPondDialog extends DialogFragment {
                 pond.setCaretakerName(getSelectedCaretakerNames());
                 pond.setCaretakerIds(String.join(",", selectedCaretakerIds));
 
-                // 6️⃣ Send to server
+                // 7️⃣ Send to server
                 updatePondOnServer(pond);
 
-                dialog.dismiss(); // ✅ only close if validation passed
+                dialog.dismiss();
             });
         });
 
@@ -510,8 +539,6 @@ public class EditPondDialog extends DialogFragment {
         return String.join(",", selectedNames);
     }
 
-
-
     private void updatePondOnServer(PondModel pond) {
         new Thread(() -> {
             HttpURLConnection conn = null;
@@ -523,7 +550,6 @@ public class EditPondDialog extends DialogFragment {
                 conn.setConnectTimeout(10000);
                 conn.setReadTimeout(10000);
 
-                // Build POST parameters dynamically
                 Map<String, String> paramsMap = new HashMap<>();
                 if (pond.getName() != null && !pond.getName().isEmpty())
                     paramsMap.put("name", pond.getName());
@@ -542,15 +568,12 @@ public class EditPondDialog extends DialogFragment {
                 if (pond.getDateStocking() != null && !pond.getDateStocking().isEmpty())
                     paramsMap.put("stocking_date", pond.getDateStocking());
                 if (pond.getDateHarvest() != null && !pond.getDateHarvest().isEmpty())
-                if (pond.getDateHarvest() != null && !pond.getDateHarvest().isEmpty())
                     paramsMap.put("estimated_harvest", pond.getDateHarvest());
                 if (!selectedCaretakerIds.isEmpty())
                     paramsMap.put("assigned_caretakers", String.join(",", selectedCaretakerIds));
 
-                // Add pond name again for ID lookup on server (important)
                 paramsMap.put("id", String.valueOf(pond.getId()));
 
-                // Encode parameters
                 StringBuilder postData = new StringBuilder();
                 for (Map.Entry<String, String> entry : paramsMap.entrySet()) {
                     if (postData.length() != 0) postData.append("&");
@@ -564,14 +587,12 @@ public class EditPondDialog extends DialogFragment {
                     os.flush();
                 }
 
-                // Read server response
                 StringBuilder response = new StringBuilder();
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
                     String line;
                     while ((line = reader.readLine()) != null) response.append(line);
                 }
 
-                // Handle response on UI thread
                 if (getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         String resp = response.toString().trim();
@@ -618,10 +639,6 @@ public class EditPondDialog extends DialogFragment {
         }).start();
     }
 
-
-
-
-
     private void updateUnitCostBasedOnSpecies() {
         String species = spinnerSpecies.getSelectedItem() != null
                 ? spinnerSpecies.getSelectedItem().toString()
@@ -632,10 +649,10 @@ public class EditPondDialog extends DialogFragment {
 
     private void checkStockingDensityRealtime() {
         String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
-        String fishCountStr = etFishCount.getText().toString().trim();
+        String fishCountStr = (etFishCount != null) ? etFishCount.getText().toString().trim() : "";
 
         if (fishCountStr.isEmpty() || rawPondArea <= 0) {
-            etFishCount.setError(null);
+            if (etFishCount != null) etFishCount.setError(null);
             return;
         }
 
@@ -645,27 +662,27 @@ public class EditPondDialog extends DialogFragment {
             double minRecommended = 0, maxAllowed = 0;
 
             switch (breed) {
-                case "Tilapia": minRecommended=2.0; maxAllowed=4.0; break;
-                case "Bangus": minRecommended=0.8; maxAllowed=1.2; break;
+                case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
+                case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
             }
 
             double minFishCount = minRecommended * rawPondArea;
             double maxFishCount = maxAllowed * rawPondArea;
 
-            if (density > maxAllowed) etFishCount.setError(
-                    String.format(Locale.getDefault(),"⚠️ Overstocked! Recommended: %.0f–%.0f fish.", minFishCount,maxFishCount));
-            else if (density < minRecommended) etFishCount.setError(
-                    String.format(Locale.getDefault(),"Too few fish. Recommended: %.0f–%.0f fish.", minFishCount,maxFishCount));
-            else etFishCount.setError(null);
+            if (density > maxAllowed && etFishCount != null)
+                etFishCount.setError(String.format(Locale.getDefault(),"⚠️ Overstocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
+            else if (density < minRecommended && etFishCount != null)
+                etFishCount.setError(String.format(Locale.getDefault(),"Too few fish. Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
+            else if (etFishCount != null) etFishCount.setError(null);
 
         } catch (NumberFormatException e) {
-            etFishCount.setError(null);
+            if (etFishCount != null) etFishCount.setError(null);
         }
     }
 
     private boolean checkStockingDensity() {
         String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
-        String fishCountStr = etFishCount.getText().toString().trim();
+        String fishCountStr = (etFishCount != null) ? etFishCount.getText().toString().trim() : "";
 
         if (fishCountStr.isEmpty() || rawPondArea <= 0) {
             Toast.makeText(getContext(), "Missing data: check fish count or pond area.", Toast.LENGTH_SHORT).show();
@@ -675,21 +692,21 @@ public class EditPondDialog extends DialogFragment {
         try {
             double fishCount = Double.parseDouble(fishCountStr);
             double density = fishCount / rawPondArea;
-            double minRecommended=0, maxAllowed=0;
+            double minRecommended = 0, maxAllowed = 0;
 
             switch (breed) {
-                case "Tilapia": minRecommended=2.0; maxAllowed=4.0; break;
-                case "Bangus": minRecommended=0.8; maxAllowed=1.2; break;
+                case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
+                case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
             }
 
             if (density > maxAllowed) {
                 Toast.makeText(getContext(),
-                        String.format(Locale.getDefault(),"❌ Overstocked! Recommended: %.0f–%.0f fish.", minRecommended*rawPondArea, maxAllowed*rawPondArea),
+                        String.format(Locale.getDefault(),"❌ Overstocked! Recommended: %.0f–%.0f fish.", minRecommended * rawPondArea, maxAllowed * rawPondArea),
                         Toast.LENGTH_LONG).show();
                 return false;
             } else if (density < minRecommended) {
                 Toast.makeText(getContext(),
-                        String.format(Locale.getDefault(),"⚠️ Understocked! Recommended: %.0f–%.0f fish.", minRecommended*rawPondArea, maxAllowed*rawPondArea),
+                        String.format(Locale.getDefault(),"⚠️ Understocked! Recommended: %.0f–%.0f fish.", minRecommended * rawPondArea, maxAllowed * rawPondArea),
                         Toast.LENGTH_LONG).show();
                 return false;
             }
@@ -701,44 +718,17 @@ public class EditPondDialog extends DialogFragment {
         }
     }
 
-
-
-    private void refreshCaretakerChips() {
-        Log.d(TAG, "refreshCaretakerChips() called");
-        caretakerChipContainer.removeAllViews();
-        LayoutInflater inflater = LayoutInflater.from(getContext());
-
-        for (String caretakerId : selectedCaretakerIds) {
-            // Try to get the name from caretakerIds → caretakerNames mapping
-            int index = caretakerIds.indexOf(caretakerId);
-            String displayName = (index >= 0 && index < caretakerNames.size())
-                    ? caretakerNames.get(index)
-                    : caretakerId; // fallback if not found
-
-            View chip = inflater.inflate(R.layout.item_caretaker_chip, caretakerChipContainer, false);
-            TextView tvName = chip.findViewById(R.id.tvCaretakerName);
-            TextView btnRemove = chip.findViewById(R.id.btnRemoveChip);
-
-            tvName.setText(displayName);
-
-            btnRemove.setOnClickListener(v -> {
-                selectedCaretakerIds.remove(caretakerId);
-                refreshCaretakerChips();
-            });
-
-            caretakerChipContainer.addView(chip);
-        }
-    }
-
-
+    // ------------------------
+// Caretaker loading + RecyclerView in XML
+// ------------------------
 
     private void setupCaretakerButton() {
-        loadCaretakersFromServer(); // no parameter
+        loadCaretakersFromServer();
     }
-
     private void loadCaretakersFromServer() {
         new Thread(() -> {
             HttpURLConnection conn = null;
+
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/get_caretakers.php");
                 conn = (HttpURLConnection) url.openConnection();
@@ -752,63 +742,156 @@ public class EditPondDialog extends DialogFragment {
                     while ((line = reader.readLine()) != null) response.append(line);
                 }
 
-                JSONArray caretakersArray = new JSONArray(response.toString());
+                JSONArray arr = new JSONArray(response.toString());
+                Log.d(TAG, "[loadCaretakersFromServer] Server response length: " + arr.length());
+
                 caretakerNames.clear();
                 caretakerIds.clear();
+                caretakerCheckedState.clear();
 
-                for (int i = 0; i < caretakersArray.length(); i++) {
-                    JSONObject obj = caretakersArray.getJSONObject(i);
-                    caretakerNames.add(obj.getString("fullname"));
-                    caretakerIds.add(obj.getString("id"));
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject obj = arr.getJSONObject(i);
+
+                    String fullname = obj.optString("fullname", obj.optString("name", "Unnamed"));
+                    String id = obj.optString("id", obj.optString("caretaker_id", String.valueOf(i))).trim();
+
+                    caretakerNames.add(fullname);
+                    caretakerIds.add(id);
+
+                    // ✅ pre-check if this ID is in selectedCaretakerIds
+                    boolean preChecked = selectedCaretakerIds.contains(id);
+                    caretakerCheckedState.add(preChecked);
+
+                    Log.d(TAG, String.format("[loadCaretakersFromServer] %s (%s) preChecked=%b", fullname, id, preChecked));
                 }
 
-// 🟩 Once caretakers are loaded, re-populate selected IDs and refresh chips
+                // Update UI on main thread
                 if (isAdded() && getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        populateCaretakerIds(); // 🔹 now we can map IDs to names
-                        refreshCaretakerChips();
-                    });
-                }
+                        Log.d(TAG, "[loadCaretakersFromServer] Updating RecyclerView");
+                        setupCaretakerRecycler();
 
-
-                if (isAdded() && getActivity() != null && btnSelectCaretakers != null) {
-                    getActivity().runOnUiThread(() -> {
-                        btnSelectCaretakers.setEnabled(true);
-                        btnSelectCaretakers.setText("Assign Caretakers");
-
-                        btnSelectCaretakers.setOnClickListener(v -> {
-                            boolean[] checkedItems = new boolean[caretakerIds.size()];
-                            for (int i = 0; i < caretakerIds.size(); i++)
-                                checkedItems[i] = selectedCaretakerIds.contains(caretakerIds.get(i));
-
-                            new AlertDialog.Builder(requireContext())
-                                    .setTitle("Select Caretakers")
-                                    .setMultiChoiceItems(caretakerNames.toArray(new String[0]), checkedItems,
-                                            (dialog, which, isChecked) -> {
-                                                String id = caretakerIds.get(which);
-                                                if (isChecked) selectedCaretakerIds.add(id);
-                                                else selectedCaretakerIds.remove(id);
-                                            })
-                                    .setPositiveButton("OK", (dialog, which) -> refreshCaretakerChips())
-                                    .setNegativeButton("Cancel", null)
-                                    .show();
-                        });
+                        String selectedNames = getSelectedCaretakerNames();
+                        etCaretakers.setText(selectedNames);
+                        Log.d(TAG, "[loadCaretakersFromServer] etCaretakers after update: " + selectedNames);
                     });
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                if (isAdded() && getActivity() != null && btnSelectCaretakers != null) {
-                    getActivity().runOnUiThread(() -> {
-                        btnSelectCaretakers.setEnabled(false);
-                        btnSelectCaretakers.setText("Failed to load caretakers");
-                        Toast.makeText(requireContext(), "Failed to load caretakers.", Toast.LENGTH_SHORT).show();
-                    });
+                Log.e(TAG, "[loadCaretakersFromServer] Exception: " + e.getMessage());
+
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() ->
+                            Toast.makeText(requireContext(), "Failed to load caretakers.", Toast.LENGTH_SHORT).show()
+                    );
                 }
+
             } finally {
                 if (conn != null) conn.disconnect();
             }
         }).start();
+    }
+
+
+    private void setupCaretakerRecycler() {
+        if (rvCaretakers == null) {
+            Log.d(TAG, "[setupCaretakerRecycler] rvCaretakers is null!");
+            return;
+        }
+
+        rvCaretakers.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        // Use the CaretakerAdapter that is implemented below
+        CaretakerAdapter adapter = new CaretakerAdapter();
+        rvCaretakers.setAdapter(adapter);
+
+        Log.d(TAG, "[setupCaretakerRecycler] Adapter set with " + caretakerNames.size() + " caretakers");
+        Log.d(TAG, "[setupCaretakerRecycler] caretakerCheckedState: " + caretakerCheckedState);
+    }
+
+    private class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.CaretakerVH> {
+        private final List<Boolean> localChecked;
+
+        CaretakerAdapter() {
+            // initialize localChecked to match caretakerIds size and pre-check from selectedCaretakerIds
+            localChecked = new ArrayList<>();
+            for (int i = 0; i < caretakerIds.size(); i++) {
+                boolean checked = (i < caretakerCheckedState.size()) ? caretakerCheckedState.get(i)
+                        : selectedCaretakerIds.contains(caretakerIds.get(i));
+                localChecked.add(checked);
+            }
+        }
+
+        boolean getChecked(int pos) {
+            return pos >= 0 && pos < localChecked.size() && localChecked.get(pos);
+        }
+
+        @NonNull
+        @Override
+        public CaretakerVH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            CheckBox checkBox = new CheckBox(parent.getContext());
+            int pad = (int)(8 * parent.getContext().getResources().getDisplayMetrics().density);
+            checkBox.setPadding(pad, pad, pad, pad);
+            return new CaretakerVH(checkBox);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull CaretakerVH holder, int position) {
+            String name = (position < caretakerNames.size()) ? caretakerNames.get(position) : ("Caretaker " + position);
+            holder.checkBox.setText(name);
+
+            // Avoid firing listener when setting checked state: remove listener, set checked, then re-attach
+            holder.checkBox.setOnCheckedChangeListener(null);
+            boolean checked = position < localChecked.size() ? localChecked.get(position) : false;
+            holder.checkBox.setChecked(checked);
+
+            holder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                localChecked.set(position, isChecked);
+                // Immediately reflect selection in the central selection set so UI summary stays correct
+                String id = caretakerIds.get(position);
+                if (isChecked) selectedCaretakerIds.add(id);
+                else selectedCaretakerIds.remove(id);
+
+                // Update caretakers summary field
+                if (etCaretakers != null) etCaretakers.setText(getSelectedCaretakerNames());
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return caretakerNames.size();
+        }
+
+        class CaretakerVH extends RecyclerView.ViewHolder {
+            CheckBox checkBox;
+            CaretakerVH(@NonNull View itemView) {
+                super(itemView);
+                checkBox = (CheckBox) itemView;
+            }
+        }
+    }
+
+    private void saveSelectedCaretakers() {
+        // Clear and rebuild selectedCaretakerIds from adapter's state (if adapter exists)
+        selectedCaretakerIds.clear();
+        caretakerCheckedState.clear();
+
+        RecyclerView.Adapter adapter = (rvCaretakers != null) ? rvCaretakers.getAdapter() : null;
+        if (adapter instanceof CaretakerAdapter) {
+            CaretakerAdapter ca = (CaretakerAdapter) adapter;
+            for (int i = 0; i < caretakerIds.size(); i++) {
+                boolean checked = ca.getChecked(i);
+                caretakerCheckedState.add(checked);
+                if (checked) selectedCaretakerIds.add(caretakerIds.get(i));
+            }
+            if (etCaretakers != null) etCaretakers.setText(getSelectedCaretakerNames());
+            Log.d(TAG, "[saveSelectedCaretakers] selectedCaretakerIds: " + selectedCaretakerIds);
+            Log.d(TAG, "[saveSelectedCaretakers] caretakerCheckedState: " + caretakerCheckedState);
+        } else {
+            // Fallback: nothing selected
+            Log.d(TAG, "[saveSelectedCaretakers] Adapter is null or not CaretakerAdapter");
+        }
     }
 
 

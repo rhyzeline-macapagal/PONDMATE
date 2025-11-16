@@ -14,6 +14,7 @@ public class CaretakerModel {
     public CaretakerModel() {
     }
 
+
     public CaretakerModel(String username, String password, String fullname, String address, String usertype, double salary) {
         this.username = username;
         this.password = password;
@@ -24,6 +25,8 @@ public class CaretakerModel {
 
 
     }
+
+
 
     // Getters
 
@@ -81,4 +84,14 @@ public class CaretakerModel {
     }
 
     public void setPondCount(int pondCount) { this.pondCount = pondCount;}
+    private boolean selected = false; // new field
+
+    public boolean isSelected() {
+        return selected;
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+    }
+
 }

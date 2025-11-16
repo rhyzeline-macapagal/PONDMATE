@@ -17,10 +17,12 @@ public class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.View
     ArrayList<CaretakerModel> list;
     OnItemClickListener listener;
 
+
     public interface OnItemClickListener {
         void onEdit(CaretakerModel model);
         void onDelete(CaretakerModel model);
     }
+
 
     public CaretakerAdapter(Context context, ArrayList<CaretakerModel> list, OnItemClickListener listener) {
         this.context = context;
@@ -31,7 +33,7 @@ public class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.View
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View v = LayoutInflater.from(context).inflate(R.layout.item_caretaker, parent, false);
+        View v = LayoutInflater.from(context).inflate(R.layout.item_caretaker1, parent, false);
         return new ViewHolder(v);
     }
 

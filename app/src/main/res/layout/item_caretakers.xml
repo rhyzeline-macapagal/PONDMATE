@@ -1,0 +1,21 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="10dp"
+    android:gravity="center_vertical">
+
+    <CheckBox
+        android:id="@+id/checkCaretaker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/tvCaretakerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Caretaker Name"
+        android:textSize="15sp"
+        android:layout_marginStart="10dp" />
+
+</LinearLayout>
