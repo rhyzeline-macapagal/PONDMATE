@@ -187,15 +187,10 @@ public class BlindFeedingFragment extends DialogFragment {
             }
 
         });
-
-
         // Load
-        loadFeedLogs();
+        loadFeedLogs(tableFeedLogs);
         checkIfLastBlindFeedingDay();
-
         return dialog;
-
-
     }
 
     @Override
@@ -217,9 +212,6 @@ public class BlindFeedingFragment extends DialogFragment {
                     }
                 });
     }
-
-
-
     private void checkIfLastBlindFeedingDay() {
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
@@ -339,9 +331,6 @@ public class BlindFeedingFragment extends DialogFragment {
     }
 
 
-
-
-
     private void showDateSelectionDialog() {
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
@@ -410,13 +399,10 @@ hideLoadingDialog();
             }
         });
     }
-
-
     interface FeedPriceCallback {
         void onPriceFetched(double pricePerKg);
         void onError(String error);
     }
-
     private void addFeedLog() {
         final String feedType = "Frymash";
         final String quantityStr = etFeedQuantity.getText().toString().trim();
@@ -515,9 +501,6 @@ hideLoadingDialog();
             }
         });
     }
-
-
-    // Show confirmation dialog
     private void showConfirmAddDialog(double quantity, double cost, String feedType, String dateStr, String feedingDateMysql, String pondName) {
         if (!isAdded() || getContext() == null) return;
 
@@ -538,7 +521,7 @@ hideLoadingDialog();
                                     hideLoadingDialog();
                                     new Handler(Looper.getMainLooper()).post(() -> {
                                         Toast.makeText(getContext(), "Feed log added!", Toast.LENGTH_SHORT).show();
-                                        loadFeedLogs();
+                                        loadFeedLogs(tableFeedLogs);
                                     });
                                 }
 
@@ -555,8 +538,6 @@ hideLoadingDialog();
                 .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
                 .show();
     }
-
-
     private String[] generateFeedingDates(String stockingDateStr) {
         try {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
@@ -603,10 +584,6 @@ hideLoadingDialog();
             return new String[0];
         }
     }
-
-
-
-
     private void updateFeedLog(String pondName, String feedType, double quantity, double cost, String feedingDate, String feedLogId) {
         showLoadingDialog("Updating feeding log...");
 
@@ -624,7 +601,7 @@ hideLoadingDialog();
                                 if (json.getString("status").equals("success")) {
                                     Toast.makeText(getContext(), "Feed log updated!", Toast.LENGTH_SHORT).show();
                                     tableFeedLogs.removeViews(1, tableFeedLogs.getChildCount() - 1);
-                                    loadFeedLogs();
+                                    loadFeedLogs(tableFeedLogs);
                                 } else {
                                     Toast.makeText(getContext(), json.getString("message"), Toast.LENGTH_LONG).show();
                                 }
@@ -644,17 +621,17 @@ hideLoadingDialog();
                 }
         );
     }
-
-    private void loadFeedLogs() {
+    private void loadFeedLogs(TableLayout tableFeedLogs) {
+        if (tableFeedLogs == null) {
+            Log.e(TAG, "TableLayout is null. Cannot load feed logs.");
+            return;
+        }
 
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
+        if (pondJson == null) return;
+
         showLoadingDialog("Loading feed records...");
-
-        if (pondJson == null) {
-
-            return;
-        }
 
         PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
         String pondName = pond.getName();
@@ -663,7 +640,6 @@ hideLoadingDialog();
             @Override
             public void onSuccess(Object response) {
                 hideLoadingDialog();
-                if (!isAdded()) return;
                 requireActivity().runOnUiThread(() -> {
                     try {
                         JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
@@ -678,7 +654,6 @@ hideLoadingDialog();
 
                         for (int i = 0; i < logs.size(); i++) {
                             JsonObject log = logs.get(i).getAsJsonObject();
-
                             String logId = log.get("id").getAsString();
                             String date = log.get("feeding_date").getAsString();
                             String feedType = log.get("feed_type").getAsString();
@@ -686,51 +661,37 @@ hideLoadingDialog();
                             String cost = log.get("cost").getAsString();
 
                             TableRow row = new TableRow(getContext());
-                            row.setPadding(4, 4, 4, 4);;
+                            row.setPadding(4, 4, 4, 4);
 
-                            // ✅ Create the "Actions" cell layout
+                            // Actions layout
                             LinearLayout actionLayout = new LinearLayout(getContext());
                             actionLayout.setOrientation(LinearLayout.HORIZONTAL);
                             actionLayout.setGravity(Gravity.CENTER_VERTICAL);
                             actionLayout.setPadding(8, 4, 8, 4);
 
-                            // 🖊️ Edit icon
                             ImageView editIcon = new ImageView(getContext());
                             editIcon.setImageResource(android.R.drawable.ic_menu_edit);
                             editIcon.setPadding(8, 0, 8, 0);
-                            editIcon.setClickable(true);
-                            editIcon.setFocusable(true);
                             editIcon.setOnClickListener(v -> showEditDialog(logId, date, feedType, quantity, cost));
 
-                            // 🗑️ Delete icon
                             ImageView deleteIcon = new ImageView(getContext());
                             deleteIcon.setImageResource(android.R.drawable.ic_menu_delete);
                             deleteIcon.setPadding(8, 0, 8, 0);
-                            deleteIcon.setClickable(true);
-                            deleteIcon.setFocusable(true);
                             deleteIcon.setOnClickListener(v -> confirmDeleteLog(logId));
 
                             actionLayout.addView(editIcon);
                             actionLayout.addView(deleteIcon);
 
-                            // ✅ Add "Actions" layout first (front)
                             row.addView(actionLayout);
-
-                            // ✅ Add your other data cells
                             addCell(row, formatDateForDisplay(date));
                             addCell(row, feedType);
                             addCell(row, quantity);
                             addCell(row, "₱" + cost);
 
                             tableFeedLogs.addView(row);
-                            hideLoadingDialog();
                         }
 
-
-
-
                     } catch (Exception e) {
-                        hideLoadingDialog();
                         Log.e(TAG, "Error parsing feed logs: " + e.getMessage());
                     }
                 });
@@ -739,14 +700,10 @@ hideLoadingDialog();
             @Override
             public void onError(String error) {
                 hideLoadingDialog();
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    if (getContext() != null)
-                        Toast.makeText(getContext(), "Error loading logs: " + error, Toast.LENGTH_SHORT).show();
-                });
+                Toast.makeText(getContext(), "Error loading logs: " + error, Toast.LENGTH_SHORT).show();
             }
         });
     }
-
 
     private void showLoadingDialog(String message) {
         requireActivity().runOnUiThread(() -> {
@@ -781,7 +738,6 @@ hideLoadingDialog();
             }
         });
     }
-
     private void computeFeedCost(String feedType, double quantityInGrams, PondSyncManager.Callback callback) {
         SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
         String pondJson = prefs.getString("selected_pond", null);
@@ -829,11 +785,6 @@ hideLoadingDialog();
             }
         });
     }
-
-
-
-
-
     private void showEditDialog(String logId, String date, String feedType, String quantity, String cost) {
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(requireContext());
 
@@ -920,9 +871,6 @@ hideLoadingDialog();
         hideLoadingDialog();
         builder.show();
     }
-
-
-
     private void confirmDeleteLog(String logId) {
         new android.app.AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Delete")
@@ -931,9 +879,6 @@ hideLoadingDialog();
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                 .show();
     }
-
-
-
     private void deleteFeedLog(String logId) {
         showLoadingDialog("Deleting feeding log...");
         PondSyncManager.deleteBlindFeedingLog(logId, pondName, new PondSyncManager.OnDataSyncListener() {
@@ -942,7 +887,7 @@ hideLoadingDialog();
                 hideLoadingDialog();
                 new Handler(Looper.getMainLooper()).post(() -> {
                     Toast.makeText(getContext(), "Feed log deleted!", Toast.LENGTH_SHORT).show();
-                    loadFeedLogs();
+                    loadFeedLogs(tableFeedLogs);
                     hideLoadingDialog();
                 });
             }
@@ -956,8 +901,6 @@ hideLoadingDialog();
             }
         });
     }
-
-
     private void addCell(TableRow row, String text) {
         TextView tv = new TextView(getContext());
         tv.setText(text);
@@ -986,6 +929,5 @@ hideLoadingDialog();
             super.dismissAllowingStateLoss();
         }
     }
-
 
 }
