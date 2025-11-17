@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.flexbox.FlexboxLayout;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -39,6 +40,7 @@ import java.util.*;
  * EditPondDialog — updated to use a RecyclerView-based caretaker chooser instead of chips.
  */
 public class EditPondDialog extends DialogFragment {
+    private PondModel pond; // store the pond being edited
 
     private EditText etPondName, etPondArea, etFishCount, etCostPerFish, etMortalityRate;
     private EditText etDateCreated, etStockingDate, etHarvestDate, etCaretakers; // etCaretakers used as read-only summary
@@ -52,7 +54,6 @@ public class EditPondDialog extends DialogFragment {
 
     private RecyclerView rvCaretakers;
 
-    private PondModel pond; // existing pond data
     private OnPondUpdatedListener listener;
 
     private String rawDateCreatedForDB = "";
@@ -150,6 +151,7 @@ public class EditPondDialog extends DialogFragment {
         builder.setView(view);
         return builder.create();
     }
+
 
     private void initViews(View v) {
         if (v == null) return;
@@ -262,7 +264,20 @@ public class EditPondDialog extends DialogFragment {
         spinnerSpecies.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+
+                Log.d(TAG, "Species changed to: " + spinnerSpecies.getSelectedItem().toString());
+
                 updateUnitCostBasedOnSpecies();
+
+                // Re-read pond area to avoid issues when user changes species first
+                String areaStr = etPondArea.getText().toString().trim();
+                try {
+                    rawPondArea = areaStr.isEmpty() ? 0 : Double.parseDouble(areaStr);
+                } catch (Exception e) {
+                    rawPondArea = 0;
+                }
+
+                // Force density check again when species changes
                 checkStockingDensityRealtime();
             }
 
@@ -478,6 +493,7 @@ public class EditPondDialog extends DialogFragment {
                 .create();
 
         dialog.setOnShowListener(dlg -> {
+
             Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             positive.setOnClickListener(v -> {
 
@@ -553,9 +569,14 @@ public class EditPondDialog extends DialogFragment {
                 pond.setCaretakerName(getSelectedCaretakerNames());
                 pond.setCaretakerIds(String.join(",", selectedCaretakerIds));
 
-                // 7️⃣ Send to server
-                updatePondOnServer(pond);
+                // Log for debugging
+                Log.d("EDIT_POND", "Sending result - name=" + pond.getName());
 
+// Send result to FragmentManager
+                Bundle result = new Bundle();
+                result.putString("pond_json", new Gson().toJson(pond));
+                getParentFragmentManager().setFragmentResult("pond_updated", result);
+                updatePondOnServer(pond);
                 dialog.dismiss();
             });
         });
@@ -637,19 +658,12 @@ public class EditPondDialog extends DialogFragment {
                             String message = json.optString("message");
 
                             if (status.equalsIgnoreCase("success")) {
+
                                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
 
                                 if (listener != null) listener.onPondUpdated(pond);
 
-                                // Dismiss the dialog first
                                 dismiss();
-
-                                // Reload PondDashboardActivity
-                                if (getActivity() != null) {
-                                    Intent intent = new Intent(getActivity(), PondDashboardActivity.class);
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                                    startActivity(intent);
-                                }
                             } else {
                                 Toast.makeText(requireContext(), "Failed: " + message, Toast.LENGTH_LONG).show();
                                 Log.d("UpdateFail", message);
