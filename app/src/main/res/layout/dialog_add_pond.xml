@@ -225,6 +225,46 @@
                                 android:gravity="center_vertical"/>
                         </LinearLayout>
                     </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="1"
+                        android:baselineAligned="false"
+                        android:layout_marginBottom="16dp">
+
+
+
+                        <!-- Estimated Harvest Date -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Estimated Harvest"
+                                android:textColor="#01082D"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:layout_marginBottom="6dp"
+                                android:layout_marginStart="4dp"/>
+
+                            <TextView
+                                android:id="@+id/tvHarvestDate"
+                                android:layout_width="match_parent"
+                                android:layout_height="40dp"
+                                android:background="@drawable/rounded_edittext"
+                                android:padding="6dp"
+                                android:text="mm/dd/yyyy"
+                                android:textColor="#01082D"
+                                android:textSize="14sp"
+                                android:textStyle="bold"
+                                android:gravity="center_vertical"/>
+                        </LinearLayout>
+                    </LinearLayout>
 
 
                 </LinearLayout>

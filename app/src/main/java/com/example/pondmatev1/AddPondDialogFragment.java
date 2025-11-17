@@ -50,7 +50,7 @@ public class AddPondDialogFragment extends DialogFragment {
 
     private AlertDialog loadingDialog;
     private EditText etPondName, etPondArea;
-    private TextView tvDateStarted, tvDateStocking;
+    private TextView tvDateStarted, tvDateStocking, tvHarvestDate;
     private Button btnSave;
     private ImageView ivPondImage;
     private Button btnCaptureImage;
@@ -58,6 +58,8 @@ public class AddPondDialogFragment extends DialogFragment {
     private static final int REQUEST_IMAGE_CAPTURE = 1001;
     private String rawDateForDB = "";
     private String rawStockingDateForDB = "";
+    private String rawHarvestDateForDB = "";
+
     public interface OnPondAddedListener { void onPondAdded(PondModel pondModel);}
     private OnPondAddedListener listener;
     public void setOnPondAddedListener(OnPondAddedListener listener) {
@@ -66,6 +68,7 @@ public class AddPondDialogFragment extends DialogFragment {
     private ArrayList<String> caretakerNames = new ArrayList<>();
     private ArrayList<String> caretakerIds = new ArrayList<>();
     private ArrayList<String> selectedCaretakerIds = new ArrayList<>();
+
     ArrayList<CaretakerModel> selectedCaretakers = new ArrayList<>();
 
 
@@ -80,6 +83,7 @@ public class AddPondDialogFragment extends DialogFragment {
         etPondName = view.findViewById(R.id.etPondName);
         etPondArea = view.findViewById(R.id.etPondArea);
         tvDateStarted = view.findViewById(R.id.tvDateStarted);
+        tvHarvestDate = view.findViewById(R.id.tvHarvestDate);
         tvDateStocking = view.findViewById(R.id.tvStocking); // renamed as stocking date
         btnSave = view.findViewById(R.id.btnSavePond);
         ivPondImage = view.findViewById(R.id.ivPondImage);
@@ -110,6 +114,10 @@ public class AddPondDialogFragment extends DialogFragment {
         rawStockingDateForDB = dbFormat.format(stockingCalendar.getTime()); // "yyyy-MM-dd"
         tvDateStocking.setText(displayFormat.format(stockingCalendar.getTime())); // display "MMM. dd, yyyy"
 
+        Calendar harvestCalendar = (Calendar) stockingCalendar.clone();
+        harvestCalendar.add(Calendar.MONTH, 6); // add 6 months
+        rawHarvestDateForDB = dbFormat.format(harvestCalendar.getTime());
+        tvHarvestDate.setText(displayFormat.format(harvestCalendar.getTime()));
 
         // ✅ Camera button
         btnCaptureImage.setOnClickListener(v -> {
@@ -209,6 +217,10 @@ public class AddPondDialogFragment extends DialogFragment {
             rawStockingDateForDB = new SimpleDateFormat("yyyy-MM-dd", Locale.US)
                     .format(Calendar.getInstance().getTime());
         }
+        if (rawHarvestDateForDB == null || rawHarvestDateForDB.isEmpty()) {
+            rawHarvestDateForDB = new SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                    .format(Calendar.getInstance().getTime());
+        }
 
         PondModel pond = new PondModel(
                 null,                  // id
@@ -217,7 +229,7 @@ public class AddPondDialogFragment extends DialogFragment {
                 0,                     // fishCount
                 0.0,                   // costPerFish
                 rawDateForDB,          // dateStarted
-                null,                  // dateHarvest
+                rawHarvestDateForDB,   // dateHarvest <-- updated
                 rawStockingDateForDB,  // dateStocking
                 pondArea,              // pondArea
                 null,                  // imagePath
@@ -227,6 +239,7 @@ public class AddPondDialogFragment extends DialogFragment {
                 null,                  // pdfPath
                 0.0                    // mortalityRate
         );
+
 
         SharedPreferences prefs = requireContext()
                 .getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);

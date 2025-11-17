@@ -488,12 +488,16 @@ public class EditPondDialog extends DialogFragment {
 
                 // 3️⃣ Breed
                 String selectedBreed = pond.getBreed();
-                if (spinnerSpecies.getVisibility() == View.VISIBLE && spinnerSpecies.getSelectedItem() != null) {
-                    String spinnerValue = spinnerSpecies.getSelectedItem().toString();
-                    if (!spinnerValue.equalsIgnoreCase("Select species")) {
-                        selectedBreed = spinnerValue;
+                if (spinnerSpecies != null && spinnerSpecies.getVisibility() == View.VISIBLE) {
+                    Object selectedItem = spinnerSpecies.getSelectedItem();
+                    if (selectedItem != null) {
+                        String spinnerValue = selectedItem.toString();
+                        if (!spinnerValue.equalsIgnoreCase("Select species")) {
+                            selectedBreed = spinnerValue;
+                        }
                     }
                 }
+
 
                 // 4️⃣ Caretaker validation
                 if (selectedCaretakerIds.isEmpty()) {

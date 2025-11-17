@@ -96,6 +96,7 @@ public class PondSyncManager {
                         "&area=" + URLEncoder.encode(String.valueOf(pond.getPondArea()), "UTF-8") +
                         "&date_created=" + URLEncoder.encode(pond.getDateStarted(), "UTF-8") +
                         "&stocking_date=" + URLEncoder.encode(pond.getDateStocking(), "UTF-8") +
+                        "&date_harvest=" + URLEncoder.encode(pond.getDateHarvest(), "UTF-8") +
                         "&image=" + URLEncoder.encode(imageBase64, "UTF-8") +
                         "&owner_username=" + URLEncoder.encode(ownerUsername, "UTF-8"); // 🟩 Added
 
