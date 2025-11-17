@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:gravity="center"
     android:background="@drawable/transparent"
@@ -379,26 +380,41 @@
                         android:textSize="16sp"
                         android:textStyle="bold" />
                     <!-- Caretaker Selection Title -->
-                    <EditText
-                        android:id="@+id/etCaretakers"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Assign Caretakers"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="6dp" />
-
-                    <!-- RecyclerView for List of Caretakers -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rvCaretakers"
+                    <TextView
+                        android:id="@+id/tvCaretakerLabel"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:padding="4dp"
-                        android:layout_marginBottom="6dp"
-                        android:background="#F1F5F9"
-                        android:clipToPadding="false"
-                        android:scrollbars="vertical" />
+                        android:text="Re-assign Caretakers"
+                        android:textStyle="bold"
+                        android:textColor="@color/black"
+                        android:layout_marginTop="12dp"
+                        android:textSize="16sp"/>
+
+                    <Button
+                        android:id="@+id/btnSelectCaretakers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Select Caretakers"
+                        android:backgroundTint="#00448D"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textAllCaps="false"
+                        android:layout_marginTop="8dp"
+                        android:paddingHorizontal="20dp"
+                        android:letterSpacing="0.02"
+                        app:cornerRadius="6dp"
+                        android:elevation="2dp" />
+
+                    <com.google.android.flexbox.FlexboxLayout
+                        android:id="@+id/caretakerChipContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginBottom="12dp"
+                        app:flexWrap="wrap"
+                        app:alignItems="center"
+                        app:justifyContent="flex_start" />
+
 
                 </LinearLayout>
 

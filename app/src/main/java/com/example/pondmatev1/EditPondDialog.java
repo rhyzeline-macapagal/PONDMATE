@@ -21,6 +21,10 @@ import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.flexbox.FlexboxLayout;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -59,20 +63,29 @@ public class EditPondDialog extends DialogFragment {
 
     private ArrayList<CaretakerModel> caretakerModels = new ArrayList<>();
 
-
     private static final String TAG = "EditPondDialog";
 
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
     private double rawPondArea = 0;
 
-    // simple arrays to store caretakers loaded from server
-    private final List<String> caretakerNames = new ArrayList<>();
-    private final List<String> caretakerIds = new ArrayList<>();
-    // selection set stores caretaker ids (strings)
-    private final Set<String> selectedCaretakerIds = new HashSet<>();
-
     // Adapter-backed state (checked booleans) used by the RecyclerView chooser
     private final List<Boolean> caretakerCheckedState = new ArrayList<>();
+
+    private TextView tvCaretakerLabel;
+    private Button btnSelectCaretakers;
+    private FlexboxLayout caretakerChipContainer;
+
+    private ArrayList<String> caretakerNames = new ArrayList<>();
+    private ArrayList<String> caretakerIds = new ArrayList<>();
+    private ArrayList<String> selectedCaretakerIds = new ArrayList<>();
+    public interface OnCaretakersUpdatedListener {
+        void onCaretakersUpdated(ArrayList<String> selectedCaretakerIds);
+    }
+
+    private OnCaretakersUpdatedListener caretakersListener;
+    public void setOnCaretakersUpdatedListener(OnCaretakersUpdatedListener listener) {
+        this.caretakersListener = listener;
+    }
 
     public interface OnPondUpdatedListener {
         void onPondUpdated(PondModel updatedPond);
@@ -100,19 +113,39 @@ public class EditPondDialog extends DialogFragment {
             view = inflater.inflate(R.layout.dialog_edit_pond_minimal, null);
         }
         Log.d("POND", "caretakerIds stored: " + pond.getCaretakerIds());
+
         initViews(view);
+
+        caretakerChipContainer = view.findViewById(R.id.caretakerChipContainer);
+        etCaretakers = view.findViewById(R.id.etCaretakers);
+        tvCaretakerLabel = view.findViewById(R.id.tvCaretakerLabel);
+        btnSelectCaretakers = view.findViewById(R.id.btnSelectCaretakers);
+
         if (hasFingerlingStock && spinnerSpecies != null) {
             setupSpeciesSpinner();
         }
         populateFields();
-        populateCaretakerIds();
         setupTextWatchers();
-        setupCaretakerButton();
         setupDatePickers();
 
         btnClose.setOnClickListener(v -> dismiss());
         btnCancel.setOnClickListener(v -> dismiss());
         btnSave.setOnClickListener(v -> saveChanges());
+
+        btnSelectCaretakers.setEnabled(false);
+        btnSelectCaretakers.setText("Loading caretakers...");
+
+        loadCaretakersFromServer(() -> {
+            selectedCaretakerIds.clear();
+            selectedCaretakerIds.addAll(caretakerIds); // <- add all loaded IDs
+
+            refreshCaretakerChips(); // this will now display them
+
+            btnSelectCaretakers.setEnabled(true);
+            btnSelectCaretakers.setText("Select Caretakers");
+            btnSelectCaretakers.setOnClickListener(v -> openCaretakerSelectionDialog());
+        });
+
 
         builder.setView(view);
         return builder.create();
@@ -448,9 +481,6 @@ public class EditPondDialog extends DialogFragment {
             Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             positive.setOnClickListener(v -> {
 
-                // ⚡ 0️⃣ Save selections from RecyclerView before any validation
-                saveSelectedCaretakers();
-
                 // 1️⃣ Safely read EditText values
                 String pondName = etPondName.getText().toString().trim();
                 if (pondName.isEmpty()) pondName = pond.getName();
@@ -719,17 +749,16 @@ public class EditPondDialog extends DialogFragment {
         }
     }
 
-    // ------------------------
-// Caretaker loading + RecyclerView in XML
-// ------------------------
-
     private void setupCaretakerButton() {
-        loadCaretakersFromServer();
+        loadCaretakersFromServer(() -> {
+            // Optional: refresh chips or do any UI updates after caretakers are loaded
+            refreshCaretakerChips();
+        });
     }
-    private void loadCaretakersFromServer() {
+
+    private void loadCaretakersFromServer(Runnable onComplete) {
         new Thread(() -> {
             HttpURLConnection conn = null;
-
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/get_caretakers.php");
                 conn = (HttpURLConnection) url.openConnection();
@@ -743,51 +772,39 @@ public class EditPondDialog extends DialogFragment {
                     while ((line = reader.readLine()) != null) response.append(line);
                 }
 
-                JSONArray arr = new JSONArray(response.toString());
-                Log.d(TAG, "[loadCaretakersFromServer] Server response length: " + arr.length());
+                JSONArray caretakersArray = new JSONArray(response.toString());
 
                 caretakerNames.clear();
                 caretakerIds.clear();
-                caretakerCheckedState.clear();
 
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject obj = arr.getJSONObject(i);
-
-                    String fullname = obj.optString("fullname", obj.optString("name", "Unnamed"));
-                    String id = obj.optString("id", obj.optString("caretaker_id", String.valueOf(i))).trim();
-
-                    caretakerNames.add(fullname);
-                    caretakerIds.add(id);
-
-                    // ✅ pre-check if this ID is in selectedCaretakerIds
-                    boolean preChecked = selectedCaretakerIds.contains(id);
-                    caretakerCheckedState.add(preChecked);
-
-                    Log.d(TAG, String.format("[loadCaretakersFromServer] %s (%s) preChecked=%b", fullname, id, preChecked));
+                for (int i = 0; i < caretakersArray.length(); i++) {
+                    JSONObject obj = caretakersArray.getJSONObject(i);
+                    caretakerNames.add(obj.getString("fullname"));
+                    caretakerIds.add(obj.getString("id"));
                 }
+                Log.d("LOAD_CARETAKERS", "Caretaker IDs: " + caretakerIds);
+                Log.d("LOAD_CARETAKERS", "Caretaker Names: " + caretakerNames);
 
-                // Update UI on main thread
                 if (isAdded() && getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        Log.d(TAG, "[loadCaretakersFromServer] Updating RecyclerView");
-                        setupCaretakerRecycler();
+                        btnSelectCaretakers.setEnabled(true);
+                        btnSelectCaretakers.setText("Select Caretakers");
+                        btnSelectCaretakers.setOnClickListener(v -> openCaretakerSelectionDialog());
 
-                        String selectedNames = getSelectedCaretakerNames();
-                        etCaretakers.setText(selectedNames);
-                        Log.d(TAG, "[loadCaretakersFromServer] etCaretakers after update: " + selectedNames);
+                        // Run your custom callback if provided
+                        if (onComplete != null) onComplete.run();
                     });
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.e(TAG, "[loadCaretakersFromServer] Exception: " + e.getMessage());
-
                 if (isAdded() && getActivity() != null) {
-                    getActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "Failed to load caretakers.", Toast.LENGTH_SHORT).show()
-                    );
+                    getActivity().runOnUiThread(() -> {
+                        btnSelectCaretakers.setEnabled(false);
+                        btnSelectCaretakers.setText("Failed to load caretakers");
+                        Toast.makeText(requireContext(), "Failed to load caretakers.", Toast.LENGTH_SHORT).show();
+                    });
                 }
-
             } finally {
                 if (conn != null) conn.disconnect();
             }
@@ -795,21 +812,68 @@ public class EditPondDialog extends DialogFragment {
     }
 
 
-    private void setupCaretakerRecycler() {
-        if (rvCaretakers == null) {
-            Log.d(TAG, "[setupCaretakerRecycler] rvCaretakers is null!");
-            return;
+    private void openCaretakerSelectionDialog() {
+        boolean[] checkedItems = new boolean[caretakerIds.size()];
+
+        for (int i = 0; i < caretakerIds.size(); i++) {
+            checkedItems[i] = selectedCaretakerIds.contains(caretakerIds.get(i));
         }
 
-        rvCaretakers.setLayoutManager(new LinearLayoutManager(requireContext()));
-
-        // Use the CaretakerAdapter that is implemented below
-        CaretakerAdapter adapter = new CaretakerAdapter();
-        rvCaretakers.setAdapter(adapter);
-
-        Log.d(TAG, "[setupCaretakerRecycler] Adapter set with " + caretakerNames.size() + " caretakers");
-        Log.d(TAG, "[setupCaretakerRecycler] caretakerCheckedState: " + caretakerCheckedState);
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Select Caretakers")
+                .setMultiChoiceItems(caretakerNames.toArray(new String[0]), checkedItems,
+                        (dialog, which, isChecked) -> {
+                            // Update selection immediately
+                            String id = caretakerIds.get(which);
+                            if (isChecked) {
+                                if (!selectedCaretakerIds.contains(id)) selectedCaretakerIds.add(id);
+                            } else {
+                                selectedCaretakerIds.remove(id);
+                            }
+                        })
+                .setPositiveButton("OK", (dialog, which) -> {
+                    // Refresh summary and chips after selection is confirmed
+                    refreshCaretakerChips();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
+
+    private void refreshCaretakerChips() {
+        if (caretakerChipContainer == null) return;
+        if (selectedCaretakerIds == null) selectedCaretakerIds = new ArrayList<>();
+
+        caretakerChipContainer.removeAllViews(); // clear old chips
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+
+        for (String id : selectedCaretakerIds) {
+            int index = caretakerIds.indexOf(id);
+            if (index < 0) continue;
+
+            String name = caretakerNames.get(index);
+
+            View chip = inflater.inflate(R.layout.item_caretaker_chip, caretakerChipContainer, false);
+            TextView tvName = chip.findViewById(R.id.tvCaretakerName);
+            TextView btnRemove = chip.findViewById(R.id.btnRemoveChip);
+
+            tvName.setText(name);
+
+            btnRemove.setOnClickListener(v -> {
+                selectedCaretakerIds.remove(id);
+                refreshCaretakerChips();
+            });
+
+            caretakerChipContainer.addView(chip);
+        }
+
+        // update summary EditText if you have one
+        if (etCaretakers != null) etCaretakers.setText(getSelectedCaretakerNames());
+
+        // notify listener
+        if (caretakersListener != null)
+            caretakersListener.onCaretakersUpdated(new ArrayList<>(selectedCaretakerIds));
+    }
+
 
     private class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.CaretakerVH> {
         private final List<Boolean> localChecked;
@@ -895,6 +959,19 @@ public class EditPondDialog extends DialogFragment {
         }
     }
 
+    private void populateExistingCaretakers() {
+        selectedCaretakerIds.clear();
+
+        String raw = pond.getCaretakerIds(); // e.g., "[1,2,3]"
+        if (raw != null && !raw.trim().isEmpty() && !raw.equals("[]") && !raw.equals("{}")) {
+            raw = raw.replace("[", "").replace("]", "").trim();
+            String[] parts = raw.split(",");
+            for (String p : parts) {
+                String id = p.trim();
+                if (!id.isEmpty()) selectedCaretakerIds.add(id);
+            }
+        }
+    }
 
 
 
