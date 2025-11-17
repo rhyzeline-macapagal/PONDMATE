@@ -2,9 +2,11 @@ package com.example.pondmatev1;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -36,8 +38,10 @@ import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -54,6 +58,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -77,6 +82,7 @@ import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfPTable;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -92,7 +98,28 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.FormBody;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 public class ProductionCostFragment extends Fragment {
+    private Button btnSelectTime1, btnSelectTime2, btnSave;
+    private Dialog samplingDialog;
+
+    private TextView tvPondName, tvNextSampling, tvDaysOfCulture, tvLifeStage, tvTotalStocks, tvMortality, tvDFRPerCycle;
+    private TextView tvTimeFeeding1, tvTimeFeeding2, tvABWResult, tvDFRResult, tvFeedCost, tvRemainingFeed;
+    private EditText etSampledWeight, etNumSamples, etFeedingRate;
+    private TextView tvSurvivalRate; // display-only
+    private int time1Minutes = -1, time2Minutes = -1;
+    private String formattedTime1, formattedTime2;
+    private String species = "";
+    private long daysOfCulture = 1;
+    private Double currentPricePerKg = null;
 
     private TextView tvFeedType, etFeedCost;
     private EditText etFeedQuantity, etFeedDate;
@@ -186,7 +213,7 @@ public class ProductionCostFragment extends Fragment {
 
         btnSampling = view.findViewById(R.id.btnSampling);
 
-        btnSampling.setOnClickListener(v -> openSamplingDialog());
+        btnSampling.setOnClickListener(v -> showSamplingDialog());
 
         if (pondId != null && !pondId.trim().isEmpty()) {
             updateSamplingButtonState(pondId);
@@ -1543,14 +1570,6 @@ public class ProductionCostFragment extends Fragment {
         row.addView(tv);
     }
 
-
-
-
-
-
-
-
-
     private void updateProductionCostUI(PondModel pond) {
         if (pond == null || getView() == null) return;
 
@@ -1576,14 +1595,701 @@ public class ProductionCostFragment extends Fragment {
         // Total fingerlings cost in summary table
         tvSummaryFingerlings.setText(String.format(Locale.getDefault(), "₱%.2f", totalCost));
     }
-    
 
-    private void openSamplingDialog() {
-        SamplingDialog dialog = new SamplingDialog();
-        dialog.show(getParentFragmentManager(), "SamplingDialog");
+    private void showSamplingDialog() {
+        samplingDialog = new Dialog(requireContext());
+        Dialog dialog = samplingDialog;  // optional alias
+
+        dialog.setContentView(R.layout.dialog_add_sampling);
+        dialog.setCancelable(true);
+
+        TextView btnClose = dialog.findViewById(R.id.btnClose);
+        if (btnClose != null) btnClose.setOnClickListener(v -> dialog.dismiss());
+
+        // Initialize TextViews
+        tvPondName = dialog.findViewById(R.id.tvPondName);
+        tvNextSampling = dialog.findViewById(R.id.tvNextSampling);
+        tvDFRPerCycle = dialog.findViewById(R.id.tvDFRPerCycle);
+        tvDaysOfCulture = dialog.findViewById(R.id.tvDaysOfCulture);
+        tvLifeStage = dialog.findViewById(R.id.tvLifeStage);
+        tvTotalStocks = dialog.findViewById(R.id.tvTotalStocks);
+        tvMortality = dialog.findViewById(R.id.tvMortality);
+        tvTimeFeeding1 = dialog.findViewById(R.id.timeoffeeding1);
+        tvTimeFeeding2 = dialog.findViewById(R.id.timeoffeeding2);
+        tvABWResult = dialog.findViewById(R.id.tvABWResult);
+        tvDFRResult = dialog.findViewById(R.id.tvDFRResult);
+        tvFeedType = dialog.findViewById(R.id.tvFeedType);
+        tvFeedCost = dialog.findViewById(R.id.tvFeedCost);
+
+        // Initialize EditTexts and Survival Rate (display-only TextView)
+        etSampledWeight = dialog.findViewById(R.id.etSampledWeight);
+        etNumSamples = dialog.findViewById(R.id.etNumSamples);
+        etFeedingRate = dialog.findViewById(R.id.etFeedingRate);
+        tvSurvivalRate = dialog.findViewById(R.id.etSurvivalRate); // you said this is a TextView (id kept)
+
+        btnSelectTime1 = dialog.findViewById(R.id.btnselecttime1);
+        btnSelectTime2 = dialog.findViewById(R.id.btnselecttime2);
+
+        // Load pond data and setup UI
+        loadPondData();
+        setDefaultFeedingTimes();
+        addTextWatchers();
+
+        tvRemainingFeed = dialog.findViewById(R.id.tvRemainingFeed);
+        btnSave = dialog.findViewById(R.id.btnSaveSampling);
+        btnSave.setOnClickListener(v -> validateAndSave());
+        refreshFeedLevel();
+
+        btnSelectTime1.setOnClickListener(v -> showTimePickerDialog(tvTimeFeeding1, 1));
+        btnSelectTime2.setOnClickListener(v -> showTimePickerDialog(tvTimeFeeding2, 2));
+
+        LocalBroadcastManager.getInstance(requireContext()).registerReceiver(
+                feedUpdateReceiver,
+                new IntentFilter("FEED_LEVEL_UPDATED")
+        );
+        Log.d("FEED_UI", "SamplingDialog receiver registered");
+
+        Log.d("FEED_TEST", "SamplingDialog onViewCreated: Calling refreshRemainingFeedUI()");
+        refreshRemainingFeedUI();
+
+        dialog.show();
+        // Apply sizing and background (equivalent to onStart() in DialogFragment)
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setLayout(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        // then all sampling logic goes here:
+        // findViewById...
+        // loadPondData...
+        // fetchFeedPrice...
+        // validateAndSave...
+        // saveSamplingRecord...
+        // feeder assignment...
+        // feed deduction...
+        // broadcast sending...
+        // etc...
+    }
+
+    private void loadPondData() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", android.content.Context.MODE_PRIVATE);
+        String pondJson = prefs.getString("selected_pond", null);
+        if (pondJson == null) return;
+
+        PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+        pondId = pond.getId();
+        Log.d("FEED_TEST", "Loaded pondId for SamplingDialog = " + pondId);
+        if (pond == null) return;
+
+        tvPondName.setText(pond.getName());
+
+        // next sampling date
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, 15);
+        tvNextSampling.setText("Next Sampling: " + sdf.format(calendar.getTime()));
+
+        // compute daysOfCulture (class-level)
+        if (pond.getDateStocking() != null && !pond.getDateStocking().isEmpty()) {
+            try {
+                Date stockingDate = sdf.parse(pond.getDateStocking());
+                daysOfCulture = (new Date().getTime() - stockingDate.getTime()) / (1000L * 60 * 60 * 24);
+            } catch (Exception e) {
+                daysOfCulture = 1;
+            }
+        } else {
+            daysOfCulture = 1;
+        }
+        if (daysOfCulture < 1) daysOfCulture = 1;
+        tvDaysOfCulture.setText(daysOfCulture + " days");
+
+        // normalize breed
+        species = pond.getBreed() != null ? pond.getBreed().toLowerCase(Locale.ROOT) : "";
+        String breedClean = (species.contains("bangus") || species.contains("milkfish")) ? "bangus" : "tilapia";
+
+        // life stage
+        String lifeStage;
+        if (breedClean.equals("tilapia")) {
+            if (daysOfCulture <= 60) lifeStage = "Fingerling";
+            else if (daysOfCulture <= 90) lifeStage = "Juvenile";
+            else if (daysOfCulture <= 180) lifeStage = "Sub-adult / Adult (Harvest)";
+            else lifeStage = "Post-harvest";
+        } else {
+            if (daysOfCulture <= 70) lifeStage = "Fingerling";
+            else if (daysOfCulture <= 90) lifeStage = "Juvenile";
+            else if (daysOfCulture <= 180) lifeStage = "Sub-adult / Adult (Harvest)";
+            else lifeStage = "Post-harvest";
+        }
+        tvLifeStage.setText(lifeStage);
+
+        // fill other UI
+        tvTotalStocks.setText(String.valueOf(pond.getFishCount()));
+        tvMortality.setText(pond.getMortalityRate() + "%");
+        tvSurvivalRate.setText(String.format(Locale.getDefault(), "%.2f%%", (100 - pond.getMortalityRate())));
+
+        // fetch feed type and price for this pond/day
+        Log.d(TAG, "Loading feed price for " + breedClean + " days=" + daysOfCulture);
+        fetchFeedPrice(breedClean, daysOfCulture);
+
+        // watch DFR changes (DFR text updates happen in computeValues())
+        tvDFRResult.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) { updateFeedCostSampling(); }
+        });
+    }
+
+    private void fetchFeedPrice(String breedClean, long days) {
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_feed_price_by_day.php");
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(8000);
+                conn.setReadTimeout(8000);
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+
+                String postData = "breed=" + URLEncoder.encode(breedClean, "UTF-8")
+                        + "&days=" + URLEncoder.encode(String.valueOf(days), "UTF-8");
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(postData.getBytes("UTF-8"));
+                    os.flush();
+                }
+
+                int code = conn.getResponseCode();
+                if (code != HttpURLConnection.HTTP_OK) {
+                    throw new IOException("HTTP error code: " + code);
+                }
+
+                StringBuilder sb = new StringBuilder();
+                try (InputStream is = conn.getInputStream();
+                     BufferedReader br = new BufferedReader(new InputStreamReader(is, "UTF-8"))) {
+                    String line;
+                    while ((line = br.readLine()) != null) sb.append(line);
+                }
+
+                Log.d(TAG, "fetchFeedPrice response: " + sb.toString());
+
+                JSONObject obj = new JSONObject(sb.toString());
+                final String feedType = obj.optString("feed_type", "No Feed");
+                final double pricePerKg = obj.optDouble("price_per_kg", 0);
+
+                requireActivity().runOnUiThread(() -> {
+                    currentPricePerKg = pricePerKg;
+                    tvFeedType.setText(feedType);
+                    tvFeedType.setTag(pricePerKg);
+                    Log.d(TAG, "FeedType=" + feedType + " price=" + pricePerKg);
+                    updateFeedCostSampling(); // recalc now that price is present
+                });
+
+            } catch (Exception e) {
+                Log.e(TAG, "fetchFeedPrice error", e);
+                requireActivity().runOnUiThread(() -> {
+                    currentPricePerKg = null;
+                    tvFeedType.setText("N/A");
+                    tvFeedCost.setText("₱00.00");
+                });
+            } finally {
+                if (conn != null) conn.disconnect();
+            }
+        }).start();
+    }
+
+    private void updateFeedCostSampling() {
+        if (currentPricePerKg == null) {
+            tvFeedCost.setText("₱00.00");
+            return;
+        }
+
+        // ✅ Get TOTAL DFR per day (not per feeding)
+        String dfrText = tvDFRResult.getText().toString().replace(" g", "").trim();
+        double dfrGrams = parseDoubleSampling(dfrText);
+
+        // ✅ Convert grams → kilograms
+        double dfrKgPerDay = dfrGrams / 1000.0;
+
+        // ✅ Compute daily feed cost
+        double dailyCost = dfrKgPerDay * currentPricePerKg;
+
+        // ✅ Display formatted
+        tvFeedCost.setText("₱" + String.format(Locale.getDefault(), "%.2f", dailyCost));
+
+        Log.d(TAG, "updateFeedCost — DFR(g)=" + dfrGrams +
+                ", DFR(kg/day)=" + dfrKgPerDay +
+                ", price/kg=" + currentPricePerKg +
+                ", dailyCost=" + dailyCost);
+    }
+
+    private void validateAndSave() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("FEED_LEVEL_PREF", Context.MODE_PRIVATE);
+        float remainingFeed = prefs.getFloat("feed_remaining_" + pondId, 0f);
+
+        if (remainingFeed <= 0) {
+            new android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Feed Container is Empty")
+                    .setMessage("You must store feeds in the container before you can save a sampling.")
+                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                    .show();
+            return;
+        }
+
+        if (remainingFeed < 2000) {
+            Toast.makeText(getContext(), "⚠️ Feed is below 2,000g — refill soon.", Toast.LENGTH_LONG).show();
+        }
+
+
+
+        String sampledWeight = etSampledWeight.getText().toString().trim();
+        String numSamples = etNumSamples.getText().toString().trim();
+        String feedingRates = etFeedingRate.getText().toString().trim();
+        String survivalRates = tvSurvivalRate.getText().toString().trim(); // display-only
+
+        String feedingTime1 = tvTimeFeeding1.getText().toString().trim();
+        String feedingTime2 = tvTimeFeeding2.getText().toString().trim();
+
+        if (sampledWeight.isEmpty() || numSamples.isEmpty() ||
+                feedingRates.isEmpty() || survivalRates.isEmpty() ||
+                feedingTime1.isEmpty() || feedingTime2.isEmpty()) {
+
+            new android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Incomplete Fields")
+                    .setMessage("Please complete all required fields before saving.")
+                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                    .show();
+            return;
+        }
+
+        try {
+            double sw = Double.parseDouble(sampledWeight);
+            double ns = Double.parseDouble(numSamples);
+            double fr = Double.parseDouble(feedingRates);
+
+            if (sw <= 0 || ns <= 0 || fr <= 0) {
+                new android.app.AlertDialog.Builder(requireContext())
+                        .setTitle("Invalid Input")
+                        .setMessage("Values must be greater than zero.")
+                        .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                        .show();
+                return;
+            }
+        } catch (NumberFormatException e) {
+            new android.app.AlertDialog.Builder(requireContext())
+                    .setTitle("Invalid Format")
+                    .setMessage("Please enter valid numeric values.")
+                    .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                    .show();
+            return;
+        }
+
+        SharedPreferences pondPrefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+        String pondJson = pondPrefs.getString("selected_pond", null);
+        PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
+
+        pondId = pond.getId();
+
+        new Thread(() -> {
+            try {
+                String feederId = "feeder_001";
+                URL url = new URL("https://pondmate.alwaysdata.net/get_feeder_assignment.php?feeder_id=" + feederId);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder result = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) result.append(line);
+                reader.close();
+
+                JSONObject json = new JSONObject(result.toString());
+                String assignedPondId = json.optString("pond_id", "none");
+
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (assignedPondId.equals("none")) {
+                        // ❌ No feeder assigned
+                        new android.app.AlertDialog.Builder(requireContext())
+                                .setTitle("Feeder Not Assigned")
+                                .setMessage("The feeder device is not connected to any pond.\n\nWould you like to assign it to this pond now?")
+                                .setPositiveButton("Yes", (dialog, which) -> {
+                                    assignFeederToPondAndUpload(pond.getId(), pond.getName(),
+                                            formattedTime1, formattedTime2,
+                                            parseDoubleSampling(tvDFRPerCycle.getText().toString().replace(" g", ""))
+                                    );
+                                })
+                                .setNegativeButton("No", (dialog, which) ->
+                                        Toast.makeText(requireContext(), "Sampling not saved. Please connect feeder first.", Toast.LENGTH_SHORT).show()
+                                )
+                                .show();
+                    } else if (!assignedPondId.equals(pond.getId())) {
+                        // ❌ Assigned to a different pond
+                        new android.app.AlertDialog.Builder(requireContext())
+                                .setTitle("Feeder Connected to Another Pond")
+                                .setMessage("The feeder is currently connected to another pond.\n\nWould you like to reassign it to this pond?")
+                                .setPositiveButton("Reassign", (dialog, which) -> {
+                                    assignFeederToPondAndUpload(
+                                            pond.getId(),
+                                            pond.getName(),
+                                            formattedTime1,
+                                            formattedTime2,
+                                            parseDoubleSampling(tvDFRPerCycle.getText().toString().replace(" g", ""))
+                                    );
+                                })
+                                .setNegativeButton("Cancel", (dialog, which) -> {
+                                    // ✅ User canceled reassignment — save to SQL only
+                                    Toast.makeText(requireContext(), "Sampling saved locally. Feeder remains with previous pond.", Toast.LENGTH_SHORT).show();
+                                    saveSamplingRecord(pond);
+                                })
+                                .show();
+
+
+                    } else {
+
+                        saveSamplingRecord(pond);
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                new Handler(Looper.getMainLooper()).post(() ->
+                        Toast.makeText(requireContext(), "Error checking feeder assignment.", Toast.LENGTH_SHORT).show()
+                );
+            }
+        }).start();
+    }
+
+    private void saveSamplingRecord(PondModel pond) {
+
+        int daysOfCultureVal = Integer.parseInt(tvDaysOfCulture.getText().toString().replace(" days", ""));
+        String growthStage = tvLifeStage.getText().toString();
+        int totalStocks = pond.getFishCount();
+        double mortalityRate = pond.getMortalityRate();
+
+        double abw = parseDoubleSampling(tvABWResult.getText().toString().replace(" g", ""));
+        double feedingRate = parseDoubleSampling(etFeedingRate.getText().toString());
+        double survivalRate = parseDoubleSampling(tvSurvivalRate.getText().toString().replace("%", ""));
+        double dfr = parseDoubleSampling(tvDFRResult.getText().toString().replace(" g", ""));
+        double dfrFeed = parseDoubleSampling(tvDFRResult.getText().toString().replace(" g", ""));
+        double dailyFeedCost = parseDoubleSampling(tvFeedCost.getText().toString().replace("₱", "").trim());
+
+
+        String feedingOne = formattedTime1; // use 24-hour version
+        String feedingTwo = formattedTime2;
+
+        String now = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+
+        String nextSamplingDate = tvNextSampling.getText().toString()
+                .replace("Next Sampling: ", "")
+                .trim();
+
+        PondSyncManager.uploadSamplingRecord(
+                pond.getId(), daysOfCultureVal, growthStage, totalStocks, mortalityRate,
+                feedingOne, feedingTwo, abw, feedingRate, survivalRate, dfr, dfrFeed, dailyFeedCost,
+                now, now, nextSamplingDate,
+                new PondSyncManager.Callback() {
+                    @Override
+                    public void onSuccess(Object response) {
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(getContext(), "Sampling record saved!", Toast.LENGTH_SHORT).show();
+
+                            float feedPerCycle = (float) parseDoubleSampling(tvDFRPerCycle.getText().toString().replace(" g", ""));
+                            float totalToDeduct = feedPerCycle * 2f; // 2 feedings for the current day
+                            Log.d("SAMPLING_FEED", "Feed deduction computed: perCycle=" + feedPerCycle + ", totalDeduct=" + totalToDeduct);
+
+                            FeedStorage.deductFeed(requireContext(), pondId, totalToDeduct);
+
+                            float updated  = FeedStorage.getRemainingFeed(requireContext(), pondId);
+                            Log.d("SAMPLING_FEED", "After deduction, remaining feed = " + updated );
+                            tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", updated ));
+
+                            refreshFeedLevel();
+
+                            // Notify ControlsFeeder (so it updates UI too)
+                            LocalBroadcastManager.getInstance(requireContext())
+                                    .sendBroadcast(new Intent("FEED_LEVEL_UPDATED"));
+
+
+
+                            // Refresh UI on parent fragment if needed
+                            if (getParentFragment() instanceof ProductionCostFragment) {
+                                ((ProductionCostFragment) getParentFragment()).updateSamplingButtonState(pond.getId());
+                            }
+
+                            if (samplingDialog != null && samplingDialog.isShowing()) {
+                                samplingDialog.dismiss();
+                            }
+
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Error: " + error, Toast.LENGTH_LONG).show()
+                        );
+                    }
+                }
+        );
+    }
+
+    private void assignFeederToPondAndUpload(String pondId, String pondName, String feedingOne,
+                                             String feedingTwo, double dfrFeedGrams) {
+        String feederId = "feeder_001"; // fixed ID
+        OkHttpClient client = new OkHttpClient();
+
+        RequestBody body = new FormBody.Builder()
+                .add("feeder_id", feederId)
+                .add("pond_id", pondId)
+                .build();
+
+        Request request = new Request.Builder()
+                .url("https://pondmate.alwaysdata.net/update_feeder_assignment.php")
+                .post(body)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Failed to assign feeder", Toast.LENGTH_LONG).show());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(getContext(), "Feeder_001 assigned successfully!", Toast.LENGTH_SHORT).show();
+                        uploadDFRToAdafruit(pondName, feedingOne, feedingTwo, dfrFeedGrams);
+                        if (samplingDialog != null && samplingDialog.isShowing()) {
+                            samplingDialog.dismiss();
+                        }
+
+                    });
+                } else {
+                    requireActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "Server error assigning feeder", Toast.LENGTH_LONG).show());
+                }
+            }
+        });
+    }
+
+    private void refreshRemainingFeedUI() {
+        float remaining = FeedStorage.getRemainingFeed(requireContext(), pondId);
+        Log.d("FEED_TEST", "refreshRemainingFeedUI() -> remaining feed = " + remaining);
+        tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", remaining));
+    }
+
+    private void refreshFeedLevel() {
+        SharedPreferences prefs = requireContext().getSharedPreferences("FEED_LEVEL_PREF", Context.MODE_PRIVATE);
+        float remainingFeed = FeedStorage.getRemainingFeed(requireContext(), pondId);
+        tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", remainingFeed));
+
+        if (remainingFeed <= 0) {
+            btnSave.setEnabled(false);
+            btnSave.setAlpha(0.5f);
+        } else {
+            btnSave.setEnabled(true);
+            btnSave.setAlpha(1f);
+        }
+    }
+
+    private final BroadcastReceiver feedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            refreshFeedLevel();
+        }
+    };
+
+    @Override
+    public void onDestroyView() {
+        LocalBroadcastManager.getInstance(requireContext()).unregisterReceiver(feedUpdateReceiver);
+        super.onDestroyView();
     }
 
 
+    private void setDefaultFeedingTimes() {
+        formattedTime1 = "08:00:00";
+        formattedTime2 = "16:00:00";
+        tvTimeFeeding1.setText("8:00 AM");
+        tvTimeFeeding2.setText("4:00 PM");
+    }
+
+    private void showTimePickerDialog(TextView targetTextView, int timeNumber) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_timepicker, null);
+        TimePicker timePicker = dialogView.findViewById(R.id.timePickerSpinner);
+        timePicker.setIs24HourView(false);
+        timePicker.setHour(timeNumber == 1 ? 8 : 16);
+        timePicker.setMinute(0);
+
+        new android.app.AlertDialog.Builder(requireContext())
+                .setTitle("Select Feeding Time " + timeNumber)
+                .setView(dialogView)
+                .setPositiveButton("OK", (dialog, which) -> {
+                    int hour = timePicker.getHour();
+                    int minute = timePicker.getMinute();
+                    String amPm = (hour >= 12) ? "PM" : "AM";
+                    int hour12 = (hour == 0 || hour == 12) ? 12 : hour % 12;
+                    String formatted12 = String.format(Locale.getDefault(), "%d:%02d %s", hour12, minute, amPm);
+                    targetTextView.setText(formatted12);
+
+                    // Save 24-hour format for database
+                    String formatted24 = String.format(Locale.getDefault(), "%02d:%02d:00", hour, minute);
+                    if (timeNumber == 1) {
+                        formattedTime1 = formatted24;
+                    } else {
+                        formattedTime2 = formatted24;
+                    }
+                })
+                .setNegativeButton("Cancel", (d, w) -> d.dismiss())
+                .show();
+    }
+
+    private void addTextWatchers() {
+        TextWatcher watcher = new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { computeValues(); }
+            @Override public void afterTextChanged(Editable s) {}
+        };
+
+        etSampledWeight.addTextChangedListener(watcher);
+        etNumSamples.addTextChangedListener(watcher);
+        etFeedingRate.addTextChangedListener(watcher);
+        // DO NOT add tvSurvivalRate here — it's not editable by user
+    }
+
+
+    private void computeValues() {
+        try {
+            String sampledWeightStr = etSampledWeight.getText().toString().trim();
+            String numSamplesStr = etNumSamples.getText().toString().trim();
+            String feedingRateStr = etFeedingRate.getText().toString().trim();
+            String survivalText = tvSurvivalRate.getText().toString().replace("%", "").trim();
+
+            // 1️⃣ Compute ABW first, even if feedingRate/survival are empty
+            double abw = 0;
+            if (!sampledWeightStr.isEmpty() && !numSamplesStr.isEmpty()) {
+                double sampledWeight = parseDoubleSampling(sampledWeightStr);
+                double numSamples = parseDoubleSampling(numSamplesStr);
+                abw = (numSamples > 0) ? (sampledWeight / numSamples) : 0;
+                if (Double.isNaN(abw) || Double.isInfinite(abw)) abw = 0;
+            }
+            tvABWResult.setText(String.format(Locale.getDefault(), "%.2f g", abw));
+            Log.d(TAG, "ABW (g): " + abw);
+
+            // 2️⃣ Compute DFR only if feedingRate and survival are provided
+            double dfrGrams = 0;
+            if (!feedingRateStr.isEmpty() && !survivalText.isEmpty()) {
+                double feedingRate = parseDoubleSampling(feedingRateStr);
+                double survivalRate = parseDoubleSampling(survivalText);
+
+                double totalStocks = parseDoubleSampling(tvTotalStocks.getText().toString());
+                double feedingRateDecimal = feedingRate / 100.0;
+                double survivalDecimal = survivalRate / 100.0;
+
+                dfrGrams = feedingRateDecimal * survivalDecimal * abw * totalStocks;
+                if (Double.isNaN(dfrGrams) || Double.isInfinite(dfrGrams)) dfrGrams = 0;
+            }
+
+            tvDFRResult.setText(String.format(Locale.getDefault(), "%.2f g", dfrGrams));
+            tvDFRPerCycle.setText(String.format(Locale.getDefault(), "%.2f g", (dfrGrams / 2.0)));
+            Log.d(TAG, "DFR (g): " + dfrGrams);
+
+            // 3️⃣ Update feed cost (optional)
+            updateFeedCostSampling();
+
+        } catch (Exception e) {
+            Log.e(TAG, "computeValues error", e);
+            tvABWResult.setText("0.00 g");
+            tvDFRResult.setText("0.00 g");
+            tvDFRPerCycle.setText("0.00 g");
+            updateFeedCostSampling();
+        }
+    }
+
+
+    private double parseDoubleSampling(String s) {
+        if (s == null) return 0.0;
+        s = s.trim();
+        if (s.isEmpty()) return 0.0;
+        try { return Double.parseDouble(s); }
+        catch (NumberFormatException e) { return 0.0; }
+    }
+
+
+
+    private void uploadDFRToAdafruit(String pondName, String feedingOne24, String feedingTwo24, double dfrFeedGrams) {
+        OkHttpClient client = new OkHttpClient();
+
+        String feedKey = "schedule"; // your Adafruit feed key
+        String username = getString(R.string.adafruit_username);
+        String aioKey = getString(R.string.adafruit_aio_key);
+
+        // Divide by 10
+        int reducedGrams = (int) Math.round(dfrFeedGrams / 10);
+
+        // Value format: PondName|feedingOne,feedingTwo|reducedGrams
+        String value = pondName + "|" + feedingOne24 + "," + feedingTwo24 + "|" + reducedGrams + "g";
+
+        try {
+            JSONObject json = new JSONObject();
+            json.put("value", value);
+
+            RequestBody body = RequestBody.create(json.toString(),
+                    MediaType.parse("application/json; charset=utf-8"));
+
+            String url = "https://io.adafruit.com/api/v2/" + username + "/feeds/" + feedKey + "/data";
+
+            Log.d(TAG, "Posting to Adafruit: " + value);
+            Log.d(TAG, "URL: " + url);
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("X-AIO-Key", aioKey)
+                    .post(body)
+                    .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    Log.e(TAG, "Adafruit request failed", e);
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(getContext(), "Failed to post to Adafruit: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                    }
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    String bodyStr = (response.body() != null) ? response.body().string() : "";
+                    Log.d(TAG, "Adafruit response code: " + response.code());
+                    Log.d(TAG, "Adafruit response body: " + bodyStr);
+
+                    if (isAdded()) {
+                        requireActivity().runOnUiThread(() ->
+                                Toast.makeText(requireContext(), "DFR posted to Adafruit!", Toast.LENGTH_SHORT).show());
+
+                    }
+                }
+            });
+
+        } catch (JSONException ex) {
+            Log.e(TAG, "JSON error", ex);
+            Toast.makeText(getContext(), "JSON error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private final BroadcastReceiver feedUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            float updated = FeedStorage.getRemainingFeed(context, pondId);
+            Log.d("FEED_UI", "SamplingDialog updated feed display = " + updated);
+            tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", updated));
+        }
+    };
     public void updateSamplingButtonState(String pondId) {
         if (!isAdded()) return;
 
@@ -1701,7 +2407,7 @@ public class ProductionCostFragment extends Fragment {
             btnSampling.setBackgroundTintList(
                     ContextCompat.getColorStateList(requireContext(), R.color.blue_pond_btn)
             );
-            btnSampling.setOnClickListener(v -> openSamplingDialog());
+            btnSampling.setOnClickListener(v -> showSamplingDialog());
 
         } else {
             btnSampling.setBackgroundTintList(
@@ -2046,6 +2752,7 @@ public class ProductionCostFragment extends Fragment {
             }
         }).start();
     }
+
 
     private void showAddMaintenanceDialog() {
 
