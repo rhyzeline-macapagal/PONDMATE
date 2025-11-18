@@ -4,9 +4,12 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
@@ -27,6 +30,7 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.gson.Gson;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
@@ -36,6 +40,8 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
+
+
 /**
  * EditPondDialog — updated to use a RecyclerView-based caretaker chooser instead of chips.
  */
@@ -43,10 +49,10 @@ public class EditPondDialog extends DialogFragment {
     private PondModel pond; // store the pond being edited
 
     private EditText etPondName, etPondArea, etFishCount, etCostPerFish, etMortalityRate;
-    private EditText etDateCreated, etStockingDate, etHarvestDate, etCaretakers; // etCaretakers used as read-only summary
+    private EditText etDateCreated, etStockingDate, etHarvestDate;
     private Spinner spinnerSpecies;
     private Button btnSave, btnCancel;
-    private TextView btnClose;
+    private TextView btnClose, tvCaretakers;
 
     private TextView tvTotalFingerlingsCost;
 
@@ -79,6 +85,12 @@ public class EditPondDialog extends DialogFragment {
     private ArrayList<String> caretakerNames = new ArrayList<>();
     private ArrayList<String> caretakerIds = new ArrayList<>();
     private ArrayList<String> selectedCaretakerIds = new ArrayList<>();
+    private Map<String, String> caretakerMap = new HashMap<>();
+    private String caretakerDisplay;
+
+    private List<Integer> assignedCaretakerIds = new ArrayList<>();
+    private PondSyncManager pondSyncManager;
+
     public interface OnCaretakersUpdatedListener {
         void onCaretakersUpdated(ArrayList<String> selectedCaretakerIds);
     }
@@ -97,11 +109,13 @@ public class EditPondDialog extends DialogFragment {
         this.listener = listener;
     }
 
+
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
+        pondSyncManager = new PondSyncManager();
 
         hasFingerlingStock = pond.getFishCount() > 0 && pond.getCostPerFish() > 0;
 
@@ -117,10 +131,18 @@ public class EditPondDialog extends DialogFragment {
 
         initViews(view);
 
+        setupAssignedCaretakers(pond.getId());
+        if (assignedCaretakerIds != null && !assignedCaretakerIds.isEmpty()) {
+            // Convert IDs to names if needed, then display
+            String displayNames = getCaretakerNamesFromIds(assignedCaretakerIds);
+            tvCaretakers.setText(displayNames);
+        }
+
         caretakerChipContainer = view.findViewById(R.id.caretakerChipContainer);
-        etCaretakers = view.findViewById(R.id.etCaretakers);
         tvCaretakerLabel = view.findViewById(R.id.tvCaretakerLabel);
         btnSelectCaretakers = view.findViewById(R.id.btnSelectCaretakers);
+        loadCaretakersAndDisplay();
+
 
         if (hasFingerlingStock && spinnerSpecies != null) {
             setupSpeciesSpinner();
@@ -137,13 +159,17 @@ public class EditPondDialog extends DialogFragment {
         btnSelectCaretakers.setText("Loading caretakers...");
 
         loadCaretakersFromServer(() -> {
-            selectedCaretakerIds.clear();
-            selectedCaretakerIds.addAll(caretakerIds); // <- add all loaded IDs
+            // 1️⃣ Map all available caretakers
+            populateCaretakerMap(caretakerIds, caretakerNames);
 
-            refreshCaretakerChips(); // this will now display them
+            // 3️⃣ Refresh chips
+            refreshCaretakerChips();
 
+            // 4️⃣ Enable button
             btnSelectCaretakers.setEnabled(true);
             btnSelectCaretakers.setText("Select Caretakers");
+
+            // 5️⃣ Set selection dialog
             btnSelectCaretakers.setOnClickListener(v -> openCaretakerSelectionDialog());
         });
 
@@ -156,45 +182,58 @@ public class EditPondDialog extends DialogFragment {
     private void initViews(View v) {
         if (v == null) return;
 
-
-        // --- Basic fields ---
-        rvCaretakers = v.findViewById(R.id.rvCaretakers);
+        // --- Initialize all views first ---
         etPondName = v.findViewById(R.id.etPondName);
         etPondArea = v.findViewById(R.id.etPondArea);
+        etFishCount = v.findViewById(R.id.etFishCount);
+        etCostPerFish = v.findViewById(R.id.etCostPerFish);
+        etMortalityRate = v.findViewById(R.id.etMortalityRate);
+        etDateCreated = v.findViewById(R.id.etDateCreated);
+        etStockingDate = v.findViewById(R.id.etStockingDate);
+        etHarvestDate = v.findViewById(R.id.etHarvestDate);
+        tvCaretakers = v.findViewById(R.id.etCaretakers);
+
+        rvCaretakers = v.findViewById(R.id.rvCaretakers);
+        spinnerSpecies = v.findViewById(R.id.spinnerBreed);
+        btnSave = v.findViewById(R.id.btnSave);
+        btnCancel = v.findViewById(R.id.btnCancel);
+        btnClose = v.findViewById(R.id.btnClose);
+        tvTotalFingerlingsCost = v.findViewById(R.id.tvTotalFingerlingsCost);
+
+        // --- Safe to use views now ---
+        if (tvCaretakers != null) tvCaretakers.setText("Loading caretakers...");
+
+        if (caretakerDisplay != null && !caretakerDisplay.isEmpty()) {
+            tvCaretakers.setText(caretakerDisplay);
+            tvCaretakers.setEnabled(false);
+        }
 
         if (etPondName != null) etPondName.setText("");
         if (etPondArea != null) etPondArea.setText("");
 
-        // --- Full layout fields (may not exist in minimal layout) ---
-        etFishCount = v.findViewById(R.id.etFishCount);
-        etCostPerFish = v.findViewById(R.id.etCostPerFish);
-        etMortalityRate = v.findViewById(R.id.etMortalityRate);
-
-        etDateCreated = v.findViewById(R.id.etDateCreated);
-        etStockingDate = v.findViewById(R.id.etStockingDate);
-        etHarvestDate = v.findViewById(R.id.etHarvestDate);
-
-        spinnerSpecies = v.findViewById(R.id.spinnerBreed);
         if (spinnerSpecies != null) {
-            // Optional: set a default empty adapter to prevent NPE
             spinnerSpecies.setAdapter(new ArrayAdapter<>(requireContext(),
                     android.R.layout.simple_spinner_item,
                     new String[]{ "Select species" }));
         }
 
-        btnSave = v.findViewById(R.id.btnSave);
-        btnCancel = v.findViewById(R.id.btnCancel);
-        btnClose = v.findViewById(R.id.btnClose);
-
-        etCaretakers = v.findViewById(R.id.etCaretakers);
-        tvTotalFingerlingsCost = v.findViewById(R.id.tvTotalFingerlingsCost);
-
-
-        // --- Optional: clear total cost initially ---
         if (tvTotalFingerlingsCost != null) {
             tvTotalFingerlingsCost.setText("₱0.00");
         }
     }
+
+
+    private String getCaretakerNamesFromIds(List<Integer> ids) {
+        if (ids == null || ids.isEmpty()) return "";
+        // Replace with your logic: Map<Integer, String> caretakerMap
+        List<String> names = new ArrayList<>();
+        for (Integer id : ids) {
+            String name = caretakerMap.get(id); // Make sure caretakerMap exists
+            if (name != null) names.add(name);
+        }
+        return String.join(", ", names);
+    }
+
 
 
     private void populateFields() {
@@ -207,8 +246,8 @@ public class EditPondDialog extends DialogFragment {
         if (etPondArea != null)
             etPondArea.setText(pond.getPondArea() > 0 ? String.valueOf(pond.getPondArea()) : "");
 
-        if (etCaretakers != null)
-            etCaretakers.setText(pond.getCaretakerName() != null ? pond.getCaretakerName() : "");
+        if (tvCaretakers != null)
+            tvCaretakers.setText(pond.getCaretakerName() != null ? pond.getCaretakerName() : "");
 
         // --- Species ---
         if (spinnerSpecies != null && pond.getBreed() != null && !pond.getBreed().isEmpty()) {
@@ -284,34 +323,6 @@ public class EditPondDialog extends DialogFragment {
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
     }
-
-    private void populateCaretakerIds() {
-        selectedCaretakerIds.clear();
-
-        String raw = pond.getCaretakerIds();
-        Log.d(TAG, "[populateCaretakerIds] Raw caretakerIds from model: \"" + raw + "\"");
-
-        if (raw == null || raw.trim().isEmpty() || raw.equals("[]") || raw.equals("{}")) {
-            Log.d(TAG, "[populateCaretakerIds] No caretakers assigned in model");
-            return;
-        }
-
-        // Strip brackets
-        raw = raw.replace("[", "").replace("]", "").trim();
-
-        // Split into IDs
-        String[] parts = raw.split(",");
-        for (String p : parts) {
-            String id = p.trim();
-            if (!id.isEmpty()) {
-                selectedCaretakerIds.add(id);
-            }
-        }
-
-        Log.d(TAG, "[populateCaretakerIds] Parsed caretaker IDs: " + selectedCaretakerIds);
-    }
-
-
 
     private void computeTotalCost() {
         if (tvTotalFingerlingsCost == null) {
@@ -548,7 +559,7 @@ public class EditPondDialog extends DialogFragment {
                 // 4️⃣ Caretaker validation
                 if (selectedCaretakerIds.isEmpty()) {
                     Toast.makeText(requireContext(), "Please assign at least one caretaker.", Toast.LENGTH_SHORT).show();
-                    if (etCaretakers != null) etCaretakers.setError("Required");
+                    if (tvCaretakers != null) tvCaretakers.setError("Required");
                     return;
                 }
 
@@ -567,7 +578,7 @@ public class EditPondDialog extends DialogFragment {
                 pond.setDateHarvest(harvestDate);
                 pond.setBreed(selectedBreed);
                 pond.setCaretakerName(getSelectedCaretakerNames());
-                pond.setCaretakerIds(String.join(",", selectedCaretakerIds));
+                pond.setCaretakerIds(new ArrayList<>(selectedCaretakerIds));
 
                 // Log for debugging
                 Log.d("EDIT_POND", "Sending result - name=" + pond.getName());
@@ -586,13 +597,29 @@ public class EditPondDialog extends DialogFragment {
 
 
     private String getSelectedCaretakerNames() {
+        if (selectedCaretakerIds.isEmpty() || caretakerMap.isEmpty()) {
+            return "";
+        }
+
         List<String> selectedNames = new ArrayList<>();
-        for (int i = 0; i < caretakerIds.size(); i++) {
-            if (selectedCaretakerIds.contains(caretakerIds.get(i))) {
-                selectedNames.add(caretakerNames.get(i));
+        for (String id : selectedCaretakerIds) {
+            String name = caretakerMap.get(id);
+            if (name != null && !name.trim().isEmpty()) {
+                selectedNames.add(name);
             }
         }
-        return String.join(",", selectedNames);
+
+        return String.join(", ", selectedNames);
+    }
+
+
+    private void populateCaretakerMap(List<String> ids, List<String> names) {
+        caretakerMap.clear();
+        if (ids != null && names != null && ids.size() == names.size()) {
+            for (int i = 0; i < ids.size(); i++) {
+                caretakerMap.put(ids.get(i), names.get(i));
+            }
+        }
     }
 
     private void updatePondOnServer(PondModel pond) {
@@ -767,13 +794,6 @@ public class EditPondDialog extends DialogFragment {
         }
     }
 
-    private void setupCaretakerButton() {
-        loadCaretakersFromServer(() -> {
-            // Optional: refresh chips or do any UI updates after caretakers are loaded
-            refreshCaretakerChips();
-        });
-    }
-
     private void loadCaretakersFromServer(Runnable onComplete) {
         new Thread(() -> {
             HttpURLConnection conn = null;
@@ -857,40 +877,76 @@ public class EditPondDialog extends DialogFragment {
                 .show();
     }
 
-    private void refreshCaretakerChips() {
-        if (caretakerChipContainer == null) return;
-        if (selectedCaretakerIds == null) selectedCaretakerIds = new ArrayList<>();
+    private void setupAssignedCaretakers(String pondId) {
+        assignedCaretakerIds.clear();
 
-        caretakerChipContainer.removeAllViews(); // clear old chips
-        LayoutInflater inflater = LayoutInflater.from(getContext());
+        PondSyncManager.postRequest(
+                "get_assigned_caretakers.php",
+                "pond_id=" + pondId,
+                new PondSyncManager.Callback() {
+                    @Override
+                    public void onSuccess(Object response) {
+                        try {
+                            String jsonString = response.toString();
+                            JSONObject json = new JSONObject(jsonString);
+                            String status = json.optString("status", "error");
 
-        for (String id : selectedCaretakerIds) {
-            int index = caretakerIds.indexOf(id);
-            if (index < 0) continue;
+                            if ("success".equalsIgnoreCase(status)) {
+                                JSONArray dataArray = json.getJSONArray("data");
+                                assignedCaretakerIds.clear();
 
-            String name = caretakerNames.get(index);
+                                for (int i = 0; i < dataArray.length(); i++) {
+                                    assignedCaretakerIds.add(dataArray.getInt(i));
+                                }
 
-            View chip = inflater.inflate(R.layout.item_caretaker_chip, caretakerChipContainer, false);
-            TextView tvName = chip.findViewById(R.id.tvCaretakerName);
-            TextView btnRemove = chip.findViewById(R.id.btnRemoveChip);
+                                Log.d("CARETAKER_DEBUG", "Assigned caretakers: " + assignedCaretakerIds);
 
-            tvName.setText(name);
+                                // ✅ Update UI on main thread safely
+                                requireActivity().runOnUiThread(() -> {
+                                    if (!isAdded()) return;
 
-            btnRemove.setOnClickListener(v -> {
-                selectedCaretakerIds.remove(id);
-                refreshCaretakerChips();
-            });
+                                    if (tvCaretakers != null) {
+                                        String displayNames = getCaretakerNamesFromIds(assignedCaretakerIds);
+                                        tvCaretakers.setText(displayNames);
+                                    }
 
-            caretakerChipContainer.addView(chip);
-        }
+                                    refreshCaretakerChips();
+                                });
 
-        // update summary EditText if you have one
-        if (etCaretakers != null) etCaretakers.setText(getSelectedCaretakerNames());
+                            } else {
+                                Log.d("CARETAKER_DEBUG", "No caretaker IDs found: " + json.optString("message"));
+                                requireActivity().runOnUiThread(() -> {
+                                    if (!isAdded()) return;
 
-        // notify listener
-        if (caretakersListener != null)
-            caretakersListener.onCaretakersUpdated(new ArrayList<>(selectedCaretakerIds));
+                                    if (tvCaretakers != null) {
+                                        tvCaretakers.setText(""); // Clear field if none
+                                    }
+
+                                    refreshCaretakerChips();
+                                });
+                            }
+                        } catch (JSONException e) {
+                            Log.e("CARETAKER_DEBUG", "Failed to parse caretaker IDs: " + e.getMessage());
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Log.e("CARETAKER_DEBUG", "Failed to load assigned caretakers: " + error);
+                        requireActivity().runOnUiThread(() -> {
+                            if (!isAdded()) return;
+
+                            if (tvCaretakers != null) {
+                                tvCaretakers.setText(""); // Clear field on error
+                            }
+
+                            refreshCaretakerChips();
+                        });
+                    }
+                }
+        );
     }
+
 
 
     private class CaretakerAdapter extends RecyclerView.Adapter<CaretakerAdapter.CaretakerVH> {
@@ -937,7 +993,7 @@ public class EditPondDialog extends DialogFragment {
                 else selectedCaretakerIds.remove(id);
 
                 // Update caretakers summary field
-                if (etCaretakers != null) etCaretakers.setText(getSelectedCaretakerNames());
+                if (tvCaretakers != null) tvCaretakers.setText(getSelectedCaretakerNames());
             });
         }
 
@@ -955,38 +1011,90 @@ public class EditPondDialog extends DialogFragment {
         }
     }
 
-    private void saveSelectedCaretakers() {
-        // Clear and rebuild selectedCaretakerIds from adapter's state (if adapter exists)
-        selectedCaretakerIds.clear();
-        caretakerCheckedState.clear();
+    private void loadCaretakersAndDisplay() {
+        btnSelectCaretakers.setEnabled(false);
+        btnSelectCaretakers.setText("Loading caretakers...");
 
-        RecyclerView.Adapter adapter = (rvCaretakers != null) ? rvCaretakers.getAdapter() : null;
-        if (adapter instanceof CaretakerAdapter) {
-            CaretakerAdapter ca = (CaretakerAdapter) adapter;
-            for (int i = 0; i < caretakerIds.size(); i++) {
-                boolean checked = ca.getChecked(i);
-                caretakerCheckedState.add(checked);
-                if (checked) selectedCaretakerIds.add(caretakerIds.get(i));
+        new Thread(() -> {
+            HttpURLConnection conn = null;
+            try {
+                URL url = new URL("https://pondmate.alwaysdata.net/get_caretakers.php");
+                conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
+
+                StringBuilder response = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) response.append(line);
+                }
+
+                JSONArray array = new JSONArray(response.toString());
+                caretakerNames.clear();
+                caretakerIds.clear();
+
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject obj = array.getJSONObject(i);
+                    caretakerIds.add(obj.getString("id"));
+                    caretakerNames.add(obj.getString("fullname"));
+                }
+
+                // Populate map for name lookup
+                caretakerMap.clear();
+                for (int i = 0; i < caretakerIds.size(); i++) {
+                    caretakerMap.put(caretakerIds.get(i), caretakerNames.get(i));
+                }
+
+                // Initialize selectedCaretakerIds from pond
+                selectedCaretakerIds.clear();
+                if (pond.getCaretakerIds() != null && !pond.getCaretakerIds().isEmpty()) {
+                    for (String id : pond.getCaretakerIds()) {
+                        if (caretakerIds.contains(id)) selectedCaretakerIds.add(id);
+                    }
+                }
+
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        btnSelectCaretakers.setEnabled(true);
+                        btnSelectCaretakers.setText("Select Caretakers");
+
+                        // <-- Here is the fix: update tvCaretakers now
+                        if (tvCaretakers != null)
+                            tvCaretakers.setText(getSelectedCaretakerNames());
+
+                        // Refresh chip container
+                        refreshCaretakerChips();
+
+                        btnSelectCaretakers.setOnClickListener(v -> openCaretakerSelectionDialog());
+                    });
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() -> {
+                        btnSelectCaretakers.setEnabled(false);
+                        btnSelectCaretakers.setText("Failed to load caretakers");
+                        Toast.makeText(requireContext(), "Failed to load caretakers.", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            } finally {
+                if (conn != null) conn.disconnect();
             }
-            if (etCaretakers != null) etCaretakers.setText(getSelectedCaretakerNames());
-            Log.d(TAG, "[saveSelectedCaretakers] selectedCaretakerIds: " + selectedCaretakerIds);
-            Log.d(TAG, "[saveSelectedCaretakers] caretakerCheckedState: " + caretakerCheckedState);
-        } else {
-            // Fallback: nothing selected
-            Log.d(TAG, "[saveSelectedCaretakers] Adapter is null or not CaretakerAdapter");
-        }
+        }).start();
     }
 
-    private void populateExistingCaretakers() {
-        selectedCaretakerIds.clear();
 
-        String raw = pond.getCaretakerIds(); // e.g., "[1,2,3]"
-        if (raw != null && !raw.trim().isEmpty() && !raw.equals("[]") && !raw.equals("{}")) {
-            raw = raw.replace("[", "").replace("]", "").trim();
-            String[] parts = raw.split(",");
-            for (String p : parts) {
-                String id = p.trim();
-                if (!id.isEmpty()) selectedCaretakerIds.add(id);
+    private void refreshCaretakerChips() {
+        caretakerChipContainer.removeAllViews();
+        for (Integer id : assignedCaretakerIds) {
+            String name = caretakerMap.get(id);
+            if (name != null) {
+                Chip chip = new Chip(requireContext());
+                chip.setText(name);
+                chip.setCloseIconVisible(false);
+                caretakerChipContainer.addView(chip);
             }
         }
     }

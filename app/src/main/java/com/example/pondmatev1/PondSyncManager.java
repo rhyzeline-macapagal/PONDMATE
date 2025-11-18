@@ -1,6 +1,7 @@
 package com.example.pondmatev1;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -24,7 +25,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -1407,7 +1410,6 @@ public class PondSyncManager {
         }).start();
     }
 
-
     public void createWeeklySchedule(String pondName,
                                      String time1, String time2, String time3,
                                      String feedAmount, String fishWeight,
@@ -1457,8 +1459,6 @@ public class PondSyncManager {
         }).start();
     }
 
-
-
     // ✅ Add Blind Feed Log
     public static void addBlindFeedLog(String pondName, String feedType, double quantity, double cost, String feedingDate, String recordedAt, Callback callback) {
         new Thread(() -> {
@@ -1499,9 +1499,6 @@ public class PondSyncManager {
         }).start();
     }
 
-
-
-
     public static void fetchNotifications(Callback callback) {
         new Thread(() -> {
             try {
@@ -1525,48 +1522,5 @@ public class PondSyncManager {
             }
         }).start();
     }
-
-
-
-
-    // ✅ Update Blind Feed Log
-
-
-
-    // ✅ Delete Blind Feed Log
-//    public static void deleteBlindFeedLog(int id, Callback callback) {
-//        new Thread(() -> {
-//            try {
-//                URL url = new URL("https://pondmate.alwaysdata.net/delete_blind_feed_log.php");
-//                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-//                conn.setRequestMethod("POST");
-//                conn.setDoOutput(true);
-//
-//                String postData = "id=" + URLEncoder.encode(String.valueOf(id), "UTF-8");
-//
-//                OutputStream os = conn.getOutputStream();
-//                os.write(postData.getBytes());
-//                os.flush();
-//                os.close();
-//
-//                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-//                StringBuilder result = new StringBuilder();
-//                String line;
-//
-//                while ((line = reader.readLine()) != null) {
-//                    result.append(line);
-//                }
-//
-//                reader.close();
-//                conn.disconnect();
-//
-//                callback.onSuccess(result.toString());
-//            } catch (Exception e) {
-//                callback.onError(e.getMessage());
-//            }
-//        }).start();
-//    }
-
-
 
 }
