@@ -191,7 +191,6 @@ public class EditPondDialog extends DialogFragment {
         etDateCreated = v.findViewById(R.id.etDateCreated);
         etStockingDate = v.findViewById(R.id.etStockingDate);
         etHarvestDate = v.findViewById(R.id.etHarvestDate);
-        tvCaretakers = v.findViewById(R.id.etCaretakers);
 
         rvCaretakers = v.findViewById(R.id.rvCaretakers);
         spinnerSpecies = v.findViewById(R.id.spinnerBreed);

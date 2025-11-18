@@ -371,18 +371,6 @@
                     android:padding="16dp">
 
                     <TextView
-                        android:id="@+id/tvCaretakers"
-                        android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:hint="Caretakers"
-                        android:background="@drawable/textbox_background"
-                        android:padding="6dp"
-                        android:layout_marginBottom="12dp"
-                        android:textColor="#01082D"
-                        android:textSize="12sp"
-                        android:gravity="center_vertical|start" />
-
-                    <TextView
                         android:id="@+id/tvCaretakerLabel"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
