@@ -440,12 +440,17 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         View view = getLayoutInflater().inflate(R.layout.dialog_edit_caretaker, null);
         builder.setView(view);
 
+
         EditText etFullname = view.findViewById(R.id.etEditFullname);
         EditText etUsername = view.findViewById(R.id.etEditUsername);
         EditText etPassword = view.findViewById(R.id.etEditPassword);
         EditText etAddress = view.findViewById(R.id.etEditAddress);
         EditText etSalary = view.findViewById(R.id.etEditSalary);
         Button btnSaveInfo = view.findViewById(R.id.btnSaveCaretaker);
+        TextView btnClose = view.findViewById(R.id.btnClose);
+
+
+
 
         // Prefill
         etFullname.setText(caretaker.getFullname());
@@ -455,6 +460,7 @@ public class CaretakerDashboardActivity extends AppCompatActivity {
         etSalary.setText(String.valueOf(caretaker.getSalary()));
 
         AlertDialog dialog = builder.create();
+        btnClose.setOnClickListener(v1 -> dialog.dismiss());
         dialog.show();
 
 

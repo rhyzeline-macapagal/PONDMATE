@@ -128,6 +128,7 @@ public class EditPondDialog extends DialogFragment {
         }
         Log.d("POND", "caretakerIds stored: " + pond.getCaretakerIds());
 
+
         initViews(view);
 
         setupAssignedCaretakers(pond.getId());
@@ -141,6 +142,15 @@ public class EditPondDialog extends DialogFragment {
         tvCaretakerLabel = view.findViewById(R.id.tvCaretakerLabel);
         btnSelectCaretakers = view.findViewById(R.id.btnSelectCaretakers);
         loadCaretakersAndDisplay();
+
+
+        if (!hasFingerlingStock) {
+            if (etFishCount != null) etFishCount.setVisibility(View.GONE);
+            if (etCostPerFish != null) etCostPerFish.setVisibility(View.GONE);
+            if (etMortalityRate != null) etMortalityRate.setVisibility(View.GONE);
+            if (spinnerSpecies != null) spinnerSpecies.setVisibility(View.GONE);
+            if (tvTotalFingerlingsCost != null) tvTotalFingerlingsCost.setVisibility(View.GONE);
+        }
 
 
         if (hasFingerlingStock && spinnerSpecies != null) {
@@ -189,9 +199,7 @@ public class EditPondDialog extends DialogFragment {
         etDateCreated = v.findViewById(R.id.etDateCreated);
         etStockingDate = v.findViewById(R.id.etStockingDate);
         etHarvestDate = v.findViewById(R.id.etHarvestDate);
-        tvCaretakers = v.findViewById(R.id.etCaretakers);
 
-        rvCaretakers = v.findViewById(R.id.rvCaretakers);
         spinnerSpecies = v.findViewById(R.id.spinnerBreed);
         btnSave = v.findViewById(R.id.btnSave);
         btnCancel = v.findViewById(R.id.btnCancel);
@@ -552,7 +560,10 @@ public class EditPondDialog extends DialogFragment {
 
                 // 5️⃣ Stocking density check
                 rawPondArea = pondArea;
-                if (!checkStockingDensity()) return;
+                if (hasFingerlingStock) {
+                    if (!checkStockingDensity()) return;
+                }
+
 
                 // 6️⃣ Update pond model
                 pond.setName(pondName);
@@ -603,6 +614,7 @@ public class EditPondDialog extends DialogFragment {
             }
         }
     }
+
 
     private void updatePondOnServer(PondModel pond) {
         new Thread(() -> {
@@ -674,12 +686,6 @@ public class EditPondDialog extends DialogFragment {
                                 // Dismiss the dialog first
                                 dismiss();
 
-                                // Reload PondDashboardActivity
-                                if (getActivity() != null) {
-                                    Intent intent = new Intent(getActivity(), PondDashboardActivity.class);
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                                    startActivity(intent);
-                                }
                             } else {
                                 Toast.makeText(requireContext(), "Failed: " + message, Toast.LENGTH_LONG).show();
                                 Log.d("UpdateFail", message);
@@ -713,75 +719,127 @@ public class EditPondDialog extends DialogFragment {
     }
 
     private void checkStockingDensityRealtime() {
-        String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
-        String fishCountStr = (etFishCount != null) ? etFishCount.getText().toString().trim() : "";
+
+        // ----------------- NULL PROTECTION -----------------
+        if (spinnerSpecies == null || etFishCount == null) {
+            return; // nothing to validate
+        }
+        if (!hasFingerlingStock) {
+            etFishCount.setError(null);
+            return;
+        }
+        // ----------------------------------------------------
+
+        String breed = "";
+        if (spinnerSpecies.getSelectedItem() != null) {
+            breed = spinnerSpecies.getSelectedItem().toString().trim();
+        }
+
+        String fishCountStr = etFishCount.getText().toString().trim();
 
         if (fishCountStr.isEmpty() || rawPondArea <= 0) {
-            if (etFishCount != null) etFishCount.setError(null);
+            etFishCount.setError(null);
             return;
         }
 
+        double fishCount;
         try {
-            double fishCount = Double.parseDouble(fishCountStr);
-            double density = fishCount / rawPondArea;
-            double minRecommended = 0, maxAllowed = 0;
-
-            switch (breed) {
-                case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
-                case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
+            fishCount = Double.parseDouble(fishCountStr);
+            if (fishCount <= 0) {
+                etFishCount.setError(null);
+                return;
             }
-
-            double minFishCount = minRecommended * rawPondArea;
-            double maxFishCount = maxAllowed * rawPondArea;
-
-            if (density > maxAllowed && etFishCount != null)
-                etFishCount.setError(String.format(Locale.getDefault(),"⚠️ Overstocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
-            else if (density < minRecommended && etFishCount != null)
-                etFishCount.setError(String.format(Locale.getDefault(),"Too few fish. Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
-            else if (etFishCount != null) etFishCount.setError(null);
-
         } catch (NumberFormatException e) {
-            if (etFishCount != null) etFishCount.setError(null);
+            etFishCount.setError(null);
+            return;
+        }
+
+        double minRecommended, maxAllowed;
+
+        switch (breed) {
+            case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
+            case "Bangus":  minRecommended = 0.8; maxAllowed = 1.2; break;
+            default:
+                etFishCount.setError(null);
+                return;
+        }
+
+        double density = fishCount / rawPondArea;
+        double minFishCount = minRecommended * rawPondArea;
+        double maxFishCount = maxAllowed * rawPondArea;
+
+        if (density > maxAllowed) {
+            etFishCount.setError(String.format(Locale.getDefault(),
+                    "⚠️ Overstocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
+        }
+        else if (density < minRecommended) {
+            etFishCount.setError(String.format(Locale.getDefault(),
+                    "Too few fish. Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
+        }
+        else {
+            etFishCount.setError(null);
         }
     }
+
 
     private boolean checkStockingDensity() {
-        String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
-        String fishCountStr = (etFishCount != null) ? etFishCount.getText().toString().trim() : "";
+
+        // ------------- NULL PROTECTION --------------
+        if (spinnerSpecies == null || etFishCount == null) return true;
+        if (!hasFingerlingStock) return true; // skip validation
+        // --------------------------------------------
+
+        String breed = "";
+        if (spinnerSpecies.getSelectedItem() != null) {
+            breed = spinnerSpecies.getSelectedItem().toString().trim();
+        }
+
+        String fishCountStr = etFishCount.getText().toString().trim();
 
         if (fishCountStr.isEmpty() || rawPondArea <= 0) {
-            Toast.makeText(getContext(), "Missing data: check fish count or pond area.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Missing fish count or pond area.", Toast.LENGTH_SHORT).show();
             return false;
         }
 
+        double fishCount;
         try {
-            double fishCount = Double.parseDouble(fishCountStr);
-            double density = fishCount / rawPondArea;
-            double minRecommended = 0, maxAllowed = 0;
-
-            switch (breed) {
-                case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
-                case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
-            }
-
-            if (density > maxAllowed) {
-                Toast.makeText(getContext(),
-                        String.format(Locale.getDefault(),"❌ Overstocked! Recommended: %.0f–%.0f fish.", minRecommended * rawPondArea, maxAllowed * rawPondArea),
-                        Toast.LENGTH_LONG).show();
-                return false;
-            } else if (density < minRecommended) {
-                Toast.makeText(getContext(),
-                        String.format(Locale.getDefault(),"⚠️ Understocked! Recommended: %.0f–%.0f fish.", minRecommended * rawPondArea, maxAllowed * rawPondArea),
-                        Toast.LENGTH_LONG).show();
-                return false;
-            }
-            return true;
-
+            fishCount = Double.parseDouble(fishCountStr);
         } catch (NumberFormatException e) {
-            Toast.makeText(getContext(),"Invalid fish count format.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(),"Invalid fish count.", Toast.LENGTH_SHORT).show();
             return false;
         }
+
+        double minRecommended, maxAllowed;
+
+        switch (breed) {
+            case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
+            case "Bangus":  minRecommended = 0.8; maxAllowed = 1.2; break;
+            default:
+                return true; // skip if no valid species
+        }
+
+        double density = fishCount / rawPondArea;
+
+        double minFish = minRecommended * rawPondArea;
+        double maxFish = maxAllowed * rawPondArea;
+
+        if (density > maxAllowed) {
+            Toast.makeText(getContext(),
+                    String.format(Locale.getDefault(),"❌ Overstocked! Recommended: %.0f–%.0f fish.", minFish, maxFish),
+                    Toast.LENGTH_LONG).show();
+            return false;
+        }
+
+        if (density < minRecommended) {
+            Toast.makeText(getContext(),
+                    String.format(Locale.getDefault(),"⚠️ Understocked! Recommended: %.0f–%.0f fish.", minFish, maxFish),
+                    Toast.LENGTH_LONG).show();
+            return false;
+        }
+
+        return true;
     }
+
 
     private void loadCaretakersFromServer(Runnable onComplete) {
         new Thread(() -> {

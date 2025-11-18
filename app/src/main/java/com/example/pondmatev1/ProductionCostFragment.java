@@ -117,6 +117,7 @@ public class ProductionCostFragment extends Fragment {
     private TextView tvSurvivalRate; // display-only
     private int time1Minutes = -1, time2Minutes = -1;
     private String formattedTime1, formattedTime2;
+
     private String species = "";
     private long daysOfCulture = 1;
     private Double currentPricePerKg = null;
@@ -419,11 +420,12 @@ public class ProductionCostFragment extends Fragment {
         TextView tvStockingDate = dialogView.findViewById(R.id.tvDateStocking);
         TextView tvHarvestDate = dialogView.findViewById(R.id.tvHarvestDate);
 
+
         // ✅ Set pond details
         double rawPondArea = pond != null ? pond.getPondArea() : 0;
         if (pond != null) {
             tvPondName.setText(pond.getName() != null ? pond.getName() : "—");
-            tvPondArea.setText(String.format(Locale.getDefault(), "%.2f sqm", pond.getPondArea()));
+            tvPondArea.setText(String.format(Locale.getDefault(), "%.2f", pond.getPondArea()));
             tvStockingDate.setText(pond.getDateStocking() != null ? pond.getDateStocking() : "—");
             tvHarvestDate.setText(pond.getDateHarvest() != null ? pond.getDateHarvest() : "—");
         }
@@ -435,6 +437,8 @@ public class ProductionCostFragment extends Fragment {
         TextView tvTotalCost = dialogView.findViewById(R.id.tvTotalFingerlingsCost);
         Button btnConfirm = dialogView.findViewById(R.id.btnSavePond);
         TextView btnCancel = dialogView.findViewById(R.id.btnClose);
+        EditText etMortality = dialogView.findViewById(R.id.etMortality);
+
 
         // ✅ Species options
         List<String> speciesList = new ArrayList<>();
@@ -552,15 +556,19 @@ public class ProductionCostFragment extends Fragment {
             String fishCountStr = etFishCount.getText().toString().trim();
             String unitCostStr = etUnitCost.getText().toString().trim();
             String totalCostStr = tvTotalCost.getText().toString().replace("₱", "").trim();
+            String mortalityStr = etMortality.getText().toString().trim();
 
-            if (fishCountStr.isEmpty() || unitCostStr.isEmpty()) {
+            if (fishCountStr.isEmpty() || unitCostStr.isEmpty() || mortalityStr.isEmpty()) {
                 Toast.makeText(requireContext(), "Please fill in all fields.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
+
             try {
                 double fishCount = Double.parseDouble(fishCountStr);
                 double pondArea = rawPondArea;
+                double mortalityRate = Double.parseDouble(mortalityStr);
+
                 double density = fishCount / pondArea;
 
                 double minRecommended = 0;
@@ -599,7 +607,7 @@ public class ProductionCostFragment extends Fragment {
                                     spinnerSpecies.getSelectedItem().toString(),
                                     Integer.parseInt(etFishCount.getText().toString()),
                                     Double.parseDouble(etUnitCost.getText().toString()),
-                                    "0", // mortality placeholder (if not yet used)
+                                    mortalityStr, // mortality placeholder (if not yet used)
                                     tvHarvestDate.getText().toString(),
                                     new PondSyncManager.Callback() {
                                         @Override
@@ -609,6 +617,7 @@ public class ProductionCostFragment extends Fragment {
                                             updatedPond.setBreed(species);
                                             updatedPond.setFishCount((int) fishCount);
                                             updatedPond.setCostPerFish(Double.parseDouble(unitCostStr));
+                                            updatedPond.setMortalityRate(mortalityRate);
 
                                             SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
                                             prefs.edit().putString("selected_pond", new Gson().toJson(updatedPond)).apply();
@@ -2421,10 +2430,6 @@ public class ProductionCostFragment extends Fragment {
             );
         }
     }
-
-
-
-
 
     private void handleFingerlingStockedStatus(View view, PondModel pond) {
         Button btnStockFingerlings = view.findViewById(R.id.btnStockFingerlings);

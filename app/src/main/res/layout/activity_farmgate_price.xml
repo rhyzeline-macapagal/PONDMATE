@@ -31,12 +31,12 @@
         android:id="@+id/titleFeeds"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp"
+        android:padding="8dp"
         android:text="Farmgate Prices"
         android:textSize="20sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:background="#2196F3"
+        android:background="#001C4F"
         android:textColor="@android:color/white" />
 
     <!-- Subtitle -->
