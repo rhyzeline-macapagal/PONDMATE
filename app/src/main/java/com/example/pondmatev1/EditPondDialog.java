@@ -199,7 +199,10 @@ public class EditPondDialog extends DialogFragment {
         tvTotalFingerlingsCost = v.findViewById(R.id.tvTotalFingerlingsCost);
 
         // --- Safe to use views now ---
-        if (tvCaretakers != null) tvCaretakers.setText("Loading caretakers...");
+        if (tvCaretakers != null && assignedCaretakerIds != null && !assignedCaretakerIds.isEmpty()) {
+            String displayNames = getCaretakerNamesFromIds(assignedCaretakerIds);
+            tvCaretakers.setText(displayNames);
+        }
 
         if (caretakerDisplay != null && !caretakerDisplay.isEmpty()) {
             tvCaretakers.setText(caretakerDisplay);
@@ -1073,17 +1076,43 @@ public class EditPondDialog extends DialogFragment {
 
 
     private void refreshCaretakerChips() {
+        if (caretakerChipContainer == null) return;
+
         caretakerChipContainer.removeAllViews();
-        for (Integer id : assignedCaretakerIds) {
+
+        // Use selectedCaretakerIds instead of assignedCaretakerIds to reflect current selection
+        for (String id : selectedCaretakerIds) {
             String name = caretakerMap.get(id);
-            if (name != null) {
+            if (name != null && !name.isEmpty()) {
                 Chip chip = new Chip(requireContext());
                 chip.setText(name);
-                chip.setCloseIconVisible(false);
+                chip.setCloseIconVisible(true);
+                chip.setClickable(true);
+                chip.setCheckable(false);
+                chip.setChipBackgroundColorResource(R.color.gray); // or any color
+                chip.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.black));
+
+                chip.setOnCloseIconClickListener(v -> {
+                    // Remove from selection
+                    selectedCaretakerIds.remove(id);
+                    caretakerChipContainer.removeView(chip);
+
+                    // Update summary TextView
+                    if (tvCaretakers != null) {
+                        tvCaretakers.setText(getSelectedCaretakerNames());
+                    }
+                });
+
                 caretakerChipContainer.addView(chip);
             }
         }
+
+        // Update summary TextView as well
+        if (tvCaretakers != null) {
+            tvCaretakers.setText(getSelectedCaretakerNames());
+        }
     }
+
 
 
 
