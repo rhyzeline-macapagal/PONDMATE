@@ -39,6 +39,8 @@ public class NotificationActivity extends AppCompatActivity {
         setContentView(R.layout.activity_notification);
 
         notificationLayout = findViewById(R.id.notificationLayout);
+        findViewById(R.id.btnClose).setOnClickListener(v -> finish());
+
 
         // Load stored notifications first
         ArrayList<NotificationStore.NotificationItem> saved = NotificationStore.getNotifications(this);
