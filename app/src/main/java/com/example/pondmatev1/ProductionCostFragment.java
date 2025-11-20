@@ -43,6 +43,8 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -183,6 +185,7 @@ public class ProductionCostFragment extends Fragment {
         }
 
         loadMaintenanceTotal();
+
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
             String pondId = pond.getId(); // Make sure this is actually the numeric ID from your DB
@@ -219,10 +222,10 @@ public class ProductionCostFragment extends Fragment {
             updateSamplingButtonState(pondId);
         }
 
-
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
         btnFeedLogs.setOnClickListener(v -> showBlindFeedingDialog());
+
         Button btnGenerateReport = view.findViewById(R.id.btnGenerateReport);
         btnGenerateReport.setOnClickListener(v -> {
             if (pondJson != null) {
@@ -371,21 +374,20 @@ public class ProductionCostFragment extends Fragment {
             double costPerFish = pond.getCostPerFish();
 
             tvBreed.setText(breed);
-            tvCount.setText(String.valueOf(fishCount));
-            tvAmountPerPiece.setText("₱" + formatPrice(costPerFish));
+            tvCount.setText(formatNumber(fishCount));
+            tvAmountPerPiece.setText(formatPeso(costPerFish));
 
             double totalFingerlingCost = fishCount * costPerFish;
-
-            tvTotalCost.setText("₱" + formatPrice(totalFingerlingCost));
-            tvSummaryFingerlings.setText("₱" + formatPrice(totalFingerlingCost));
+            tvTotalCost.setText(formatPeso(totalFingerlingCost));
+            tvSummaryFingerlings.setText(formatPeso(totalFingerlingCost));
 
             double feedCost = 0.0;
             double maintenanceCost = 0.0;
 
 
-            tvSummaryFeeds.setText("₱" + formatPrice(feedCost));
-            totalCost = totalFingerlingCost + feedCost + maintenanceCost + salaryPerPond;
-            tvSummaryTotal.setText("₱" + formatPrice(totalCost));
+            tvSummaryFeeds.setText(formatPeso(feedCost));
+            double totalCost = totalFingerlingCost + feedCost + maintenanceCost + salaryPerPond;
+            tvSummaryTotal.setText(formatPeso(totalCost));
 
             updateTotalCost();
         }
@@ -396,12 +398,9 @@ public class ProductionCostFragment extends Fragment {
         }
 
         if (!pondName.isEmpty()) {
-            SharedPreferences sp =  requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
+            SharedPreferences sp = requireContext().getSharedPreferences("ROI_DATA", Context.MODE_PRIVATE);
             float savedEstimatedROI = sp.getFloat(pondName + "_roi_diff", -1f);
-
-            if (savedEstimatedROI != -1f) {
-                tvEstimatedRoI.setText(formatPrice(savedEstimatedROI) + "%");
-            }
+            if (savedEstimatedROI != -1f) tvEstimatedRoI.setText(formatNumber(savedEstimatedROI) + "%");
         }
     }
 
@@ -481,29 +480,28 @@ public class ProductionCostFragment extends Fragment {
                 double pondArea = rawPondArea;
                 double density = fishCount / pondArea;
 
-                double minRecommended = 0;
                 double maxAllowed = 0;
 
                 switch (breed) {
                     case "Tilapia":
-                        minRecommended = 2.0;
                         maxAllowed = 4.0;
                         break;
                     case "Bangus":
-                        minRecommended = 0.8;
                         maxAllowed = 1.2;
                         break;
                 }
 
-                double minFishCount = minRecommended * pondArea;
+                // If species not yet selected → skip check
+                if (maxAllowed == 0) {
+                    etFishCount.setError(null);
+                    return;
+                }
+
                 double maxFishCount = maxAllowed * pondArea;
 
                 if (density > maxAllowed) {
                     etFishCount.setError(String.format(Locale.getDefault(),
-                            "⚠️ Overstocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
-                } else if (density < minRecommended) {
-                    etFishCount.setError(String.format(Locale.getDefault(),
-                            "⚠️ Understocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
+                            "⚠️ Overstocked! Maximum allowed: %.0f fish.", maxFishCount));
                 } else {
                     etFishCount.setError(null);
                 }
@@ -512,6 +510,7 @@ public class ProductionCostFragment extends Fragment {
                 etFishCount.setError(null);
             }
         };
+
 
         // ✅ Auto-set unit cost by species
         spinnerSpecies.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -1583,17 +1582,15 @@ public class ProductionCostFragment extends Fragment {
         tvBreed.setText(pond.getBreed() != null ? pond.getBreed() : "--");
 
         // Total stocks
-        tvTotalStocks.setText(String.valueOf(pond.getFishCount()));
+        tvTotalStocks.setText(formatNumber(pond.getFishCount()));
 
-        // Unit cost
-        tvUnitCost.setText(String.format(Locale.getDefault(), "₱%.2f", pond.getCostPerFish()));
+        // Unit cost with ₱ + commas
+        tvUnitCost.setText(formatPeso(pond.getCostPerFish()));
 
         // Total cost
         double totalCost = pond.getFishCount() * pond.getCostPerFish();
-        tvTotalCost.setText(String.format(Locale.getDefault(), "₱%.2f", totalCost));
-
-        // Total fingerlings cost in summary table
-        tvSummaryFingerlings.setText(String.format(Locale.getDefault(), "₱%.2f", totalCost));
+        tvTotalCost.setText(formatPeso(totalCost));
+        tvSummaryFingerlings.setText(formatPeso(totalCost));
     }
 
     private void showSamplingDialog() {
@@ -2852,6 +2849,7 @@ public class ProductionCostFragment extends Fragment {
             double mortalityRate = pond.getMortalityRate();
             double survivalRate = 100 - mortalityRate;
             String breed = pond.getBreed();
+
             PondSyncManager.fetchFarmgatePrice(breed, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object result) {
@@ -2898,12 +2896,12 @@ public class ProductionCostFragment extends Fragment {
                         double estimatedROI = ((grossSales - totalExpenses) / totalExpenses) * 100;
 
                         // Round numbers
-                        totalHarvestKg = round(totalHarvestKg);
-                        grossSales = round(grossSales);
-                        feedCost = round(feedCost);
-                        fertilizerCost = round(fertilizerCost);
-                        totalExpenses = round(totalExpenses);
-                        estimatedROI = round(estimatedROI);
+                        String totalHarvestKgStr = formatNumber(round(totalHarvestKg));
+                        String grossSalesStr = formatNumber(round(grossSales));
+                        String feedCostStr = formatNumber(round(feedCost));
+                        String fertilizerCostStr = formatNumber(round(fertilizerCost));
+                        String totalExpensesStr = formatNumber(round(totalExpenses));
+                        String estimatedROIStr = formatNumber(round(estimatedROI));
 
                         // Save breakdown for viewing
                         ROIBreakdown b = new ROIBreakdown();
@@ -2929,7 +2927,8 @@ public class ProductionCostFragment extends Fragment {
 
                         ROIHelper.lastBreakdown = b;
 
-                        updateROIText(String.format(Locale.US, "%.2f%%", estimatedROI));
+                        updateROIText(formatNumber(estimatedROI) + "%");
+
                     } catch (Exception e) {
                         updateROIText("—");
                     }
@@ -2943,6 +2942,14 @@ public class ProductionCostFragment extends Fragment {
             tvEstimatedRoI.setText("—");
         }
     }
+
+    private String formatNumber(double value) {
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+        DecimalFormat df = new DecimalFormat("#,##0.00", symbols);
+        return df.format(value);
+    }
+
+
     private void updateROIText(String value) {
         if (!isAdded() || getActivity() == null) {
             Log.w("ROI_DEBUG", "Fragment not attached — skipping UI update");
@@ -2961,15 +2968,15 @@ public class ProductionCostFragment extends Fragment {
         View view = getLayoutInflater().inflate(R.layout.dialog_roi_breakdown, null);
         TableLayout table = view.findViewById(R.id.tableROI);
 
-        addRow(table, "Fingerlings Stocked:", String.format("%.0f pcs", b.fingerlingsCount));
-        addRow(table, "Mortality Rate:", String.format("%.2f%%", b.mortalityRate));
-        addRow(table, "Survival Rate:", String.format("%.2f%%", b.survivalRate));
+        addRow(table, "Fingerlings Stocked:", formatNumber(b.fingerlingsCount) + " pcs");
+        addRow(table, "Mortality Rate:", formatNumber(b.mortalityRate) + "%");
+        addRow(table, "Survival Rate:", formatNumber(b.survivalRate) + "%");
 
         addSpacer(table);
         addHeader(table, "PROJECTED SALES");
-        addRow(table, "Harvest Weight:", String.format("%.2f kg", b.totalHarvestKg));
-        addRow(table, "Farm-Gate Price:", String.format("₱%.2f/kg", b.farmGatePrice));
-        addRow(table, "Gross Revenue:", String.format("₱%.2f", b.grossSales));
+        addRow(table, "Harvest Weight:", formatNumber(b.totalHarvestKg) + " kg");
+        addRow(table, "Farm-Gate Price:", "₱" + formatNumber(b.farmGatePrice) + "/kg");
+        addRow(table, "Gross Revenue:", "₱" + formatNumber(b.grossSales));
 
         addSpacer(table);
         addHeader(table, "FIXED COSTS (6 months)");
@@ -2989,13 +2996,14 @@ public class ProductionCostFragment extends Fragment {
         addSpacer(table);
         addHeader(table, "TOTAL & ROI");
         addRow(table, "TOTAL EXPENSES:", formatPeso(b.totalExpenses));
-        addRow(table, "ESTIMATED ROI:", String.format("%.2f%%", b.estimatedROI));
+        addRow(table, "ESTIMATED ROI:", formatNumber(b.estimatedROI) + "%");
 
         new AlertDialog.Builder(requireContext())
                 .setView(view)
                 .setPositiveButton("OK", null)
                 .show();
     }
+
     private void addRow(TableLayout table, String label, String value) {
         TableRow row = new TableRow(requireContext());
 
@@ -3023,8 +3031,9 @@ public class ProductionCostFragment extends Fragment {
         table.addView(spacer);
     }
     private String formatPeso(double value) {
-        return String.format("₱%.2f", value);
+        return "₱" + new DecimalFormat("#,###.00").format(value);
     }
+
     private double getDoubleFromText(TextView textView) {
         if (textView == null) {
             Log.w("ROI_DEBUG", "TextView reference is null — returning 0");

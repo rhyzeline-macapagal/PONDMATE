@@ -580,8 +580,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:background="#F3E5F5"
-                android:padding="12dp"
-               >
+                android:padding="12dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -595,7 +594,7 @@
                 <!-- Estimated Revenue & Percentage Row -->
                 <TextView
                     android:id="@+id/tvEstimatedROI"
-                    android:layout_width="180dp"
+                    android:layout_width="150dp"
                     android:layout_height="36dp"
                     android:background="@drawable/textbox_background"
                     android:padding="8dp"
