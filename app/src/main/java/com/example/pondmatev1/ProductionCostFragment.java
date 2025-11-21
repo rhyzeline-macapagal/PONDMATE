@@ -371,6 +371,10 @@ public class ProductionCostFragment extends Fragment {
             int fishCount = pond.getFishCount();
             double costPerFish = pond.getCostPerFish();
 
+            if (breed == null || breed.trim().isEmpty() || breed.equalsIgnoreCase("null")) {
+                breed = "Not Set";
+            }
+
             tvBreed.setText(breed);
             tvCount.setText(String.valueOf(fishCount));
             tvAmountPerPiece.setText("₱" + formatPrice(costPerFish));
@@ -1671,16 +1675,6 @@ public class ProductionCostFragment extends Fragment {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
 
-        // then all sampling logic goes here:
-        // findViewById...
-        // loadPondData...
-        // fetchFeedPrice...
-        // validateAndSave...
-        // saveSamplingRecord...
-        // feeder assignment...
-        // feed deduction...
-        // broadcast sending...
-        // etc...
     }
 
     private void loadPondData() {
@@ -1743,7 +1737,6 @@ public class ProductionCostFragment extends Fragment {
         Log.d(TAG, "Loading feed price for " + breedClean + " days=" + daysOfCulture);
         fetchFeedPrice(breedClean, daysOfCulture);
 
-        // watch DFR changes (DFR text updates happen in computeValues())
         tvDFRResult.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
@@ -1948,10 +1941,8 @@ public class ProductionCostFragment extends Fragment {
                                             parseDoubleSampling(tvDFRPerCycle.getText().toString().replace(" g", ""))
                                     );
                                 })
-                                .setNegativeButton("Cancel", (dialog, which) -> {
-                                    // ✅ User canceled reassignment — save to SQL only
-                                    Toast.makeText(requireContext(), "Sampling saved locally. Feeder remains with previous pond.", Toast.LENGTH_SHORT).show();
-                                    saveSamplingRecord(pond);
+                                .setNegativeButton("No", (dialog, which) -> {
+                                    dialog.dismiss(); // ❌ Do nothing, no save
                                 })
                                 .show();
 
@@ -1970,9 +1961,7 @@ public class ProductionCostFragment extends Fragment {
             }
         }).start();
     }
-
     private void saveSamplingRecord(PondModel pond) {
-
         int daysOfCultureVal = Integer.parseInt(tvDaysOfCulture.getText().toString().replace(" days", ""));
         String growthStage = tvLifeStage.getText().toString();
         int totalStocks = pond.getFishCount();
