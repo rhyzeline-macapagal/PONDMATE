@@ -2658,8 +2658,9 @@ public class ProductionCostFragment extends Fragment {
         }
     }
 
-    private String formatPrice(double value) {
-        return String.format("%.2f", value);
+    private String formatPrice(double amount) {
+        DecimalFormat formatter = new DecimalFormat("#,##0.00");
+        return formatter.format(amount);
     }
 
     private void loadMaintenanceTotal() {
