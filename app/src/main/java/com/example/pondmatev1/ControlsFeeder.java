@@ -1,6 +1,7 @@
 package com.example.pondmatev1;
 
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -59,13 +60,22 @@ public class ControlsFeeder extends Fragment {
     private Runnable refreshRunnable;
     private View rootView;
 
-    private final android.content.BroadcastReceiver feedUpdateReceiver = new android.content.BroadcastReceiver() {
+    private final BroadcastReceiver feedUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.d(TAG, "Received feed update broadcast → Refreshing UI");
-            refreshFeedUI();
+            String action = intent.getAction();
+
+            if ("FEED_LEVEL_UPDATED".equals(action)) {
+                Log.d(TAG, "📥 FEED_LEVEL_UPDATED received → STORE event");
+                updateRemainingFeedDisplay();
+            }
+            else if ("FEED_DEDUCTION_APPLIED".equals(action)) {
+                Log.d(TAG, "📤 FEED_DEDUCTION_APPLIED received → DEDUCT event");
+                updateRemainingFeedDisplay();
+            }
         }
     };
+
 
     public ControlsFeeder() {}
 
@@ -198,8 +208,6 @@ public class ControlsFeeder extends Fragment {
             float remainingAfter = FeedStorage.getRemainingFeed(requireContext(), pondId);
 
             // 3) Log & Sync ONE TIME with correct remaining value
-            FeedStorage.logFeedAction(requireContext(), pondId, addedFeed, "STORE", remainingAfter);
-            FeedStorage.sendLogToServer(requireContext(), pondId, addedFeed, "STORE", remainingAfter);
             FeedStorage.sendRemainingToServer(requireContext(), pondId, remainingAfter);
 
             // 4) Refresh UI & notify components

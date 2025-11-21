@@ -128,14 +128,8 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
 
         if ("owner".equalsIgnoreCase(userType)) {
             holder.stopIcon.setVisibility(View.VISIBLE);
-            holder.stopIcon.setOnClickListener(v -> {
-                new androidx.appcompat.app.AlertDialog.Builder(context)
-                        .setTitle("Stop Progress")
-                        .setMessage("Choose what you want to do with this pond:")
-                        .setNegativeButton("Set to Inactive", (dialog, which) -> setPondInactive(holder, pond))
-                        .setNeutralButton("Cancel", (dialog, which) -> dialog.dismiss())
-                        .show();
-            });
+            holder.stopIcon.setOnClickListener(v -> showEmergencyHarvestDialog(holder, pond));
+
         } else {
             holder.stopIcon.setVisibility(View.GONE);
         }
@@ -283,4 +277,100 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             stopIcon = itemView.findViewById(R.id.stopIcon);
         }
     }
+
+    private void showEmergencyHarvestDialog(ViewHolder holder, PondModel pond) {
+        Context context = holder.itemView.getContext();
+
+        // Create an EditText for the user to input the reason
+        final android.widget.EditText input = new android.widget.EditText(context);
+        input.setHint("Enter reason for emergency harvest");
+
+        new AlertDialog.Builder(context)
+                .setTitle("Emergency Harvest")
+                .setMessage("Provide a reason for the emergency harvest of \"" + pond.getName() + "\":")
+                .setView(input)
+                .setPositiveButton("Proceed", (dialog, which) -> {
+                    String reason = input.getText().toString().trim();
+                    if (reason.isEmpty()) {
+                        Toast.makeText(context, "Reason is required", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    processEmergencyHarvest(holder, pond, reason);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void processEmergencyHarvest(ViewHolder holder, PondModel pond, String reason) {
+        Context context = holder.itemView.getContext();
+
+        PondSyncManager.fetchPondReportData(pond.getName(), new PondSyncManager.Callback() {
+            @Override
+            public void onSuccess(Object response) {
+                ((Activity) context).runOnUiThread(() -> {
+                    try {
+                        JSONObject json = new JSONObject(String.valueOf(response));
+
+                        // Mark as emergency harvest
+                        json.put("action", "EMERGENCY_HARVEST");
+                        json.put("emergency_reason", reason); // <-- include the reason
+
+                        if (!json.has("pond") || json.optJSONObject("pond") == null) {
+                            JSONObject pondObj = new JSONObject();
+                            pondObj.put("id", pond.getId());
+                            pondObj.put("name", pond.getName());
+                            json.put("pond", pondObj);
+                        }
+
+                        File pdfFile = PondPDFGenerator.generatePDF(context, json, pond.getId());
+                        if (pdfFile == null || !pdfFile.exists()) {
+                            Toast.makeText(context, "Failed to generate report PDF", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        PondSyncManager.setPondInactive(pond, pdfFile, new PondSyncManager.Callback() {
+                            @Override
+                            public void onSuccess(Object resp) {
+                                ((Activity) context).runOnUiThread(() -> {
+                                    Toast.makeText(context, "Emergency Harvest Completed", Toast.LENGTH_SHORT).show();
+
+                                    int position = holder.getAdapterPosition();
+                                    if (position >= 0 && position < pondList.size()) {
+                                        pondList.remove(position);
+                                        notifyItemRemoved(position);
+                                    }
+
+                                    if (context instanceof PondDashboardActivity) {
+                                        ((PondDashboardActivity) context).loadHistory(null);
+                                    }
+
+                                    if (deleteListener != null) {
+                                        deleteListener.onPondDeleteRequest(pond, position);
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                ((Activity) context).runOnUiThread(() ->
+                                        Toast.makeText(context, "Error uploading PDF: " + error, Toast.LENGTH_SHORT).show()
+                                );
+                            }
+                        });
+
+                    } catch (Exception e) {
+                        Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                ((Activity) context).runOnUiThread(() ->
+                        Toast.makeText(context, "Error fetching data: " + error, Toast.LENGTH_SHORT).show()
+                );
+            }
+        });
+    }
+
 }
