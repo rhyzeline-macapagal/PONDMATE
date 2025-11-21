@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.flexbox.FlexboxLayout;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -45,6 +46,7 @@ import java.util.*;
  * EditPondDialog — updated to use a RecyclerView-based caretaker chooser instead of chips.
  */
 public class EditPondDialog extends DialogFragment {
+    private PondModel pond; // store the pond being edited
 
     private EditText etPondName, etPondArea, etFishCount, etCostPerFish, etMortalityRate;
     private EditText etDateCreated, etStockingDate, etHarvestDate;
@@ -58,7 +60,6 @@ public class EditPondDialog extends DialogFragment {
 
     private RecyclerView rvCaretakers;
 
-    private PondModel pond; // existing pond data
     private OnPondUpdatedListener listener;
 
     private String rawDateCreatedForDB = "";
@@ -128,7 +129,6 @@ public class EditPondDialog extends DialogFragment {
         }
         Log.d("POND", "caretakerIds stored: " + pond.getCaretakerIds());
 
-
         initViews(view);
 
         setupAssignedCaretakers(pond.getId());
@@ -142,15 +142,6 @@ public class EditPondDialog extends DialogFragment {
         tvCaretakerLabel = view.findViewById(R.id.tvCaretakerLabel);
         btnSelectCaretakers = view.findViewById(R.id.btnSelectCaretakers);
         loadCaretakersAndDisplay();
-
-
-        if (!hasFingerlingStock) {
-            if (etFishCount != null) etFishCount.setVisibility(View.GONE);
-            if (etCostPerFish != null) etCostPerFish.setVisibility(View.GONE);
-            if (etMortalityRate != null) etMortalityRate.setVisibility(View.GONE);
-            if (spinnerSpecies != null) spinnerSpecies.setVisibility(View.GONE);
-            if (tvTotalFingerlingsCost != null) tvTotalFingerlingsCost.setVisibility(View.GONE);
-        }
 
 
         if (hasFingerlingStock && spinnerSpecies != null) {
@@ -186,6 +177,7 @@ public class EditPondDialog extends DialogFragment {
         builder.setView(view);
         return builder.create();
     }
+
 
     private void initViews(View v) {
         if (v == null) return;
@@ -312,7 +304,20 @@ public class EditPondDialog extends DialogFragment {
         spinnerSpecies.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+
+                Log.d(TAG, "Species changed to: " + spinnerSpecies.getSelectedItem().toString());
+
                 updateUnitCostBasedOnSpecies();
+
+                // Re-read pond area to avoid issues when user changes species first
+                String areaStr = etPondArea.getText().toString().trim();
+                try {
+                    rawPondArea = areaStr.isEmpty() ? 0 : Double.parseDouble(areaStr);
+                } catch (Exception e) {
+                    rawPondArea = 0;
+                }
+
+                // Force density check again when species changes
                 checkStockingDensityRealtime();
             }
 
@@ -500,6 +505,7 @@ public class EditPondDialog extends DialogFragment {
                 .create();
 
         dialog.setOnShowListener(dlg -> {
+
             Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             positive.setOnClickListener(v -> {
 
@@ -580,7 +586,6 @@ public class EditPondDialog extends DialogFragment {
 
                 // 7️⃣ Send to server
                 updatePondOnServer(pond);
-
                 dialog.dismiss();
             });
         });
@@ -614,7 +619,6 @@ public class EditPondDialog extends DialogFragment {
             }
         }
     }
-
 
     private void updatePondOnServer(PondModel pond) {
         new Thread(() -> {
@@ -719,125 +723,88 @@ public class EditPondDialog extends DialogFragment {
     }
 
     private void checkStockingDensityRealtime() {
-
-        // ----------------- NULL PROTECTION -----------------
-        if (spinnerSpecies == null || etFishCount == null) {
-            return; // nothing to validate
-        }
-        if (!hasFingerlingStock) {
-            etFishCount.setError(null);
-            return;
-        }
-        // ----------------------------------------------------
-
-        String breed = "";
-        if (spinnerSpecies.getSelectedItem() != null) {
-            breed = spinnerSpecies.getSelectedItem().toString().trim();
-        }
-
-        String fishCountStr = etFishCount.getText().toString().trim();
+        String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
+        String fishCountStr = (etFishCount != null) ? etFishCount.getText().toString().trim() : "";
 
         if (fishCountStr.isEmpty() || rawPondArea <= 0) {
-            etFishCount.setError(null);
+            if (etFishCount != null) etFishCount.setError(null);
             return;
         }
 
-        double fishCount;
         try {
-            fishCount = Double.parseDouble(fishCountStr);
-            if (fishCount <= 0) {
-                etFishCount.setError(null);
-                return;
+            double fishCount = Double.parseDouble(fishCountStr);
+            double density = fishCount / rawPondArea;
+
+            double minRecommended = 0, maxAllowed = 0;
+            switch (breed) {
+                case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
+                case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
             }
-        } catch (NumberFormatException e) {
-            etFishCount.setError(null);
-            return;
-        }
 
-        double minRecommended, maxAllowed;
+            double minFishCount = minRecommended * rawPondArea;
+            double maxFishCount = maxAllowed * rawPondArea;
+            String rangeText = String.format(Locale.getDefault(),
+                    "Recommended range: %.0f – %.0f fish.", minFishCount, maxFishCount);
 
-        switch (breed) {
-            case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
-            case "Bangus":  minRecommended = 0.8; maxAllowed = 1.2; break;
-            default:
+            if (density > maxAllowed && etFishCount != null) {
+                etFishCount.setError("❌ Overstocked! " + rangeText);
+            } else if (density < minRecommended && etFishCount != null) {
+                etFishCount.setError("⚠️ Understocked! " + rangeText);
+            } else if (etFishCount != null) {
                 etFishCount.setError(null);
-                return;
-        }
+            }
 
-        double density = fishCount / rawPondArea;
-        double minFishCount = minRecommended * rawPondArea;
-        double maxFishCount = maxAllowed * rawPondArea;
-
-        if (density > maxAllowed) {
-            etFishCount.setError(String.format(Locale.getDefault(),
-                    "⚠️ Overstocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
-        }
-        else if (density < minRecommended) {
-            etFishCount.setError(String.format(Locale.getDefault(),
-                    "Too few fish. Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
-        }
-        else {
-            etFishCount.setError(null);
+        } catch (NumberFormatException e) {
+            if (etFishCount != null) etFishCount.setError(null);
         }
     }
 
 
     private boolean checkStockingDensity() {
-
-        // ------------- NULL PROTECTION --------------
-        if (spinnerSpecies == null || etFishCount == null) return true;
-        if (!hasFingerlingStock) return true; // skip validation
-        // --------------------------------------------
-
-        String breed = "";
-        if (spinnerSpecies.getSelectedItem() != null) {
-            breed = spinnerSpecies.getSelectedItem().toString().trim();
-        }
-
-        String fishCountStr = etFishCount.getText().toString().trim();
+        String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
+        String fishCountStr = (etFishCount != null) ? etFishCount.getText().toString().trim() : "";
 
         if (fishCountStr.isEmpty() || rawPondArea <= 0) {
-            Toast.makeText(getContext(), "Missing fish count or pond area.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Missing data: check fish count or pond area.", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        double fishCount;
         try {
-            fishCount = Double.parseDouble(fishCountStr);
+            double fishCount = Double.parseDouble(fishCountStr);
+            double density = fishCount / rawPondArea;
+            double minRecommended = 0, maxAllowed = 0;
+
+            switch (breed) {
+                case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
+                case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
+            }
+
+            double minFishCount = minRecommended * rawPondArea;
+            double maxFishCount = maxAllowed * rawPondArea;
+            String rangeText = String.format(Locale.getDefault(),
+                    "Recommended range: %.0f – %.0f fish.", minFishCount, maxFishCount);
+
+            if (density > maxAllowed) {
+                Toast.makeText(getContext(),
+                        "❌ Overstocked! " + rangeText,
+                        Toast.LENGTH_LONG).show();
+                return false;
+            }
+
+            // ⚠️ Understock → warn only, allow saving
+            if (density < minRecommended) {
+                Toast.makeText(getContext(),
+                        "⚠️ Understocked! " + rangeText,
+                        Toast.LENGTH_LONG).show();
+                // DO NOT return; allow saving
+            }
+
+            return true;
+
         } catch (NumberFormatException e) {
-            Toast.makeText(getContext(),"Invalid fish count.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(),"Invalid fish count format.", Toast.LENGTH_SHORT).show();
             return false;
         }
-
-        double minRecommended, maxAllowed;
-
-        switch (breed) {
-            case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
-            case "Bangus":  minRecommended = 0.8; maxAllowed = 1.2; break;
-            default:
-                return true; // skip if no valid species
-        }
-
-        double density = fishCount / rawPondArea;
-
-        double minFish = minRecommended * rawPondArea;
-        double maxFish = maxAllowed * rawPondArea;
-
-        if (density > maxAllowed) {
-            Toast.makeText(getContext(),
-                    String.format(Locale.getDefault(),"❌ Overstocked! Recommended: %.0f–%.0f fish.", minFish, maxFish),
-                    Toast.LENGTH_LONG).show();
-            return false;
-        }
-
-        if (density < minRecommended) {
-            Toast.makeText(getContext(),
-                    String.format(Locale.getDefault(),"⚠️ Understocked! Recommended: %.0f–%.0f fish.", minFish, maxFish),
-                    Toast.LENGTH_LONG).show();
-            return false;
-        }
-
-        return true;
     }
 
 
