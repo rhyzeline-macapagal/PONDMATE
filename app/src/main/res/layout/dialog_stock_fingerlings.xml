@@ -173,20 +173,19 @@
 
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/textbox_background"
-                            android:padding="2dp">
+                            android:layout_height="wrap_content">
 
-                            <AutoCompleteTextView
-                                android:id="@+id/spinnerMortality"
+                            <EditText
+                                android:id="@+id/etMortality"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="numberDecimal"
                                 android:hint="Enter (%)"
                                 android:padding="4dp"
                                 android:gravity="center"
-                                android:background="@android:drawable/edit_text"
-                                android:textSize="12sp" />
+                                android:background="@drawable/textbox_background"
+                                android:textSize="14sp"
+                                android:minHeight="48dp"/>
                         </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
@@ -369,7 +368,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Feeding method for 1 month: \nBlind feeding of fry mash and crumble. \nDon't forget to log feed consumed daily."
+                    android:text="Feeding method for 1 month: \nBlind feeding of FRYMASH. \nDon't forget to log feed consumed daily."
                     android:textColor="#01082D"
                     android:textSize="13sp"
                     android:gravity="center"

@@ -37,7 +37,6 @@ public class PondInfoFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         tvPondName = view.findViewById(R.id.tvPondName);
         tvBreed = view.findViewById(R.id.tvBreed);
         tvFishCount = view.findViewById(R.id.tvFishCount);
@@ -49,40 +48,8 @@ public class PondInfoFragment extends Fragment {
         tvMortalityRate = view.findViewById(R.id.tvMortalityRate);
         btnEdit = view.findViewById(R.id.btnEditPond);
         tvCaretaker = view.findViewById(R.id.tvCaretaker);
-
         loadPondData();
         setupEditButton();
-
-        // Listen for pond updates from EditPondDialog
-        getParentFragmentManager().setFragmentResultListener("pond_updated", this, (requestKey, bundle) -> {
-            String pondJson = bundle.getString("pond_json");
-            if (pondJson != null) {
-                PondModel updatedPond = new Gson().fromJson(pondJson, PondModel.class);
-                updatePondName(updatedPond);
-                // 🔹 Update all displayed info here
-                tvPondName.setText(updatedPond.getName());
-                tvBreed.setText(updatedPond.getBreed());
-                tvFishCount.setText(String.valueOf(updatedPond.getFishCount()));
-                tvCostPerFish.setText(String.valueOf(updatedPond.getCostPerFish()));
-                tvDateStarted.setText(updatedPond.getDateStarted());
-                tvHarvestDate.setText(updatedPond.getDateHarvest());
-                tvArea.setText(String.valueOf(updatedPond.getPondArea()));
-                tvDateStocking.setText(updatedPond.getDateStocking());
-                tvMortalityRate.setText(String.valueOf(updatedPond.getMortalityRate()));
-                tvCaretaker.setText(updatedPond.getCaretakerName());
-
-                Log.d("PONDINFO_FRAGMENT", "Pond info updated from dialog: " + updatedPond.getName());
-            }
-        });
-    }
-
-    public void updatePondName(PondModel pond) {
-        Log.d("PONDINFO_FRAGMENT", "updatePondName() called with: " + pond.getName());
-
-        // update label in the fragment or notify MainActivity
-        if (getActivity() instanceof MainActivity) {
-            ((MainActivity) getActivity()).setPondNameLabel(pond.getName());
-        }
     }
 
     private void loadPondData() {

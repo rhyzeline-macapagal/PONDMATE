@@ -413,17 +413,6 @@ public class MainActivity extends AppCompatActivity {
                 .commit();
     }
 
-    public void setPondNameLabel(String newName) {
-        TextView pondNameLabel = findViewById(R.id.pondNameLabel);
-        if (pondNameLabel != null) {
-            pondNameLabel.setText(newName);
-            Log.d("MAIN_ACTIVITY", "pondNameLabel updated: " + newName);
-        } else {
-            Log.e("MAIN_ACTIVITY", "pondNameLabel is null!");
-        }
-    }
-
-
 
 
 

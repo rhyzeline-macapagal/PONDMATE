@@ -192,7 +192,6 @@ public class EditPondDialog extends DialogFragment {
         etStockingDate = v.findViewById(R.id.etStockingDate);
         etHarvestDate = v.findViewById(R.id.etHarvestDate);
 
-        rvCaretakers = v.findViewById(R.id.rvCaretakers);
         spinnerSpecies = v.findViewById(R.id.spinnerBreed);
         btnSave = v.findViewById(R.id.btnSave);
         btnCancel = v.findViewById(R.id.btnCancel);
@@ -567,7 +566,10 @@ public class EditPondDialog extends DialogFragment {
 
                 // 5️⃣ Stocking density check
                 rawPondArea = pondArea;
-                if (!checkStockingDensity()) return;
+                if (hasFingerlingStock) {
+                    if (!checkStockingDensity()) return;
+                }
+
 
                 // 6️⃣ Update pond model
                 pond.setName(pondName);
@@ -582,13 +584,7 @@ public class EditPondDialog extends DialogFragment {
                 pond.setCaretakerName(getSelectedCaretakerNames());
                 pond.setCaretakerIds(new ArrayList<>(selectedCaretakerIds));
 
-                // Log for debugging
-                Log.d("EDIT_POND", "Sending result - name=" + pond.getName());
-
-// Send result to FragmentManager
-                Bundle result = new Bundle();
-                result.putString("pond_json", new Gson().toJson(pond));
-                getParentFragmentManager().setFragmentResult("pond_updated", result);
+                // 7️⃣ Send to server
                 updatePondOnServer(pond);
                 dialog.dismiss();
             });
@@ -687,12 +683,13 @@ public class EditPondDialog extends DialogFragment {
                             String message = json.optString("message");
 
                             if (status.equalsIgnoreCase("success")) {
-
                                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
 
                                 if (listener != null) listener.onPondUpdated(pond);
 
+                                // Dismiss the dialog first
                                 dismiss();
+
                             } else {
                                 Toast.makeText(requireContext(), "Failed: " + message, Toast.LENGTH_LONG).show();
                                 Log.d("UpdateFail", message);
@@ -762,6 +759,7 @@ public class EditPondDialog extends DialogFragment {
         }
     }
 
+
     private boolean checkStockingDensity() {
         String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
         String fishCountStr = (etFishCount != null) ? etFishCount.getText().toString().trim() : "";
@@ -808,6 +806,7 @@ public class EditPondDialog extends DialogFragment {
             return false;
         }
     }
+
 
     private void loadCaretakersFromServer(Runnable onComplete) {
         new Thread(() -> {

@@ -1,186 +1,210 @@
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
-    android:padding="24dp"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
-
+    android:layout_height="match_parent"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="10dp">
 
     <LinearLayout
         android:orientation="vertical"
-        android:padding="24dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-        <!-- Title Section -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Edit Caretaker Information"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="#01082D"
-            android:gravity="center"
-            android:layout_marginBottom="24dp"
-            android:letterSpacing="0.02"/>
+        android:layout_width="wrap_content"
+        android:layout_height="400dp"
+        android:layout_gravity="center"
+        android:background="@drawable/rounded_dialog_bg"
+        android:minWidth="320dp"
+        android:maxWidth="400dp"
+        android:padding="8dp"
+        android:elevation="12dp">
 
-        <!-- Form Fields Container -->
-        <LinearLayout
+        <!-- Header with Close Button -->
+        <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="24dp">
+            android:layout_height="wrap_content">
 
-            <!-- Username Field -->
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Username"
-                android:textColor="#01082D"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="6dp"
-                android:layout_marginStart="4dp" />
-
-            <EditText
-                android:id="@+id/etEditUsername"
-                android:hint="Username"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:text="Edit Caretaker Information"
                 android:textColor="#01082D"
-                android:textColorHint="#888888"
                 android:textSize="16sp"
-                android:padding="12dp"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/textbox_background"
-                android:minHeight="48dp"
-                android:inputType="textPersonName" />
-
-            <!-- Password Field -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Password"
-                android:textColor="#01082D"
-                android:textSize="14sp"
                 android:textStyle="bold"
-                android:layout_marginBottom="6dp"
-                android:layout_marginStart="4dp" />
+                android:gravity="center"
+                android:letterSpacing="0.02"
+                android:layout_marginBottom="8dp" />
 
-            <com.google.android.material.textfield.TextInputLayout
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            <TextView
+                android:id="@+id/btnClose"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:text="✖"
+                android:textSize="14sp"
+                android:textColor="#000000"
+                android:layout_alignParentEnd="true"
+                android:gravity="center"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"/>
+        </RelativeLayout>
+
+        <!-- Scrollable Form -->
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical"
+            android:fadeScrollbars="true"
+            android:padding="4dp">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                app:boxStrokeColor="#00448D"
-                app:hintTextColor="#01082D"
-                app:passwordToggleEnabled="true">
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <!-- Username Field -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Username"
+                    android:textColor="#01082D"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp" />
 
                 <EditText
-                    android:id="@+id/etEditPassword"
+                    android:id="@+id/etEditUsername"
+                    android:hint="Username"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-
+                    android:layout_height="48dp"
                     android:textColor="#01082D"
                     android:textColorHint="#888888"
-                    android:inputType="textPassword"
-                    android:textSize="16sp"
+                    android:textSize="12sp"
                     android:padding="12dp"
                     android:layout_marginBottom="16dp"
                     android:background="@drawable/textbox_background"
-                    android:minHeight="48dp" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:inputType="textPersonName" />
 
-            <!-- Full Name Field -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Full Name"
-                android:textColor="#01082D"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="6dp"
-                android:layout_marginStart="4dp" />
+                <!-- Password Field -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Password"
+                    android:textColor="#01082D"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp" />
 
-            <EditText
-                android:id="@+id/etEditFullname"
-                android:hint="Full Name"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#01082D"
-                android:textColorHint="#888888"
-                android:textSize="16sp"
-                android:padding="12dp"
-                android:layout_marginBottom="16dp"
-                android:background="@drawable/textbox_background"
-                android:minHeight="48dp"
-                android:inputType="textPersonName" />
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:boxStrokeColor="#00448D"
+                    app:passwordToggleEnabled="true">
 
-            <!-- Address Field -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Address"
-                android:textColor="#01082D"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="6dp"
-                android:layout_marginStart="4dp" />
+                    <EditText
+                        android:id="@+id/etEditPassword"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:textColor="#01082D"
+                        android:textColorHint="#888888"
+                        android:inputType="textPassword"
+                        android:textSize="12sp"
+                        android:padding="12dp"
+                        android:background="@drawable/textbox_background"/>
+                </com.google.android.material.textfield.TextInputLayout>
 
-            <EditText
-                android:id="@+id/etEditAddress"
-                android:hint="Address"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#01082D"
-                android:textColorHint="#888888"
-                android:textSize="16sp"
-                android:padding="12dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/textbox_background"
-                android:minHeight="48dp"
-                android:inputType="textPostalAddress"
-                android:minLines="2" />
+                <!-- Full Name Field -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Full Name"
+                    android:textColor="#01082D"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Salary"
-                android:textColor="#01082D"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="6dp"
-                android:layout_marginStart="4dp" />
+                <EditText
+                    android:id="@+id/etEditFullname"
+                    android:hint="Full Name"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:textColor="#01082D"
+                    android:textColorHint="#888888"
+                    android:textSize="12sp"
+                    android:padding="12dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/textbox_background"
+                    android:inputType="textPersonName" />
 
-            <EditText
-                android:id="@+id/etEditSalary"
-                android:hint="Salary"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="#01082D"
-                android:inputType="numberDecimal"
-                android:textColorHint="#888888"
-                android:textSize="16sp"
-                android:padding="12dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/textbox_background"
-                android:minHeight="48dp"
-                android:minLines="2" />
-        </LinearLayout>
+                <!-- Address Field -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Address"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp" />
 
-        <!-- Save Button -->
-        <Button
-            android:id="@+id/btnSaveCaretaker"
-            android:text="Save Changes"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textAllCaps="false"
-            android:textColor="@android:color/white"
-            android:backgroundTint="#00448D"
-            android:letterSpacing="0.02"
-            app:cornerRadius="8dp"
-            android:elevation="2dp"
-            android:stateListAnimator="@null"/>
+                <EditText
+                    android:id="@+id/etEditAddress"
+                    android:hint="Address"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:textColor="#01082D"
+                    android:textColorHint="#888888"
+                    android:textSize="12sp"
+                    android:padding="12dp"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/textbox_background"
+                    android:inputType="textPostalAddress" />
+
+                <!-- Salary Field -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Salary"
+                    android:textColor="#01082D"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="6dp"
+                    android:layout_marginStart="4dp" />
+
+                <EditText
+                    android:id="@+id/etEditSalary"
+                    android:hint="Salary"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:textColor="#01082D"
+                    android:textColorHint="#888888"
+                    android:textSize="12sp"
+                    android:padding="12dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/textbox_background"
+                    android:inputType="numberDecimal" />
+
+                <!-- Save Button -->
+                <Button
+                    android:id="@+id/btnSaveCaretaker"
+                    android:text="Save Changes"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:backgroundTint="#00448D"
+                    android:letterSpacing="0.02"
+                    app:cornerRadius="8dp"
+                    android:layout_marginBottom="12dp"
+                    android:elevation="2dp"
+                    android:stateListAnimator="@null"/>
+            </LinearLayout>
+        </ScrollView>
     </LinearLayout>
-</ScrollView>
+</LinearLayout>
