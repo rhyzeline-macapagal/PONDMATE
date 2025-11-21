@@ -6,15 +6,6 @@
     android:layout_height="match_parent"
     android:background="#F8FAFC">
 
-
-    <ProgressBar
-        android:id="@+id/progressBarChart"
-        style="?android:attr/progressBarStyle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone" />
-
     <TextView
         android:id="@+id/noDataText"
         android:layout_width="wrap_content"

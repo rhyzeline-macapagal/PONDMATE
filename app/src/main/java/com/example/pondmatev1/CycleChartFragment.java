@@ -2,29 +2,34 @@ package com.example.pondmatev1;
 
 import android.graphics.Color;
 import android.os.Bundle;
-import android.view.*;
-import android.widget.*;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.io.*;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public class CycleChartFragment extends Fragment {
 
     private static final String GET_PONDS_URL = "https://pondmate.alwaysdata.net/get_ponds.php";
-
-    private ProgressBar progressBarChart;
-    private TextView noDataText;
     private RecyclerView pondRecyclerView;
     private final List<JSONObject> ponds = new ArrayList<>();
 
@@ -33,19 +38,13 @@ public class CycleChartFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_cycle_chart, container, false);
-
-        progressBarChart = root.findViewById(R.id.progressBarChart);
-        noDataText = root.findViewById(R.id.noDataText);
         pondRecyclerView = root.findViewById(R.id.pondRecyclerView);
-
+        pondRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         fetchPondsFromServer();
         return root;
     }
 
     private void fetchPondsFromServer() {
-        progressBarChart.setVisibility(View.VISIBLE);
-        noDataText.setVisibility(View.GONE);
-
         new Thread(() -> {
             HttpURLConnection conn = null;
             try {
@@ -69,41 +68,28 @@ public class CycleChartFragment extends Fragment {
 
                 if (isAdded() && getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
-                        progressBarChart.setVisibility(View.GONE);
                         if (ponds.isEmpty()) {
-                            noDataText.setVisibility(View.VISIBLE);
+                            Toast.makeText(getContext(), "No pond data available", Toast.LENGTH_SHORT).show();
                         } else {
-                            setupRecyclerView();
+                            pondRecyclerView.setAdapter(new PondAdapter(ponds));
                         }
                     });
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
-                // ✅ Only show error if fragment still alive
-                if (isAdded()) showError("Failed to fetch ponds");
+                if (isAdded() && getActivity() != null) {
+                    getActivity().runOnUiThread(() ->
+                            Toast.makeText(getContext(), "Failed to fetch ponds", Toast.LENGTH_SHORT).show()
+                    );
+                }
             } finally {
                 if (conn != null) conn.disconnect();
             }
         }).start();
     }
 
-    private void showError(String msg) {
-        if (!isAdded() || getActivity() == null) return;
-        getActivity().runOnUiThread(() -> {
-            progressBarChart.setVisibility(View.GONE);
-            noDataText.setVisibility(View.VISIBLE);
-            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show();
-        });
-    }
+    private static class PondAdapter extends RecyclerView.Adapter<PondAdapter.PondViewHolder> {
 
-    private void setupRecyclerView() {
-        pondRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        pondRecyclerView.setAdapter(new PondAdapter(ponds));
-    }
-
-    // ===================== ADAPTER =====================
-    private class PondAdapter extends RecyclerView.Adapter<PondAdapter.PondViewHolder> {
         private final List<JSONObject> pondList;
 
         PondAdapter(List<JSONObject> pondList) {
@@ -113,52 +99,15 @@ public class CycleChartFragment extends Fragment {
         @NonNull
         @Override
         public PondViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            LinearLayout card = new LinearLayout(parent.getContext());
-            card.setOrientation(LinearLayout.HORIZONTAL);
-            card.setPadding(16, 16, 16, 16);
-            card.setBackgroundColor(Color.WHITE);
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            params.setMargins(0, 0, 0, 16);
-            card.setLayoutParams(params);
-
-            CircularProgressIndicator progressCircle = new CircularProgressIndicator(parent.getContext());
-            progressCircle.setLayoutParams(new LinearLayout.LayoutParams(120, 120));
-            progressCircle.setMax(100);
-            progressCircle.setTrackThickness(10);
-            card.addView(progressCircle);
-
-            LinearLayout textContainer = new LinearLayout(parent.getContext());
-            textContainer.setOrientation(LinearLayout.VERTICAL);
-            textContainer.setPadding(24, 0, 0, 0);
-            card.addView(textContainer);
-
-            TextView pondName = new TextView(parent.getContext());
-            pondName.setTextSize(16);
-            pondName.setTextColor(Color.BLACK);
-            textContainer.addView(pondName);
-
-            TextView pondPhase = new TextView(parent.getContext());
-            pondPhase.setTextSize(14);
-            pondPhase.setTextColor(Color.DKGRAY);
-            textContainer.addView(pondPhase);
-
-            TextView pondLifeStage = new TextView(parent.getContext());
-            pondLifeStage.setTextSize(14);
-            pondLifeStage.setTextColor(Color.DKGRAY);
-            textContainer.addView(pondLifeStage);
-
-            TextView pondProgressText = new TextView(parent.getContext());
-            pondProgressText.setTextSize(14);
-            pondProgressText.setTextColor(Color.parseColor("#1565C0"));
-            textContainer.addView(pondProgressText);
-
-            return new PondViewHolder(card, pondName, pondPhase, pondLifeStage, pondProgressText, progressCircle);
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_pond_cycle, parent, false);
+            return new PondViewHolder(view);
         }
 
         @Override
         public void onBindViewHolder(@NonNull PondViewHolder holder, int position) {
             JSONObject pond = pondList.get(position);
+
             String name = pond.optString("name", "Unnamed Pond");
             String breed = pond.optString("breed", "Tilapia");
             String dateStarted = pond.optString("date_started", "");
@@ -172,33 +121,72 @@ public class CycleChartFragment extends Fragment {
             long harvestMillis = parseDateToMillis(dateHarvest);
             long now = System.currentTimeMillis();
 
-            int progress;
             String phaseName, lifeStage;
+            int currentPhase;
 
             if (now < stockingMillis) {
-                phaseName = "Pond Preparation";
+                phaseName = "Preparation";
                 lifeStage = "Not Applicable";
-                holder.pondProgressCircle.setIndicatorColor(Color.GRAY);
-                progress = 0;
+                currentPhase = 1;
+                holder.itemView.setBackgroundColor(Color.WHITE);
             } else if (now < harvestMillis) {
                 phaseName = "Stocked / Growing";
                 lifeStage = breed.equalsIgnoreCase("Tilapia") ? "Juvenile → Sub-adult" : "Sub-adult → Grow-out";
-                holder.pondProgressCircle.setIndicatorColor(Color.BLUE);
-                progress = (int) (((double) (now - stockingMillis) / (harvestMillis - stockingMillis)) * 100);
-                progress = Math.max(0, Math.min(progress, 100));
+                currentPhase = 2;
+                holder.itemView.setBackgroundColor(Color.WHITE);
             } else {
                 phaseName = "Harvesting";
                 lifeStage = "Adult / Ready to Harvest";
-                holder.pondProgressCircle.setIndicatorColor(Color.GREEN);
-                progress = 100;
+                currentPhase = 4;
+                holder.itemView.setBackgroundColor(Color.parseColor("#C6F6D5")); // green
             }
 
             holder.pondPhase.setText("Phase: " + phaseName);
-            holder.pondLifeStage.setText("Life Stage: " + lifeStage);
-            holder.pondProgressCircle.setProgress(progress);
+            holder.pondStage.setText("Life Stage: " + lifeStage);
 
-            // Remove percentage text
-            holder.pondProgressText.setText("");
+            setPhaseColor(holder, currentPhase);
+
+            // Circle click expands/collapses info
+            View.OnClickListener expandListener = v -> {
+                if (holder.infoContainer.getVisibility() == View.GONE) {
+                    holder.infoContainer.setVisibility(View.VISIBLE);
+                } else {
+                    holder.infoContainer.setVisibility(View.GONE);
+                }
+            };
+
+            holder.phase1Circle.setOnClickListener(expandListener);
+            holder.phase2Circle.setOnClickListener(expandListener);
+            holder.phase3Circle.setOnClickListener(expandListener);
+            holder.phase4Circle.setOnClickListener(expandListener);
+        }
+
+        private void setPhaseColor(PondViewHolder holder, int currentPhase) {
+            holder.phase1Circle.setBackgroundResource(R.drawable.circle_inactive);
+            holder.phase2Circle.setBackgroundResource(R.drawable.circle_inactive);
+            holder.phase3Circle.setBackgroundResource(R.drawable.circle_inactive);
+            holder.phase4Circle.setBackgroundResource(R.drawable.circle_inactive);
+
+            switch (currentPhase) {
+                case 1:
+                    holder.phase1Circle.setBackgroundResource(R.drawable.circle_active);
+                    break;
+                case 2:
+                    holder.phase1Circle.setBackgroundResource(R.drawable.circle_active);
+                    holder.phase2Circle.setBackgroundResource(R.drawable.circle_active);
+                    break;
+                case 3:
+                    holder.phase1Circle.setBackgroundResource(R.drawable.circle_active);
+                    holder.phase2Circle.setBackgroundResource(R.drawable.circle_active);
+                    holder.phase3Circle.setBackgroundResource(R.drawable.circle_active);
+                    break;
+                case 4:
+                    holder.phase1Circle.setBackgroundResource(R.drawable.circle_active);
+                    holder.phase2Circle.setBackgroundResource(R.drawable.circle_active);
+                    holder.phase3Circle.setBackgroundResource(R.drawable.circle_active);
+                    holder.phase4Circle.setBackgroundResource(R.drawable.circle_active);
+                    break;
+            }
         }
 
         private long parseDateToMillis(String dateStr) {
@@ -215,18 +203,22 @@ public class CycleChartFragment extends Fragment {
             return pondList.size();
         }
 
-        class PondViewHolder extends RecyclerView.ViewHolder {
-            TextView pondName, pondPhase, pondLifeStage, pondProgressText;
-            CircularProgressIndicator pondProgressCircle;
+        static class PondViewHolder extends RecyclerView.ViewHolder {
+            TextView pondName, pondPhase, pondStage;
+            TextView phase1Circle, phase2Circle, phase3Circle, phase4Circle;
+            LinearLayout infoContainer;
 
-            PondViewHolder(@NonNull View itemView, TextView name, TextView phase, TextView stage,
-                           TextView progressText, CircularProgressIndicator progressCircle) {
+            PondViewHolder(@NonNull View itemView) {
                 super(itemView);
-                pondName = name;
-                pondPhase = phase;
-                pondLifeStage = stage;
-                pondProgressText = progressText;
-                pondProgressCircle = progressCircle;
+                pondName = itemView.findViewById(R.id.pondName);
+                pondPhase = itemView.findViewById(R.id.pondPhase);
+                pondStage = itemView.findViewById(R.id.pondStage);
+                infoContainer = itemView.findViewById(R.id.infoContainer);
+
+                phase1Circle = itemView.findViewById(R.id.phase1Circle);
+                phase2Circle = itemView.findViewById(R.id.phase2Circle);
+                phase3Circle = itemView.findViewById(R.id.phase3Circle);
+                phase4Circle = itemView.findViewById(R.id.phase4Circle);
             }
         }
     }

@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="#FFFFFF"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    android:elevation="2dp">
+
+    <!-- POND NAME ON TOP -->
+    <TextView
+        android:id="@+id/pondName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pond Name"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#0F172A"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:layout_gravity="center"
+        android:paddingBottom="8dp"/>
+
+    <!-- PHASES BAR -->
+    <LinearLayout
+        android:id="@+id/phasesBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingBottom="12dp">
+
+        <!-- PHASE 1 -->
+        <LinearLayout
+            android:id="@+id/phase1"
+            android:orientation="vertical"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/phase1Circle"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:gravity="center"
+                android:text="1"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:background="@drawable/circle_inactive" />
+
+            <TextView
+                android:id="@+id/phase1Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Preparation"
+                android:textSize="10sp"
+                android:paddingTop="2dp"
+                android:textColor="#0F172A"
+                android:ellipsize="end"
+                android:singleLine="true"/>
+        </LinearLayout>
+
+        <!-- CONNECTOR -->
+        <TextView
+            android:id="@+id/con12"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textSize="18sp"
+            android:textColor="#CBD5E1"
+            android:padding="4dp" />
+
+        <!-- PHASE 2 -->
+        <LinearLayout
+            android:id="@+id/phase2"
+            android:orientation="vertical"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/phase2Circle"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:gravity="center"
+                android:text="2"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:background="@drawable/circle_inactive" />
+
+            <TextView
+                android:id="@+id/phase2Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stocked"
+                android:textSize="10sp"
+                android:paddingTop="2dp"
+                android:textColor="#0F172A"
+                android:ellipsize="end"
+                android:singleLine="true"/>
+        </LinearLayout>
+
+        <!-- CONNECTOR -->
+        <TextView
+            android:id="@+id/con23"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textSize="18sp"
+            android:textColor="#CBD5E1"
+            android:padding="4dp" />
+
+        <!-- PHASE 3 -->
+        <LinearLayout
+            android:id="@+id/phase3"
+            android:orientation="vertical"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/phase3Circle"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:gravity="center"
+                android:text="3"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:background="@drawable/circle_inactive" />
+
+            <TextView
+                android:id="@+id/phase3Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Growing"
+                android:textSize="10sp"
+                android:paddingTop="2dp"
+                android:textColor="#0F172A"
+                android:ellipsize="end"
+                android:singleLine="true"/>
+        </LinearLayout>
+
+        <!-- CONNECTOR -->
+        <TextView
+            android:id="@+id/con34"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textSize="18sp"
+            android:textColor="#CBD5E1"
+            android:padding="4dp" />
+
+        <!-- PHASE 4 -->
+        <LinearLayout
+            android:id="@+id/phase4"
+            android:orientation="vertical"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/phase4Circle"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:gravity="center"
+                android:text="4"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:background="@drawable/circle_inactive" />
+
+            <TextView
+                android:id="@+id/phase4Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Harvest"
+                android:textSize="10sp"
+                android:paddingTop="2dp"
+                android:textColor="#0F172A"
+                android:ellipsize="end"
+                android:singleLine="true"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- INFO BELOW PHASES (Expandable) -->
+    <LinearLayout
+        android:id="@+id/infoContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/pondPhase"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Phase: —"
+            android:textColor="#475569"
+            android:textSize="14sp"
+            android:paddingTop="4dp"/>
+
+        <TextView
+            android:id="@+id/pondStage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Life Stage: —"
+            android:textColor="#475569"
+            android:textSize="14sp"
+            android:paddingTop="2dp"/>
+    </LinearLayout>
+
+</LinearLayout>
