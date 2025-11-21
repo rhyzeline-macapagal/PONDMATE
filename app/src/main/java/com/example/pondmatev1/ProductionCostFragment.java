@@ -480,13 +480,16 @@ public class ProductionCostFragment extends Fragment {
                 double pondArea = rawPondArea;
                 double density = fishCount / pondArea;
 
+                double minRecommended = 0;
                 double maxAllowed = 0;
 
                 switch (breed) {
                     case "Tilapia":
+                        minRecommended = 2.0;
                         maxAllowed = 4.0;
                         break;
                     case "Bangus":
+                        minRecommended = 0.8;
                         maxAllowed = 1.2;
                         break;
                 }
@@ -497,13 +500,22 @@ public class ProductionCostFragment extends Fragment {
                     return;
                 }
 
+                double minFishCount = minRecommended * pondArea;
                 double maxFishCount = maxAllowed * pondArea;
 
+                String rangeText = String.format(Locale.getDefault(),
+                        "Recommended range: %.0f – %.0f fish.", minFishCount, maxFishCount);
+
                 if (density > maxAllowed) {
-                    etFishCount.setError(String.format(Locale.getDefault(),
-                            "⚠️ Overstocked! Maximum allowed: %.0f fish.", maxFishCount));
-                } else {
-                    etFishCount.setError(null);
+                    etFishCount.setError("❌ Overstocked! Reduce fish count.\n" + rangeText);
+                    return;
+                }
+
+                if (density < minRecommended) {
+                    etFishCount.setError(null); // clear red error
+                    Toast.makeText(getContext(),
+                            "⚠️ Below minimum stocking density.\n" + rangeText,
+                            Toast.LENGTH_LONG).show();
                 }
 
             } catch (NumberFormatException e) {
@@ -576,14 +588,22 @@ public class ProductionCostFragment extends Fragment {
                         break;
                 }
 
+                double minFishCount = minRecommended * pondArea;
+                double maxFishCount = maxAllowed * pondArea;
+                String rangeText = String.format(Locale.getDefault(),
+                        "Recommended range: %.0f – %.0f fish.", minFishCount, maxFishCount);
+
                 if (density > maxAllowed) {
                     Toast.makeText(requireContext(),
-                            "❌ Overstocked! Please reduce fish count.", Toast.LENGTH_LONG).show();
+                            "❌ Overstocked! Please reduce fish count.\n" + rangeText,
+                            Toast.LENGTH_LONG).show();
                     return;
-                } else if (density < minRecommended) {
+                }
+
+                if (density < minRecommended) {
                     Toast.makeText(requireContext(),
-                            "⚠️ Understocked! Please increase fish count.", Toast.LENGTH_LONG).show();
-                    return;
+                            "⚠️ Understocked! You are below the recommended stocking density.\n" + rangeText,
+                            Toast.LENGTH_LONG).show();
                 }
 
                 // ✅ Confirmation dialog before saving

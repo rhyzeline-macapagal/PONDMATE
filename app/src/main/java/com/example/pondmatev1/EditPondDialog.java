@@ -737,8 +737,8 @@ public class EditPondDialog extends DialogFragment {
         try {
             double fishCount = Double.parseDouble(fishCountStr);
             double density = fishCount / rawPondArea;
-            double minRecommended = 0, maxAllowed = 0;
 
+            double minRecommended = 0, maxAllowed = 0;
             switch (breed) {
                 case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
                 case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
@@ -746,12 +746,16 @@ public class EditPondDialog extends DialogFragment {
 
             double minFishCount = minRecommended * rawPondArea;
             double maxFishCount = maxAllowed * rawPondArea;
+            String rangeText = String.format(Locale.getDefault(),
+                    "Recommended range: %.0f – %.0f fish.", minFishCount, maxFishCount);
 
-            if (density > maxAllowed && etFishCount != null)
-                etFishCount.setError(String.format(Locale.getDefault(),"⚠️ Overstocked! Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
-            else if (density < minRecommended && etFishCount != null)
-                etFishCount.setError(String.format(Locale.getDefault(),"Too few fish. Recommended: %.0f–%.0f fish.", minFishCount, maxFishCount));
-            else if (etFishCount != null) etFishCount.setError(null);
+            if (density > maxAllowed && etFishCount != null) {
+                etFishCount.setError("❌ Overstocked! " + rangeText);
+            } else if (density < minRecommended && etFishCount != null) {
+                etFishCount.setError("⚠️ Understocked! " + rangeText);
+            } else if (etFishCount != null) {
+                etFishCount.setError(null);
+            }
 
         } catch (NumberFormatException e) {
             if (etFishCount != null) etFishCount.setError(null);
@@ -777,17 +781,26 @@ public class EditPondDialog extends DialogFragment {
                 case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
             }
 
+            double minFishCount = minRecommended * rawPondArea;
+            double maxFishCount = maxAllowed * rawPondArea;
+            String rangeText = String.format(Locale.getDefault(),
+                    "Recommended range: %.0f – %.0f fish.", minFishCount, maxFishCount);
+
             if (density > maxAllowed) {
                 Toast.makeText(getContext(),
-                        String.format(Locale.getDefault(),"❌ Overstocked! Recommended: %.0f–%.0f fish.", minRecommended * rawPondArea, maxAllowed * rawPondArea),
-                        Toast.LENGTH_LONG).show();
-                return false;
-            } else if (density < minRecommended) {
-                Toast.makeText(getContext(),
-                        String.format(Locale.getDefault(),"⚠️ Understocked! Recommended: %.0f–%.0f fish.", minRecommended * rawPondArea, maxAllowed * rawPondArea),
+                        "❌ Overstocked! " + rangeText,
                         Toast.LENGTH_LONG).show();
                 return false;
             }
+
+            // ⚠️ Understock → warn only, allow saving
+            if (density < minRecommended) {
+                Toast.makeText(getContext(),
+                        "⚠️ Understocked! " + rangeText,
+                        Toast.LENGTH_LONG).show();
+                // DO NOT return; allow saving
+            }
+
             return true;
 
         } catch (NumberFormatException e) {
