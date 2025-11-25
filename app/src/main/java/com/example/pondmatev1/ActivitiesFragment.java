@@ -32,7 +32,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
@@ -49,6 +48,7 @@ public class ActivitiesFragment extends Fragment {
 
     private JsonObject fetchedActivities;
     private ArrayList<String> fetchedNotifications = new ArrayList<>();
+    private int lastNotifId = 0; // Track the latest notification ID
 
     @Nullable
     @Override
@@ -149,40 +149,37 @@ public class ActivitiesFragment extends Fragment {
             android.widget.CheckBox checkBox = new android.widget.CheckBox(getContext());
             checkBox.setText("Day " + dayNumber + ": " + title);
             checkBox.setChecked(prefs.getBoolean(key, false));
-            checkBox.setEnabled(!prefs.getBoolean(key, false) && actDate.equals(todayStr)); // stays disabled if already done
+            checkBox.setEnabled(!prefs.getBoolean(key, false) && actDate.equals(todayStr));
 
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (isChecked && actDate.equals(todayStr)) {
                     editor.putBoolean(key, true).apply();
-                    checkBox.setEnabled(false); // disable after marking done
+                    checkBox.setEnabled(false);
                     showToast("Marked as done ✅");
 
-                    // Send notification (optional)
+                    // Send notification/banner ONLY when user checks the box
                     SessionManager session = new SessionManager(requireContext());
                     String username = session.getUsername();
                     String notifMessage = title + " completed by " + username;
                     String scheduledFor = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
 
-                    NotificationStore.NotificationItem notifItem = new NotificationStore.NotificationItem(pondName, notifMessage, scheduledFor);
+                    NotificationStore.NotificationItem notifItem =
+                            new NotificationStore.NotificationItem(pondName, notifMessage, scheduledFor);
                     NotificationStore.addNotification(requireContext(), notifItem);
 
-                    ActivitiesFragment.sendNotification(
-                            pondId,
-                            title,
+                    // Show the banner now
+                    NotificationHelper.showActivityDoneNotification(
+                            requireContext(),
+                            pondName,
                             notifMessage,
-                            scheduledFor,
-                            username,
-                            new PondSyncManager.Callback() {
-                                @Override
-                                public void onSuccess(Object response) {
-                                    Log.d("SEND_NOTIFICATION", "Success: " + response);
-                                }
+                            true,
+                            "",
+                            notifMessage.hashCode()
+                    );
 
-                                @Override
-                                public void onError(String error) {
-                                    Log.e("SEND_NOTIFICATION", "Error: " + error);
-                                }
-                            }
+                    // Send to server
+                    ActivitiesFragment.sendNotification(
+                            pondId, title, notifMessage, scheduledFor, username, null
                     );
                 }
             });
@@ -228,9 +225,7 @@ public class ActivitiesFragment extends Fragment {
                     BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                     StringBuilder response = new StringBuilder();
                     String line;
-                    while ((line = in.readLine()) != null) {
-                        response.append(line);
-                    }
+                    while ((line = in.readLine()) != null) response.append(line);
                     in.close();
 
                     if (callback != null) callback.onSuccess(response.toString());
@@ -244,8 +239,6 @@ public class ActivitiesFragment extends Fragment {
             }
         }).start();
     }
-
-    private int lastNotifId = 0; // track the latest notification ID
 
     private void startNotificationPolling() {
         notificationPollRunnable = new Runnable() {
@@ -262,7 +255,6 @@ public class ActivitiesFragment extends Fragment {
                                 JsonObject notif = data.get(i).getAsJsonObject();
                                 int notifId = notif.get("id").getAsInt();
 
-                                // Only process notifications newer than lastNotifId
                                 if (notifId <= lastNotifId) continue;
 
                                 lastNotifId = Math.max(lastNotifId, notifId);
@@ -272,24 +264,7 @@ public class ActivitiesFragment extends Fragment {
                             if (!newNotifs.isEmpty() && isAdded()) {
                                 Handler mainHandler = new Handler(Looper.getMainLooper());
 
-                                for (JsonObject notif : newNotifs) {
-                                    String notifMessage = notif.get("message").getAsString();
-                                    int notifId = notif.get("id").getAsInt();
-
-                                    mainHandler.post(() -> {
-                                        if (!isAdded()) return;
-                                        NotificationHelper.showActivityDoneNotification(
-                                                requireContext(),
-                                                pondName,
-                                                notifMessage,
-                                                false,
-                                                "",
-                                                notifId
-                                        );
-                                    });
-                                }
-
-                                // Update today's activities if calendar is visible
+                                // Only update the UI silently
                                 mainHandler.post(() -> {
                                     CalendarDay selected = calendarView.getSelectedDate();
                                     if (selected != null) {
@@ -316,10 +291,6 @@ public class ActivitiesFragment extends Fragment {
         };
         handler.post(notificationPollRunnable);
     }
-
-
-
-
 
     @Override
     public void onResume() {
