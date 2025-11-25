@@ -66,6 +66,13 @@ public class CycleChartFragment extends Fragment {
                     ponds.add(response.getJSONObject(i));
                 }
 
+                // Sort ponds: Phase 4 (Harvesting) first
+                ponds.sort((o1, o2) -> {
+                    int phase1 = getPhase(o1);
+                    int phase2 = getPhase(o2);
+                    return Integer.compare(phase2, phase1); // descending order
+                });
+
                 if (isAdded() && getActivity() != null) {
                     getActivity().runOnUiThread(() -> {
                         if (ponds.isEmpty()) {
@@ -88,6 +95,34 @@ public class CycleChartFragment extends Fragment {
         }).start();
     }
 
+    // Helper method to determine current phase
+    private int getPhase(JSONObject pond) {
+        try {
+            String dateStocking = pond.optString("date_stocking", "");
+            String dateHarvest = pond.optString("date_harvest", "");
+            long now = System.currentTimeMillis();
+            long stockingMillis = parseDateToMillis(dateStocking);
+            long harvestMillis = parseDateToMillis(dateHarvest);
+
+            if (now < stockingMillis) return 1;
+            else if (now < harvestMillis) return 2;
+            else return 4; // Harvesting
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+
+    // reuse parseDateToMillis method from your adapter
+    private long parseDateToMillis(String dateStr) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            return sdf.parse(dateStr).getTime();
+        } catch (Exception e) {
+            return System.currentTimeMillis();
+        }
+    }
+
+
     private static class PondAdapter extends RecyclerView.Adapter<PondAdapter.PondViewHolder> {
 
         private final List<JSONObject> pondList;
@@ -103,7 +138,7 @@ public class CycleChartFragment extends Fragment {
                     .inflate(R.layout.item_pond_cycle, parent, false);
             return new PondViewHolder(view);
         }
-
+        
         @Override
         public void onBindViewHolder(@NonNull PondViewHolder holder, int position) {
             JSONObject pond = pondList.get(position);
@@ -124,16 +159,32 @@ public class CycleChartFragment extends Fragment {
             String phaseName, lifeStage;
             int currentPhase;
 
+            // Calculate total cycle length
+            long cycleDuration = harvestMillis - stockingMillis;
+            long thirtyPercent = stockingMillis + (long)(cycleDuration * 0.30);
+
+            // PHASE 1 — Preparation (before stocking)
             if (now < stockingMillis) {
                 phaseName = "Preparation";
                 lifeStage = "Not Applicable";
                 currentPhase = 1;
                 holder.itemView.setBackgroundColor(Color.WHITE);
-            } else if (now < harvestMillis) {
-                phaseName = "Stocked / Growing";
-                lifeStage = breed.equalsIgnoreCase("Tilapia") ? "Juvenile → Sub-adult" : "Sub-adult → Grow-out";
+
+                // PHASE 2 — Fingerlings Stocking (from stocking to early cycle)
+            } else if (now >= stockingMillis && now < thirtyPercent) {
+                phaseName = "Fingerlings Stocking";
+                lifeStage = "Fingerlings";
                 currentPhase = 2;
                 holder.itemView.setBackgroundColor(Color.WHITE);
+
+                // PHASE 3 — Growing (mid cycle until harvest)
+            } else if (now < harvestMillis) {
+                phaseName = "Growing";
+                lifeStage = "Sub-adult → Grow-out";
+                currentPhase = 3;
+                holder.itemView.setBackgroundColor(Color.WHITE);
+
+                // PHASE 4 — Harvesting (ready to harvest)
             } else {
                 phaseName = "Harvesting";
                 lifeStage = "Adult / Ready to Harvest";
@@ -146,13 +197,11 @@ public class CycleChartFragment extends Fragment {
 
             setPhaseColor(holder, currentPhase);
 
-            // Circle click expands/collapses info
+            // Clicking a circle expands or collapses the info section
             View.OnClickListener expandListener = v -> {
-                if (holder.infoContainer.getVisibility() == View.GONE) {
-                    holder.infoContainer.setVisibility(View.VISIBLE);
-                } else {
-                    holder.infoContainer.setVisibility(View.GONE);
-                }
+                holder.infoContainer.setVisibility(
+                        holder.infoContainer.getVisibility() == View.GONE ? View.VISIBLE : View.GONE
+                );
             };
 
             holder.phase1Circle.setOnClickListener(expandListener);
@@ -160,6 +209,7 @@ public class CycleChartFragment extends Fragment {
             holder.phase3Circle.setOnClickListener(expandListener);
             holder.phase4Circle.setOnClickListener(expandListener);
         }
+
 
         private void setPhaseColor(PondViewHolder holder, int currentPhase) {
             holder.phase1Circle.setBackgroundResource(R.drawable.circle_inactive);
