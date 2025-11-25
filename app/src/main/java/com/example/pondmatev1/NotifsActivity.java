@@ -100,7 +100,8 @@ public class NotifsActivity extends AppCompatActivity {
                             pondsId,              // pondName or pondId (you can map to pondName if needed)
                             title,                // notification title
                             false,                // isLocal: false because it's broadcast
-                            message               // username/message included in broadcast
+                            message,               // username/message included in broadcast
+                            notifId           // Unique notification ID
                     );
                 }
             }

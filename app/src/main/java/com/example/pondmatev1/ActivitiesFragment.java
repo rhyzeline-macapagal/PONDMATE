@@ -32,6 +32,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
@@ -44,7 +45,7 @@ public class ActivitiesFragment extends Fragment {
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable notificationPollRunnable;
-    private int pollInterval = 5000; // 5 seconds
+    private int pollInterval = 5000;
 
     private JsonObject fetchedActivities;
     private ArrayList<String> fetchedNotifications = new ArrayList<>();
@@ -98,6 +99,8 @@ public class ActivitiesFragment extends Fragment {
                 JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
                 if (json.get("status").getAsString().equals("success")) {
                     fetchedActivities = json;
+
+                    // Show today's activities immediately
                     String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
                     handler.post(() -> showActivitiesForDate(todayStr));
                     handler.post(this::setupCalendarListener);
@@ -126,10 +129,14 @@ public class ActivitiesFragment extends Fragment {
         SharedPreferences.Editor editor = prefs.edit();
         String todayStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
+        boolean hasActivities = false;
+
         for (int i = 0; i < activities.size(); i++) {
             JsonObject act = activities.get(i).getAsJsonObject();
             String actDate = act.get("date").getAsString();
             if (!actDate.equals(date)) continue;
+
+            hasActivities = true;
 
             String title = act.get("title").getAsString();
             String description = act.get("description").getAsString();
@@ -142,32 +149,29 @@ public class ActivitiesFragment extends Fragment {
             android.widget.CheckBox checkBox = new android.widget.CheckBox(getContext());
             checkBox.setText("Day " + dayNumber + ": " + title);
             checkBox.setChecked(prefs.getBoolean(key, false));
-            checkBox.setEnabled(actDate.equals(todayStr));
+            checkBox.setEnabled(!prefs.getBoolean(key, false) && actDate.equals(todayStr)); // stays disabled if already done
 
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 if (isChecked && actDate.equals(todayStr)) {
                     editor.putBoolean(key, true).apply();
+                    checkBox.setEnabled(false); // disable after marking done
                     showToast("Marked as done ✅");
 
-                    // Get current user info
+                    // Send notification (optional)
                     SessionManager session = new SessionManager(requireContext());
                     String username = session.getUsername();
-
-                    // Prepare notification
                     String notifMessage = title + " completed by " + username;
                     String scheduledFor = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date());
 
-                    // Add to local notification store
                     NotificationStore.NotificationItem notifItem = new NotificationStore.NotificationItem(pondName, notifMessage, scheduledFor);
                     NotificationStore.addNotification(requireContext(), notifItem);
 
-                    // Send notification to server
                     ActivitiesFragment.sendNotification(
                             pondId,
-                            title,           // Title of activity
-                            notifMessage,    // Message to display
-                            scheduledFor,    // Scheduled timestamp
-                            username,        // User who marked done
+                            title,
+                            notifMessage,
+                            scheduledFor,
+                            username,
                             new PondSyncManager.Callback() {
                                 @Override
                                 public void onSuccess(Object response) {
@@ -183,9 +187,6 @@ public class ActivitiesFragment extends Fragment {
                 }
             });
 
-
-
-
             TextView descView = new TextView(getContext());
             descView.setText(description);
             descView.setPadding(30, 0, 0, 0);
@@ -195,7 +196,7 @@ public class ActivitiesFragment extends Fragment {
             activitiesLayout.addView(wrapper);
         }
 
-        if (activities.size() == 0) {
+        if (!hasActivities) {
             TextView empty = new TextView(getContext());
             empty.setText("No activities for this date.");
             activitiesLayout.addView(empty);
@@ -244,6 +245,8 @@ public class ActivitiesFragment extends Fragment {
         }).start();
     }
 
+    private int lastNotifId = 0; // track the latest notification ID
+
     private void startNotificationPolling() {
         notificationPollRunnable = new Runnable() {
             @Override
@@ -252,47 +255,53 @@ public class ActivitiesFragment extends Fragment {
                     @Override
                     public void onSuccess(Object response) {
                         try {
-                            JsonObject json = JsonParser.parseString(response.toString()).getAsJsonObject();
-                            if (json.get("status").getAsString().equals("success")) {
-                                JsonArray data = json.getAsJsonArray("data");
-                                boolean hasNew = false;
+                            JsonArray data = JsonParser.parseString(response.toString()).getAsJsonArray();
+                            ArrayList<JsonObject> newNotifs = new ArrayList<>();
 
-                                for (int i = 0; i < data.size(); i++) {
-                                    JsonObject notif = data.get(i).getAsJsonObject();
+                            for (int i = 0; i < data.size(); i++) {
+                                JsonObject notif = data.get(i).getAsJsonObject();
+                                int notifId = notif.get("id").getAsInt();
 
-                                    String notifKey = notif.get("id").getAsString();
-                                    if (fetchedNotifications.contains(notifKey)) continue;
+                                // Only process notifications newer than lastNotifId
+                                if (notifId <= lastNotifId) continue;
 
-                                    fetchedNotifications.add(notifKey);
-                                    hasNew = true;
+                                lastNotifId = Math.max(lastNotifId, notifId);
+                                newNotifs.add(notif);
+                            }
 
+                            if (!newNotifs.isEmpty() && isAdded()) {
+                                Handler mainHandler = new Handler(Looper.getMainLooper());
+
+                                for (JsonObject notif : newNotifs) {
                                     String notifMessage = notif.get("message").getAsString();
+                                    int notifId = notif.get("id").getAsInt();
 
-                                    // ✅ Switch to UI thread before showing notification
-                                    requireActivity().runOnUiThread(() -> {
+                                    mainHandler.post(() -> {
+                                        if (!isAdded()) return;
                                         NotificationHelper.showActivityDoneNotification(
                                                 requireContext(),
                                                 pondName,
                                                 notifMessage,
-                                                false, // broadcast
-                                                ""     // username ignored for broadcast
+                                                false,
+                                                "",
+                                                notifId
                                         );
                                     });
                                 }
 
-                                if (hasNew) {
-                                    requireActivity().runOnUiThread(() -> {
-                                        CalendarDay selected = calendarView.getSelectedDate();
-                                        if (selected != null) {
-                                            String formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d",
-                                                    selected.getYear(), selected.getMonth() + 1, selected.getDay());
-                                            showActivitiesForDate(formatted);
-                                        }
-                                    });
-                                }
+                                // Update today's activities if calendar is visible
+                                mainHandler.post(() -> {
+                                    CalendarDay selected = calendarView.getSelectedDate();
+                                    if (selected != null) {
+                                        String formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d",
+                                                selected.getYear(), selected.getMonth() + 1, selected.getDay());
+                                        showActivitiesForDate(formatted);
+                                    }
+                                });
                             }
+
                         } catch (Exception e) {
-                            Log.e("NotifPolling", "Error parsing notifications: " + e.getMessage());
+                            Log.e("NotifPolling", "Error parsing notifications: " + e.getMessage(), e);
                         }
                     }
 
@@ -302,11 +311,14 @@ public class ActivitiesFragment extends Fragment {
                     }
                 });
 
-                handler.postDelayed(this, pollInterval);
+                if (isAdded()) handler.postDelayed(this, pollInterval);
             }
         };
         handler.post(notificationPollRunnable);
     }
+
+
+
 
 
     @Override

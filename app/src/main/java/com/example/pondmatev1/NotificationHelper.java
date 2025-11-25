@@ -33,13 +33,13 @@ public class NotificationHelper {
     /**
      * Show a local or broadcast notification banner.
      *
-     * @param context Context
-     * @param pondName Pond name (will appear as title)
+     * @param context         Context
+     * @param pondName        Pond name (will appear as title)
      * @param activityMessage Full message to display in notification body
-     * @param isLocal True if local notification (username is appended automatically), false for broadcast
-     * @param username Username of the user (used only for local notification)
+     * @param isLocal         True if local notification (username is appended automatically), false for broadcast
+     * @param username        Username of the user (used only for local notification)
      */
-    public static void showActivityDoneNotification(Context context, String pondName, String activityMessage, boolean isLocal, String username) {
+    public static void showActivityDoneNotification(Context context, String pondName, String activityMessage, boolean isLocal, String username, int notificationId) {
         createNotificationChannel(context);
 
         String message;
@@ -65,7 +65,6 @@ public class NotificationHelper {
             return;
         }
 
-        int notificationId = (int) System.currentTimeMillis(); // unique per notification
         notificationManager.notify(notificationId, builder.build());
     }
 }
