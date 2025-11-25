@@ -42,15 +42,16 @@ public class NotificationActivity extends AppCompatActivity {
         notificationLayout = findViewById(R.id.notificationLayout);
         findViewById(R.id.btnClose).setOnClickListener(v -> finish());
 
-        // Load stored notifications first
+        // Load from local storage
         allNotifications = NotificationStore.getNotifications(this);
         sortNotifications();
+
         displayNotifications(allNotifications);
 
-        // Immediately fetch latest notifications
+        // Fetch latest
         fetchLatestNotifications();
 
-        // Start periodic updates
+        // Start polling
         startNotificationUpdates();
     }
 
@@ -71,34 +72,43 @@ public class NotificationActivity extends AppCompatActivity {
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream())
+                );
                 StringBuilder response = new StringBuilder();
                 String line;
+
                 while ((line = reader.readLine()) != null) response.append(line);
                 reader.close();
 
                 JSONArray data = new JSONArray(response.toString());
+
                 ArrayList<NotificationStore.NotificationItem> newNotifs = new ArrayList<>();
 
-                // Get the latest timestamp to avoid duplicates
-                String lastTimestamp = allNotifications.isEmpty() ? "" : allNotifications.get(0).timestamp;
+                // Highest timestamp in current list
+                String latestTimestamp = allNotifications.isEmpty()
+                        ? ""
+                        : allNotifications.get(0).timestamp;
 
+                // Check server results
                 for (int i = 0; i < data.length(); i++) {
                     JSONObject n = data.getJSONObject(i);
+
                     String pondName = n.optString("pondName", "Unknown Pond");
                     String notifMessage = n.optString("title", "") + ": " + n.optString("message", "");
-                    String scheduledFor = n.optString("created_at", "");
+                    String timestamp = n.optString("created_at", "");
 
-                    if (scheduledFor.compareTo(lastTimestamp) > 0) {
+                    // Only add if newer
+                    if (timestamp.compareTo(latestTimestamp) > 0) {
                         NotificationStore.NotificationItem notifItem =
-                                new NotificationStore.NotificationItem(pondName, notifMessage, scheduledFor);
-                        NotificationStore.addNotification(this, notifItem); // Add to storage
+                                new NotificationStore.NotificationItem(pondName, notifMessage, timestamp);
+
+                        NotificationStore.addNotification(this, notifItem);
                         newNotifs.add(notifItem);
                     }
                 }
 
                 if (!newNotifs.isEmpty()) {
-                    // Add new notifications to the top of the list
                     allNotifications.addAll(0, newNotifs);
                     sortNotifications();
 
@@ -112,8 +122,7 @@ public class NotificationActivity extends AppCompatActivity {
     }
 
     private void sortNotifications() {
-        // Sort notifications newest first
-        allNotifications.sort((n1, n2) -> n2.timestamp.compareTo(n1.timestamp));
+        allNotifications.sort((a, b) -> b.timestamp.compareTo(a.timestamp));
     }
 
     private void displayNotifications(ArrayList<NotificationStore.NotificationItem> notifications) {
@@ -128,15 +137,20 @@ public class NotificationActivity extends AppCompatActivity {
             return;
         }
 
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-        String today = sdf.format(new Date());
+        int index = 0; // to detect newest
 
         for (NotificationStore.NotificationItem notif : notifications) {
+
+            boolean isNewest = (index == 0); // highlight ONLY the first item
+
             CardView card = new CardView(this);
-            card.setRadius(16f);
-            card.setCardElevation(6f);
+            card.setRadius(18f);
+            card.setCardElevation(isNewest ? 12f : 6f);
             card.setUseCompatPadding(true);
-            card.setCardBackgroundColor(Color.WHITE);
+
+            card.setCardBackgroundColor(
+                    isNewest ? Color.parseColor("#FFF3E0") : Color.WHITE
+            );
 
             LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -148,32 +162,31 @@ public class NotificationActivity extends AppCompatActivity {
             LinearLayout horizontalLayout = new LinearLayout(this);
             horizontalLayout.setOrientation(LinearLayout.HORIZONTAL);
 
-            boolean isNew = notif.timestamp.startsWith(today);
-
+            // LEFT BAR
             View sideBar = new View(this);
-            LinearLayout.LayoutParams sideBarParams = new LinearLayout.LayoutParams(8, LinearLayout.LayoutParams.MATCH_PARENT);
-            sideBar.setLayoutParams(sideBarParams);
-            sideBar.setBackgroundColor(Color.parseColor("#2196F3"));
-            sideBar.setVisibility(isNew ? View.VISIBLE : View.GONE);
+            LinearLayout.LayoutParams sideParams =
+                    new LinearLayout.LayoutParams(12, LinearLayout.LayoutParams.MATCH_PARENT);
+            sideBar.setLayoutParams(sideParams);
+            sideBar.setBackgroundColor(
+                    isNewest ? Color.parseColor("#FF9800") : Color.TRANSPARENT
+            );
 
+            // TEXT LAYOUT
             LinearLayout textLayout = new LinearLayout(this);
             textLayout.setOrientation(LinearLayout.VERTICAL);
             textLayout.setPadding(24, 16, 24, 16);
-            textLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            ));
 
             TextView pondView = new TextView(this);
             pondView.setText(notif.pondName);
             pondView.setTextSize(14f);
             pondView.setAlpha(0.7f);
+            if (isNewest) pondView.setTypeface(Typeface.DEFAULT_BOLD);
 
             TextView messageView = new TextView(this);
             messageView.setText("🔔 " + notif.message);
             messageView.setTextSize(16f);
-            messageView.setTypeface(Typeface.DEFAULT_BOLD);
             messageView.setPadding(0, 8, 0, 8);
+            if (isNewest) messageView.setTypeface(Typeface.DEFAULT_BOLD);
 
             TextView timeView = new TextView(this);
             timeView.setText(notif.timestamp);
@@ -190,6 +203,8 @@ public class NotificationActivity extends AppCompatActivity {
             card.addView(horizontalLayout);
 
             notificationLayout.addView(card);
+
+            index++;
         }
     }
 
