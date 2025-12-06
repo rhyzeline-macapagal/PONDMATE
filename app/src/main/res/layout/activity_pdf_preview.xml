@@ -1,16 +1,27 @@
-<?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    tools:context=".PdfPreviewActivity"
+    android:layout_margin="8dp">
 
-    <com.github.barteksc.pdfviewer.PDFView
-        android:id="@+id/pdfView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"/>
+    <!-- PDF RecyclerView with bottom/end padding to avoid FAB -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/pdfViewRecycler"
+        android:layout_width="300dp"
+        android:layout_height="match_parent"
+        android:clipToPadding="false" />
 
-
-
-</LinearLayout>
+    <!-- Floating Exit Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnExit"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="top|end"
+        android:src="@drawable/ic_close"
+        app:backgroundTint="@android:color/transparent"
+        app:rippleColor="@android:color/transparent"
+        android:foreground="@null"/>
+</FrameLayout>
