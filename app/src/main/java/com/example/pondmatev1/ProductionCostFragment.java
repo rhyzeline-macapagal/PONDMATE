@@ -29,7 +29,6 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -130,7 +129,6 @@ public class ProductionCostFragment extends Fragment {
     private Button btnAddFeed, btnCancelFeed;
     private Calendar selectedDate = Calendar.getInstance();
     private Map<String, Double> feedPriceMap = new HashMap<>();
-
     private boolean isLockedInFragment = false;
     private static final String PREF_LOCK_STATE = "LOCK_PREF";
     private static final String KEY_IS_LOCKED = "isLockedInBlindFeeding";
@@ -216,12 +214,6 @@ public class ProductionCostFragment extends Fragment {
         computeEstimatedROI();
 
         btnSampling = view.findViewById(R.id.btnSampling);
-
-        btnSampling.setOnClickListener(v -> showSamplingDialog());
-
-        if (pondId != null && !pondId.trim().isEmpty()) {
-            updateSamplingButtonState(pondId);
-        }
 
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
@@ -340,7 +332,6 @@ public class ProductionCostFragment extends Fragment {
                 Toast.makeText(getContext(), "ROI not calculated yet.", Toast.LENGTH_SHORT).show();
                 return;
             }
-
             showROIBreakdownDialog(ROIHelper.lastBreakdown);
         });
 
@@ -389,11 +380,9 @@ public class ProductionCostFragment extends Fragment {
             double feedCost = 0.0;
             double maintenanceCost = 0.0;
 
-
             tvSummaryFeeds.setText(formatPeso(feedCost));
             double totalCost = totalFingerlingCost + feedCost + maintenanceCost + salaryPerPond;
             tvSummaryTotal.setText(formatPeso(totalCost));
-
             updateTotalCost();
         }
 
@@ -408,8 +397,6 @@ public class ProductionCostFragment extends Fragment {
             if (savedEstimatedROI != -1f) tvEstimatedRoI.setText(formatNumber(savedEstimatedROI) + "%");
         }
     }
-
-
 
     private void showStockFingerlingsDialog(PondModel pond) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -1707,9 +1694,11 @@ public class ProductionCostFragment extends Fragment {
         tvPondName.setText(pond.getName());
 
         // next sampling date
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        SimpleDateFormat sdf = new SimpleDateFormat("MMM. dd, yyyy", Locale.getDefault());
+
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.DAY_OF_YEAR, 15);
+
         tvNextSampling.setText("Next Sampling: " + sdf.format(calendar.getTime()));
 
         // compute daysOfCulture (class-level)
@@ -2029,11 +2018,6 @@ public class ProductionCostFragment extends Fragment {
 
 
 
-                            // Refresh UI on parent fragment if needed
-                            if (getParentFragment() instanceof ProductionCostFragment) {
-                                ((ProductionCostFragment) getParentFragment()).updateSamplingButtonState(pond.getId());
-                            }
-
                             if (samplingDialog != null && samplingDialog.isShowing()) {
                                 samplingDialog.dismiss();
                             }
@@ -2302,53 +2286,75 @@ public class ProductionCostFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             float updated = FeedStorage.getRemainingFeed(context, pondId);
             Log.d("FEED_UI", "SamplingDialog updated feed display = " + updated);
-            tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g", updated));
+            tvRemainingFeed.setText(String.format(Locale.getDefault(), "Remaining Feed: %.2f g.", updated));
         }
     };
     public void updateSamplingButtonState(String pondId) {
-        if (!isAdded()) return;
-
-        PondSyncManager.fetchLatestSamplingRecord(pondId, new PondSyncManager.Callback() {
+        PondSyncManager.fetchSamplingDates(pondId, new PondSyncManager.Callback() {
             @Override
             public void onSuccess(Object response) {
-                if (!isAdded() || getActivity() == null) return;
-
-                Log.d("SAMPLING_DEBUG", "Response: " + response);
-
                 getActivity().runOnUiThread(() -> {
-                    if (!isAdded() || btnSampling == null) return;
-
                     try {
                         JSONObject json = new JSONObject(response.toString());
-                        String nextSamplingDate = json.optString("next_sampling_date", "").trim();
+                        String nextSamplingDate = json.optString("next_sampling_date", "");
+                        JSONArray debugArray = json.optJSONArray("debug");
 
-                        // If no stored sampling yet → ENABLE
-                        if (nextSamplingDate.isEmpty() || nextSamplingDate.equalsIgnoreCase("null")) {
-                            setSamplingButtonEnabled(true);
-                            return;
+                        // 1. Log and show toast for all debug info (contains sampling dates)
+                        if (debugArray != null) {
+                            StringBuilder sb = new StringBuilder();
+                            for (int i = 0; i < debugArray.length(); i++) {
+                                sb.append(debugArray.getString(i)).append("\n");
+                                Log.d("SAMPLING_DEBUG", debugArray.getString(i));
+                            }
+                            Toast.makeText(getContext(), sb.toString(), Toast.LENGTH_LONG).show();
                         }
 
+                        // 2. Compare today's date with nextSamplingDate
                         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                        Date today = sdf.parse(sdf.format(new Date())); // normalize
-                        Date next = sdf.parse(nextSamplingDate);
+                        Date today = sdf.parse(sdf.format(new Date()));
 
-                        // today >= next ? enable : disable
-                        boolean allowSampling = !today.before(next);
-                        setSamplingButtonEnabled(allowSampling);
+                        if (!nextSamplingDate.isEmpty()) {
+                            Date next = sdf.parse(nextSamplingDate);
+
+                            if (today.equals(next)) {
+                                // Today is a scheduled sampling → enable button
+                                setSamplingButtonEnabled(true);
+                            } else {
+                                // Not today → disable button with toast
+                                setSamplingButtonEnabled(false);
+                                btnSampling.setOnClickListener(v ->
+                                        Toast.makeText(getContext(),
+                                                "Next sampling is on " + nextSamplingDate,
+                                                Toast.LENGTH_SHORT).show()
+                                );
+                            }
+                        } else {
+                            // No pending sampling
+                            setSamplingButtonEnabled(false);
+                            btnSampling.setOnClickListener(v ->
+                                    Toast.makeText(getContext(),
+                                            "No more sampling scheduled.",
+                                            Toast.LENGTH_SHORT).show()
+                            );
+                        }
 
                     } catch (Exception e) {
-                        setSamplingButtonEnabled(true); // fail-safe
+                        Log.e("SAMPLING_DEBUG", "Error parsing response: " + e.getMessage());
+                        Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
             }
 
             @Override
             public void onError(String error) {
-                if (!isAdded() || getActivity() == null) return;
-                getActivity().runOnUiThread(() -> setSamplingButtonEnabled(true));
+                getActivity().runOnUiThread(() -> {
+                    Log.e("SAMPLING_DEBUG", "Server error: " + error);
+                    Toast.makeText(getContext(), "Server error: " + error, Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }
+
 
     @Override
     public void onResume() {
@@ -2423,17 +2429,11 @@ public class ProductionCostFragment extends Fragment {
                     ContextCompat.getColorStateList(requireContext(), R.color.blue_pond_btn)
             );
             btnSampling.setOnClickListener(v -> showSamplingDialog());
-
         } else {
             btnSampling.setBackgroundTintList(
                     ContextCompat.getColorStateList(requireContext(), android.R.color.darker_gray)
             );
-            btnSampling.setOnClickListener(v ->
-                    Toast.makeText(requireContext(),
-                            "Next sampling is not due yet.",
-                            Toast.LENGTH_SHORT
-                    ).show()
-            );
+            // The toast for not today is set in updateSamplingButtonState
         }
     }
 
@@ -2983,14 +2983,14 @@ public class ProductionCostFragment extends Fragment {
         View view = getLayoutInflater().inflate(R.layout.dialog_roi_breakdown, null);
         TableLayout table = view.findViewById(R.id.tableROI);
 
-        addRow(table, "Fingerlings Stocked:", formatNumber(b.fingerlingsCount) + " pcs");
+        addRow(table, "Fingerlings Stocked:", formatNumber(b.fingerlingsCount) + " pcs.");
         addRow(table, "Mortality Rate:", formatNumber(b.mortalityRate) + "%");
         addRow(table, "Survival Rate:", formatNumber(b.survivalRate) + "%");
 
         addSpacer(table);
         addHeader(table, "PROJECTED SALES");
-        addRow(table, "Harvest Weight:", formatNumber(b.totalHarvestKg) + " kg");
-        addRow(table, "Farm-Gate Price:", "₱" + formatNumber(b.farmGatePrice) + "/kg");
+        addRow(table, "Harvest Weight:", formatNumber(b.totalHarvestKg) + " kg.");
+        addRow(table, "Farm-Gate Price:", "₱" + formatNumber(b.farmGatePrice) + "/kg.");
         addRow(table, "Gross Revenue:", "₱" + formatNumber(b.grossSales));
 
         addSpacer(table);

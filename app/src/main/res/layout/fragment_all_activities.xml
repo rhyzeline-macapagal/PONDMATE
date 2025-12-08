@@ -37,7 +37,7 @@
         android:id="@+id/activitiesInstruction"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Check the box for activities you have completed today."
+        android:text="Listed below are the activities for all the ponds"
         android:textSize="14sp"
         android:textColor="@android:color/darker_gray"
         android:paddingBottom="8dp" />

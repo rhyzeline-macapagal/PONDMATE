@@ -86,7 +86,7 @@
                 android:text="Sampling"
                 android:textAllCaps="false"
                 android:textSize="12sp"
-                android:backgroundTint="#00448D"
+                android:backgroundTint="#5B5B5B"
                 android:drawableLeft="@drawable/ic_add"
                 android:drawablePadding="5dp"
                 app:cornerRadius="6dp"

@@ -1046,51 +1046,44 @@ public class PondSyncManager {
         }).start();
     }
 
-    public static void fetchLatestSamplingRecord(String pondId, Callback callback) {
+    public static void fetchSamplingDates(String pondId, Callback callback) {
         new Thread(() -> {
             HttpURLConnection connection = null;
             BufferedReader reader = null;
 
             try {
-                URL url = new URL("https://pondmate.alwaysdata.net/fetchLatestSamplingRecord.php");
+                URL url = new URL("https://pondmate.alwaysdata.net/fetch_sampling_dates.php");
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("POST");
                 connection.setDoOutput(true);
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(15000);
 
-                // ✅ Send pond_id (NOT pond_name)
                 String postData = "pond_id=" + URLEncoder.encode(pondId, "UTF-8");
+
                 OutputStream os = connection.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush();
                 os.close();
 
-                int responseCode = connection.getResponseCode();
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                    StringBuilder response = new StringBuilder();
-                    String line;
+                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
 
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
-                    }
-
-                    callback.onSuccess(response.toString());
-                } else {
-                    callback.onError("Server returned code: " + responseCode);
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
                 }
+
+                callback.onSuccess(response.toString());
 
             } catch (Exception e) {
                 callback.onError(e.getMessage());
             } finally {
-                if (reader != null) {
-                    try { reader.close(); } catch (IOException ignored) {}
-                }
+                if (reader != null) try { reader.close(); } catch (Exception ignored) {}
                 if (connection != null) connection.disconnect();
             }
+
         }).start();
     }
+
 
 
 

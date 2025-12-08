@@ -25,7 +25,7 @@ import java.io.File;
 
 public class PondActionHelper {
 
-    private static AlertDialog loadingDialog;
+    static AlertDialog loadingDialog;
 
     /** 🔹 Show custom loading dialog */
     public static void showLoading(Context context, String message) {
