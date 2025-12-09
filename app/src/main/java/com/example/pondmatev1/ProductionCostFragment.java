@@ -144,8 +144,12 @@ public class ProductionCostFragment extends Fragment {
     TextView tvEstimatedRoI;
     TextView tvSummarySalary, tvSamplingFeedBreakdown;
     LinearLayout LlMaintenanceBreakdown;
+    private double fingerlingsCost = 0;
+    private double blindFeedCost = 0;
+    private double accumulatedFeedCost = 0;
+    private double maintenanceCost = 0;
+    private double salaryCost = 0;
     private double salaryPerPond = 0.0;
-
     private double totalCost = 0.0;
     private String pondName;
     private String currentBreed = "";
@@ -181,9 +185,12 @@ public class ProductionCostFragment extends Fragment {
             pondId = pond.getId();
             setupStockFingerlingsButton(view, pond);
             handleFingerlingStockedStatus(view, pond);
+
+            updateProductionCostUI(pond);
         }
 
         loadMaintenanceTotal();
+
 
         if (pondJson != null) {
             PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
@@ -271,11 +278,10 @@ public class ProductionCostFragment extends Fragment {
                                 JSONArray salaryDetails = new JSONArray();
                                 JSONObject salaryEntry = new JSONObject();
 
-                                double monthlySalary = salaryPerPond; // already computed in fragment
-                                int months = selectedCycleMonths;
-                                double totalSalary = monthlySalary * months;
 
-                                salaryEntry.put("description", "Caretaker Salary (" + months + " months)");
+                                double totalSalary = salaryPerPond;
+
+                                salaryEntry.put("description", "Caretaker Salary (" + selectedCycleMonths + " months)");
                                 salaryEntry.put("amount", totalSalary);
                                 salaryDetails.put(salaryEntry);
 
@@ -283,6 +289,7 @@ public class ProductionCostFragment extends Fragment {
                                 salarySection.put("total_cost", totalSalary);
                                 expenses.put("Salary", salarySection);
 
+                                pond.setPdfReportData(json);
                                 File pdfFile = PondPDFGenerator.generatePDF(requireContext(), json, pondId);
                                 if (pdfFile != null && pdfFile.exists()) {
                                     previewPDF(pdfFile);
@@ -404,14 +411,13 @@ public class ProductionCostFragment extends Fragment {
         View dialogView = inflater.inflate(R.layout.dialog_stock_fingerlings, null);
         builder.setView(dialogView);
 
-        // ✅ Pond info fields
+        // Pond info fields
         TextView tvPondName = dialogView.findViewById(R.id.tvPondName);
         TextView tvPondArea = dialogView.findViewById(R.id.tvPondArea);
         TextView tvStockingDate = dialogView.findViewById(R.id.tvDateStocking);
         TextView tvHarvestDate = dialogView.findViewById(R.id.tvHarvestDate);
 
-
-        // ✅ Set pond details
+        // Set pond details
         double rawPondArea = pond != null ? pond.getPondArea() : 0;
         if (pond != null) {
             tvPondName.setText(pond.getName() != null ? pond.getName() : "—");
@@ -420,7 +426,7 @@ public class ProductionCostFragment extends Fragment {
             tvHarvestDate.setText(pond.getDateHarvest() != null ? pond.getDateHarvest() : "—");
         }
 
-        // ✅ Input fields
+        // Input fields
         Spinner spinnerSpecies = dialogView.findViewById(R.id.spinnerSpecies);
         EditText etFishCount = dialogView.findViewById(R.id.etFishCount);
         EditText etUnitCost = dialogView.findViewById(R.id.etUnitCost);
@@ -429,39 +435,42 @@ public class ProductionCostFragment extends Fragment {
         TextView btnCancel = dialogView.findViewById(R.id.btnClose);
         EditText etMortality = dialogView.findViewById(R.id.etMortality);
 
-
-        // ✅ Species options
-        List<String> speciesList = new ArrayList<>();
-        speciesList.add("Bangus");
-        speciesList.add("Tilapia");
-
-        ArrayAdapter<String> speciesAdapter = new ArrayAdapter<>(
-                requireContext(),
-                android.R.layout.simple_spinner_dropdown_item,
-                speciesList
-        );
+        // Species options
+        List<String> speciesList = Arrays.asList("Bangus", "Tilapia");
+        ArrayAdapter<String> speciesAdapter = new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_spinner_dropdown_item, speciesList);
         spinnerSpecies.setAdapter(speciesAdapter);
 
-        // ✅ Compute total
-        final Runnable computeTotal = () -> {
+        // -------------------------------
+        // REAL-TIME COMPUTE FINGERLINGS COST
+        // -------------------------------
+        Runnable computeTotal = () -> {
             String fishCountStr = etFishCount.getText().toString().trim();
             String unitCostStr = etUnitCost.getText().toString().trim();
-
             if (fishCountStr.isEmpty() || unitCostStr.isEmpty()) {
                 tvTotalCost.setText("₱0.00");
+                fingerlingsCost = 0;
+                updateTotalCost();
                 return;
             }
-
             try {
-                double total = Double.parseDouble(fishCountStr) * Double.parseDouble(unitCostStr);
-                tvTotalCost.setText(String.format(Locale.getDefault(), "₱%.2f", total));
+                double fishCount = Double.parseDouble(fishCountStr);
+                double unitCost = Double.parseDouble(unitCostStr);
+                fingerlingsCost = fishCount * unitCost;
+                tvTotalCost.setText("₱" + formatPrice(fingerlingsCost));
+                updateTotalCost();
+
             } catch (NumberFormatException e) {
                 tvTotalCost.setText("₱0.00");
+                fingerlingsCost = 0;
+                updateTotalCost();
             }
         };
 
-        // ✅ Real-time stocking density checker
-        final Runnable checkStockingDensityRealtime = () -> {
+        // -------------------------------
+        // STOCKING DENSITY CHECKER
+        // -------------------------------
+        Runnable checkStockingDensityRealtime = () -> {
             String breed = spinnerSpecies.getSelectedItem() != null ? spinnerSpecies.getSelectedItem().toString() : "";
             String fishCountStr = etFishCount.getText().toString().trim();
 
@@ -472,32 +481,20 @@ public class ProductionCostFragment extends Fragment {
 
             try {
                 double fishCount = Double.parseDouble(fishCountStr);
-                double pondArea = rawPondArea;
-                double density = fishCount / pondArea;
+                double density = fishCount / rawPondArea;
 
                 double minRecommended = 0;
                 double maxAllowed = 0;
 
                 switch (breed) {
-                    case "Tilapia":
-                        minRecommended = 2.0;
-                        maxAllowed = 4.0;
-                        break;
-                    case "Bangus":
-                        minRecommended = 0.8;
-                        maxAllowed = 1.2;
-                        break;
+                    case "Tilapia": minRecommended = 2.0; maxAllowed = 4.0; break;
+                    case "Bangus": minRecommended = 0.8; maxAllowed = 1.2; break;
                 }
 
-                // If species not yet selected → skip check
-                if (maxAllowed == 0) {
-                    etFishCount.setError(null);
-                    return;
-                }
+                if (maxAllowed == 0) { etFishCount.setError(null); return; }
 
-                double minFishCount = minRecommended * pondArea;
-                double maxFishCount = maxAllowed * pondArea;
-
+                double minFishCount = minRecommended * rawPondArea;
+                double maxFishCount = maxAllowed * rawPondArea;
                 String rangeText = String.format(Locale.getDefault(),
                         "Recommended range: %.0f – %.0f fish.", minFishCount, maxFishCount);
 
@@ -507,7 +504,7 @@ public class ProductionCostFragment extends Fragment {
                 }
 
                 if (density < minRecommended) {
-                    etFishCount.setError(null); // clear red error
+                    etFishCount.setError(null);
                     Toast.makeText(getContext(),
                             "⚠️ Below minimum stocking density.\n" + rangeText,
                             Toast.LENGTH_LONG).show();
@@ -518,26 +515,18 @@ public class ProductionCostFragment extends Fragment {
             }
         };
 
-
-        // ✅ Auto-set unit cost by species
+        // Auto-set unit cost by species
         spinnerSpecies.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selected = spinnerSpecies.getSelectedItem().toString();
-                if (selected.equalsIgnoreCase("Bangus")) {
-                    etUnitCost.setText("0.50");
-                } else {
-                    etUnitCost.setText("0.35");
-                }
+                etUnitCost.setText(selected.equalsIgnoreCase("Bangus") ? "0.50" : "0.35");
                 computeTotal.run();
                 checkStockingDensityRealtime.run();
             }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        // ✅ Real-time total + density checking
+        // TextWatcher for real-time update
         TextWatcher watcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -549,7 +538,9 @@ public class ProductionCostFragment extends Fragment {
         etFishCount.addTextChangedListener(watcher);
         etUnitCost.addTextChangedListener(watcher);
 
-        // ✅ Dialog creation
+        // -------------------------------
+        // DIALOG BUTTONS
+        // -------------------------------
         AlertDialog dialog = builder.create();
         btnCancel.setOnClickListener(v -> dialog.dismiss());
 
@@ -557,7 +548,6 @@ public class ProductionCostFragment extends Fragment {
             String species = spinnerSpecies.getSelectedItem().toString();
             String fishCountStr = etFishCount.getText().toString().trim();
             String unitCostStr = etUnitCost.getText().toString().trim();
-            String totalCostStr = tvTotalCost.getText().toString().replace("₱", "").trim();
             String mortalityStr = etMortality.getText().toString().trim();
 
             if (fishCountStr.isEmpty() || unitCostStr.isEmpty() || mortalityStr.isEmpty()) {
@@ -565,77 +555,48 @@ public class ProductionCostFragment extends Fragment {
                 return;
             }
 
-
             try {
                 double fishCount = Double.parseDouble(fishCountStr);
-                double pondArea = rawPondArea;
+                double unitCost = Double.parseDouble(unitCostStr);
                 double mortalityRate = Double.parseDouble(mortalityStr);
 
-                double density = fishCount / pondArea;
+                // ✅ Update class-level fingerlings cost immediately
+                fingerlingsCost = fishCount * unitCost;
+                updateTotalCost();
 
-                double minRecommended = 0;
-                double maxAllowed = 0;
-
-                switch (species) {
-                    case "Tilapia":
-                        minRecommended = 2.0;
-                        maxAllowed = 4.0;
-                        break;
-                    case "Bangus":
-                        minRecommended = 0.8;
-                        maxAllowed = 1.2;
-                        break;
-                }
-
-                double minFishCount = minRecommended * pondArea;
-                double maxFishCount = maxAllowed * pondArea;
-                String rangeText = String.format(Locale.getDefault(),
-                        "Recommended range: %.0f – %.0f fish.", minFishCount, maxFishCount);
-
-                if (density > maxAllowed) {
-                    Toast.makeText(requireContext(),
-                            "❌ Overstocked! Please reduce fish count.\n" + rangeText,
-                            Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                if (density < minRecommended) {
-                    Toast.makeText(requireContext(),
-                            "⚠️ Understocked! You are below the recommended stocking density.\n" + rangeText,
-                            Toast.LENGTH_LONG).show();
-                }
-
-                // ✅ Confirmation dialog before saving
+                // Confirm before syncing
                 new AlertDialog.Builder(requireContext())
                         .setTitle("Confirm Stocking")
                         .setMessage("Are you sure you want to add these fingerlings?")
                         .setPositiveButton("Yes", (dialogConfirm, which) -> {
-
-                            // 🔹 Now sync with your PHP server
                             PondSyncManager.stockFingerlingsOnServer(
                                     tvPondName.getText().toString(),
-                                    spinnerSpecies.getSelectedItem().toString(),
-                                    Integer.parseInt(etFishCount.getText().toString()),
-                                    Double.parseDouble(etUnitCost.getText().toString()),
-                                    mortalityStr, // mortality placeholder (if not yet used)
+                                    species,
+                                    (int) fishCount,
+                                    unitCost,
+                                    mortalityStr,
                                     tvHarvestDate.getText().toString(),
                                     new PondSyncManager.Callback() {
                                         @Override
                                         public void onSuccess(Object result) {
-                                            // ✅ Update local data after successful sync
-                                            PondModel updatedPond = pond;
-                                            updatedPond.setBreed(species);
-                                            updatedPond.setFishCount((int) fishCount);
-                                            updatedPond.setCostPerFish(Double.parseDouble(unitCostStr));
-                                            updatedPond.setMortalityRate(mortalityRate);
+                                            fingerlingsCost = fishCount * unitCost;
+                                            tvSummaryFingerlings.setText("₱" + formatPrice(fingerlingsCost));
 
-                                            SharedPreferences prefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-                                            prefs.edit().putString("selected_pond", new Gson().toJson(updatedPond)).apply();
+                                            pond.setBreed(species);
+                                            pond.setFishCount((int) fishCount);
+                                            pond.setCostPerFish(unitCost);
+                                            pond.setMortalityRate(mortalityRate);
 
-                                            updateProductionCostUI(updatedPond);
-                                            updateTotalCost(species, (int) fishCount);
+                                            SharedPreferences prefs = requireContext()
+                                                    .getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+                                            prefs.edit().putString("selected_pond", new Gson().toJson(pond)).apply();
+
+                                            // Update UI and total cost
+                                            updateProductionCostUI(pond);
+                                            updateTotalCost();
+
                                             Toast.makeText(requireContext(), "✅ Fingerlings stocked successfully!", Toast.LENGTH_SHORT).show();
-                                            handleFingerlingStockedStatus(requireView(), updatedPond);
+                                            handleFingerlingStockedStatus(requireView(), pond);
                                             dialog.dismiss();
                                         }
 
@@ -645,9 +606,8 @@ public class ProductionCostFragment extends Fragment {
                                         }
                                     }
                             );
-
                         })
-                        .setNegativeButton("Cancel", (dialog1, which) -> dialog1.dismiss())
+                        .setNegativeButton("Cancel", (d, which) -> d.dismiss())
                         .show();
 
             } catch (NumberFormatException e) {
@@ -655,10 +615,10 @@ public class ProductionCostFragment extends Fragment {
             }
         });
 
-
-
         dialog.show();
     }
+
+
     private void showBlindFeedingDialog() {
         Dialog dialog = new Dialog(requireContext());
         View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_blind_feeding, null);
@@ -1590,7 +1550,20 @@ public class ProductionCostFragment extends Fragment {
     }
 
     private void updateProductionCostUI(PondModel pond) {
-        if (pond == null || getView() == null) return;
+
+        Log.d("POND_DEBUG", "updateProductionCostUI() CALLED");
+
+        if (pond == null) {
+            Log.d("POND_DEBUG", "updateProductionCostUI: pond is NULL");
+            return;
+        }
+
+        if (getView() == null) {
+            Log.d("POND_DEBUG", "updateProductionCostUI: getView() is NULL — Fragment view not ready!");
+            return;
+        }
+
+        Log.d("POND_DEBUG", "updateProductionCostUI: getView() is VALID");
 
         TextView tvBreed = getView().findViewById(R.id.fishbreedpcostdisplay);
         TextView tvTotalStocks = getView().findViewById(R.id.numoffingerlings);
@@ -1598,20 +1571,32 @@ public class ProductionCostFragment extends Fragment {
         TextView tvTotalCost = getView().findViewById(R.id.amtoffingerlings);
         TextView tvSummaryFingerlings = getView().findViewById(R.id.tvSummaryFingerlings);
 
-        // Species (breed)
+        // Species
         tvBreed.setText(pond.getBreed() != null ? pond.getBreed() : "--");
 
-        // Total stocks
+        // Stocks
         tvTotalStocks.setText(formatNumber(pond.getFishCount()));
 
-        // Unit cost with ₱ + commas
+        // Unit cost
         tvUnitCost.setText(formatPeso(pond.getCostPerFish()));
 
         // Total cost
         double totalCost = pond.getFishCount() * pond.getCostPerFish();
         tvTotalCost.setText(formatPeso(totalCost));
         tvSummaryFingerlings.setText(formatPeso(totalCost));
+
+        // Update class-level cost
+        fingerlingsCost = totalCost;
+
+        Log.d("POND_DEBUG",
+                "SET fingerlingsCost=" + fingerlingsCost +
+                        " | fishCount=" + pond.getFishCount() +
+                        " | unitCost=" + pond.getCostPerFish()
+        );
+
+        updateTotalCost();
     }
+
 
     private void showSamplingDialog() {
         samplingDialog = new Dialog(requireContext());
@@ -2493,21 +2478,13 @@ public class ProductionCostFragment extends Fragment {
                         Log.d("FEED_DEBUG", "Total Feed Cost = " + totalFeedCost);
 
                         requireActivity().runOnUiThread(() -> {
-                            View view = getView();
-                            if (view != null) {
-                                tvSamplingFeedBreakdown.setText("₱" + formatPrice(blindFeed));
-
-                                // Accumulated Feed Cost from sampling cycles
-                                tvSummaryFeeds.setText("₱" + formatPrice(samplingFeed));
-
-                                // No total feed cost displayed anymore.
-
-                                updateTotalCost(); // keep this since other expenses still use it
-                            }
+                            blindFeedCost = blindFeed;
+                            accumulatedFeedCost = samplingFeed;
+                            tvSamplingFeedBreakdown.setText("₱" + formatPrice(blindFeed));
+                            tvSummaryFeeds.setText("₱" + formatPrice(samplingFeed));
+                            updateTotalCost();
                         });
                     }
-                } else {
-                    Log.e("FeedCost", "Server returned: " + responseCode);
                 }
 
                 conn.disconnect();
@@ -2552,14 +2529,19 @@ public class ProductionCostFragment extends Fragment {
                 JSONObject json = new JSONObject(response.toString());
                 if (json.getString("status").equals("success")) {
                     double caretakerCost = json.getDouble("caretaker_cost_share");
-                    if (!isAdded()) return;
+
                     requireActivity().runOnUiThread(() -> {
                         salaryPerPond = caretakerCost;
-                        if (tvSummarySalary != null) {
-                            tvSummarySalary.setText("₱" + formatPrice(caretakerCost));
-                        }
-                        if (isAdded()) {
-                            updateTotalCost(currentBreed, currentFishCount);
+                        tvSummarySalary.setText("₱" + formatPrice(caretakerCost));
+                        updateTotalCost();
+
+                        String pondJson2 = prefs.getString("selected_pond", null);
+                        if (pondJson2 != null) {
+                            PondModel pond2 = new Gson().fromJson(pondJson2, PondModel.class);
+                            pond2.setSalaryCost(caretakerCost);
+
+                            // Save updated PondModel back to SharedPreferences
+                            prefs.edit().putString("selected_pond", new Gson().toJson(pond2)).apply();
                         }
 
                     });
@@ -2574,30 +2556,13 @@ public class ProductionCostFragment extends Fragment {
         }).start();
     }
     private void updateTotalCost() {
-        if (!isAdded()) return; // ✅ prevent call if fragment not attached
-        updateTotalCost(currentBreed, currentFishCount);
-    }
-
-    private void updateTotalCost(String breed, int fishCount) {
-        if (!isAdded() || getContext() == null) return; // ✅ safe guard
-
-        double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString());
-        double blindFeed = parseDouble(tvSamplingFeedBreakdown.getText().toString()); // ✅ ADD THIS
-        double accumulatedFeed = parseDouble(tvSummaryFeeds.getText().toString());
-        double maintenance = parseDouble(tvSummaryMaintenance.getText().toString());
-
-        totalCost = fingerlings + blindFeed + accumulatedFeed + maintenance + salaryPerPond; // ✅ UPDATED
-
-        tvSummaryTotal.setText("₱" + formatPrice(totalCost));
-
-        SharedPreferences pondPrefs = requireContext().getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-        String pondJson = pondPrefs.getString("selected_pond", null);
-        if (pondJson != null) {
-            PondModel pond = new Gson().fromJson(pondJson, PondModel.class);
-            pondName = pond.getName();
-            computeEstimatedROI();
+        totalCost = fingerlingsCost + blindFeedCost + accumulatedFeedCost + maintenanceCost + salaryPerPond;
+        Log.d("POND_DEBUG", "fingerlingsCost="+fingerlingsCost);
+        if (tvSummaryTotal != null) {
+            tvSummaryTotal.setText("₱" + formatPrice(totalCost));
         }
     }
+
 
     private void previewPDF(File pdfFile) {
         if (pdfFile == null || !pdfFile.exists()) {
@@ -2652,11 +2617,17 @@ public class ProductionCostFragment extends Fragment {
 
     private double parseDouble(String str) {
         try {
-            return Double.parseDouble(str.replace("₱", "").replace("%", "").trim());
+            return Double.parseDouble(
+                    str.replace("₱", "")
+                            .replace(",", "")   // 🔥 REMOVE COMMAS
+                            .replace("%", "")
+                            .trim()
+            );
         } catch (Exception e) {
             return 0;
         }
     }
+
 
     private String formatPrice(double amount) {
         DecimalFormat formatter = new DecimalFormat("#,##0.00");
@@ -2672,7 +2643,7 @@ public class ProductionCostFragment extends Fragment {
                 conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 
-                String postData = "name=" + pondName;
+                String postData = "name=" + URLEncoder.encode(pondName, "UTF-8");
                 conn.getOutputStream().write(postData.getBytes("UTF-8"));
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -2685,33 +2656,20 @@ public class ProductionCostFragment extends Fragment {
 
                 if (obj.getString("status").equals("success")) {
 
-                    double maintenanceCost = obj.getDouble("total_maintenance");
+                    // ✅ Update class-level variable
+                    maintenanceCost = obj.getDouble("total_maintenance");
                     JSONArray details = obj.optJSONArray("details");
 
                     requireActivity().runOnUiThread(() -> {
 
-                        // ✅ Show TOTAL cost only
+                        // ✅ Update maintenance TextView
                         tvSummaryMaintenance.setText("₱" + formatPrice(maintenanceCost));
 
-                        // ✅ Show breakdown separately
-                        StringBuilder breakdown = new StringBuilder();
-                        breakdown.append("Breakdown of Expenses:\n\n");
+                        // ✅ Recompute total cost using all class-level variables
+                        updateTotalCost();
 
-                        if (details != null && details.length() > 0) {
-                            for (int i = 0; i < details.length(); i++) {
-                                JSONObject item = details.optJSONObject(i);
-                                breakdown.append("• ")
-                                        .append(item.optString("description", "-"))
-                                        .append(" — ₱")
-                                        .append(formatPrice(item.optDouble("amount", 0)))
-                                        .append("\n");
-                            }
-                        } else {
-                            breakdown.append("No maintenance expenses recorded.");
-                        }
-
+                        // ✅ Populate breakdown
                         LlMaintenanceBreakdown.removeAllViews(); // Clear previous rows
-
                         if (details != null && details.length() > 0) {
                             for (int i = 0; i < details.length(); i++) {
                                 JSONObject d = details.optJSONObject(i);
@@ -2720,21 +2678,20 @@ public class ProductionCostFragment extends Fragment {
                                 String desc = d.optString("description", "-");
                                 double amt = d.optDouble("amount", 0);
 
-                                // Create a row
                                 LinearLayout row = new LinearLayout(requireContext());
                                 row.setOrientation(LinearLayout.HORIZONTAL);
-                                row.setPadding(12, 6, 12, 6);
+                                row.setPadding(12, 3, 12, 3);
 
                                 TextView tvDesc = new TextView(requireContext());
                                 tvDesc.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
                                 tvDesc.setText(desc);
-                                tvDesc.setTextSize(14);
+                                tvDesc.setTextSize(11);
                                 tvDesc.setTextColor(Color.parseColor("#424242"));
 
                                 TextView tvAmt = new TextView(requireContext());
                                 tvAmt.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
                                 tvAmt.setText("₱" + formatPrice(amt));
-                                tvAmt.setTextSize(14);
+                                tvAmt.setTextSize(11);
                                 tvAmt.setTextColor(Color.parseColor("#424242"));
                                 tvAmt.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
 
@@ -2749,15 +2706,10 @@ public class ProductionCostFragment extends Fragment {
                             empty.setPadding(12, 6, 12, 6);
                             LlMaintenanceBreakdown.addView(empty);
                         }
-
-                        // ✅ Recompute final total
-                        double fingerlings = parseDouble(tvSummaryFingerlings.getText().toString().replace("₱",""));
-                        double feeds = parseDouble(tvSummaryFeeds.getText().toString().replace("₱",""));
-                        double total = fingerlings + feeds + maintenanceCost;
-
-                        tvSummaryTotal.setText("₱" + formatPrice(total));
                     });
                 }
+
+                conn.disconnect();
 
             } catch (Exception e) {
                 e.printStackTrace();

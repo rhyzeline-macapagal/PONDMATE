@@ -23,5 +23,6 @@
         android:src="@drawable/ic_close"
         app:backgroundTint="@android:color/transparent"
         app:rippleColor="@android:color/transparent"
-        android:foreground="@null"/>
+        android:foreground="@null"
+        app:shapeAppearance="@style/NoShape"/>
 </FrameLayout>

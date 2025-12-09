@@ -84,7 +84,8 @@
         <item name="android:calendarViewShown">false</item>
     </style>
 
-
-
+    <style name="NoShape" parent="">
+        <item name="cornerSize">0dp</item>
+    </style>
 
 </resources>

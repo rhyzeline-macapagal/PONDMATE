@@ -95,6 +95,222 @@
                 android:layout_marginStart="6dp"/>
         </LinearLayout>
 
+        <!-- Pond Information Card -->
+        <LinearLayout
+            android:id="@+id/pondInformationSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/rounded_card"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp"
+            android:elevation="3dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="Pond Information"
+                android:textColor="#1A237E"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <!-- First Row: Fingerling Type & Number -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp"
+                android:weightSum="2">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Species"
+                        android:textColor="#424242"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/fishbreedpcostdisplay"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/textbox_background"
+                        android:padding="8dp"
+                        android:hint="--"
+                        android:textColor="#212121"
+                        android:textSize="14sp"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total Stocks"
+                        android:textColor="#424242"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/numoffingerlings"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/textbox_background"
+                        android:padding="8dp"
+                        android:hint="--"
+                        android:textColor="#212121"
+                        android:textSize="14sp"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Second Row: Amount per Piece & Total Cost -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="4dp"
+                android:weightSum="2">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Unit Cost"
+                        android:textColor="#424242"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/amtperpiece"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/textbox_background"
+                        android:padding="8dp"
+                        android:hint="₱"
+                        android:textColor="#212121"
+                        android:textSize="14sp"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total Cost"
+                        android:textColor="#424242"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/amtoffingerlings"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/textbox_background"
+                        android:padding="8dp"
+                        android:hint="₱"
+                        android:textColor="#212121"
+                        android:textSize="14sp"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Third Row: Feed Type & Cycle Duration -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:weightSum="2">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Salary Duration"
+                        android:textColor="#424242"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <Spinner
+                        android:id="@+id/spinnerMonths"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/textbox_background"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:textColor="#212121"
+                        android:textSize="14sp"
+                        android:entries="@array/production_months"
+                        android:spinnerMode="dropdown" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:visibility="invisible"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Feed Type"
+                        android:textColor="#424242"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/feedtypefeeders"
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:background="@drawable/textbox_background"
+                        android:padding="8dp"
+                        android:textColor="#212121"
+                        android:textSize="14sp"
+                        android:gravity="center_vertical" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
         <LinearLayout
             android:id="@+id/productionCostSummarySection"
             android:layout_width="match_parent"
@@ -165,6 +381,7 @@
                     android:layout_weight="1"
                     android:text="₱"
                     android:textColor="#424242"
+                    android:textStyle="bold"
                     android:textSize="14sp"
                     android:textAlignment="textEnd"/>
             </LinearLayout>
@@ -197,6 +414,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="₱"
+                    android:textStyle="bold"
                     android:textColor="#424242"
                     android:textSize="14sp"
                     android:textAlignment="textEnd"/>
@@ -222,32 +440,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="₱"
-                    android:textColor="#424242"
-                    android:textSize="14sp"
-                    android:textAlignment="textEnd"/>
-            </LinearLayout>
-
-            <!-- Other Expenses Summary Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Other Expenses"
                     android:textStyle="bold"
-                    android:textColor="#0D47A1"
-                    android:textSize="14sp"/>
-
-                <TextView
-                    android:id="@+id/tvSummaryMaintenance"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="₱"
                     android:textColor="#424242"
                     android:textSize="14sp"
                     android:textAlignment="textEnd"/>
@@ -258,7 +451,7 @@
                 android:id="@+id/tvMaintenanceTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="List of Expenses"
+                android:text="List of Maintenance"
                 android:textStyle="bold"
                 android:textColor="#424242"
                 android:textSize="14sp"
@@ -271,7 +464,34 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingStart="10dp"
-                android:orientation="vertical"/>
+                android:orientation="vertical" />
+
+            <!-- Other Expenses Summary Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Total Maintenance"
+                    android:textStyle="bold"
+                    android:textColor="#0D47A1"
+                    android:textSize="14sp"/>
+
+                <TextView
+                    android:id="@+id/tvSummaryMaintenance"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="₱"
+                    android:textStyle="bold"
+                    android:textColor="#424242"
+                    android:textSize="14sp"
+                    android:textAlignment="textEnd"/>
+            </LinearLayout>
 
 
             <LinearLayout
@@ -294,6 +514,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="₱"
+                    android:textStyle="bold"
                     android:textColor="#424242"
                     android:textSize="14sp"
                     android:textAlignment="textEnd"/>
@@ -335,224 +556,6 @@
                     android:textAlignment="textEnd"/>
             </LinearLayout>
         </LinearLayout>
-
-        <!-- Pond Information Card -->
-        <LinearLayout
-            android:id="@+id/pondInformationSection"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@drawable/rounded_card"
-            android:padding="16dp"
-            android:layout_marginBottom="12dp"
-            android:elevation="3dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:text="Pond Information"
-                android:textColor="#1A237E"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <!-- First Row: Fingerling Type & Number -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="12dp"
-                android:weightSum="2">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginEnd="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Species"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/fishbreedpcostdisplay"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:padding="8dp"
-                        android:hint="--"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:gravity="center_vertical" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Total Stocks"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/numoffingerlings"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:padding="8dp"
-                        android:hint="--"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:gravity="center_vertical" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Second Row: Amount per Piece & Total Cost -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="12dp"
-                android:weightSum="2">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginEnd="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Unit Cost"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/amtperpiece"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:padding="8dp"
-                        android:hint="₱"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:gravity="center_vertical" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Total Cost"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/amtoffingerlings"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:padding="8dp"
-                        android:hint="₱"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:gravity="center_vertical" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Third Row: Feed Type & Cycle Duration -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:weightSum="2">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:visibility="invisible"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginEnd="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Feed Type"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <TextView
-                        android:id="@+id/feedtypefeeders"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:padding="8dp"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:gravity="center_vertical" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="8dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Salary Duration"
-                        android:textColor="#424242"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="4dp" />
-
-                    <Spinner
-                        android:id="@+id/spinnerMonths"
-                        android:layout_width="match_parent"
-                        android:layout_height="36dp"
-                        android:background="@drawable/textbox_background"
-                        android:paddingStart="8dp"
-                        android:paddingEnd="8dp"
-                        android:textColor="#212121"
-                        android:textSize="14sp"
-                        android:entries="@array/production_months"
-                        android:spinnerMode="dropdown" />
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Production Cost Summary Card -->
 
         <!-- ROI Card -->
         <LinearLayout

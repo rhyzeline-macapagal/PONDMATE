@@ -1,12 +1,19 @@
 package com.example.pondmatev1;
 
+import static androidx.core.content.ContentProviderCompat.requireContext;
+import static com.example.pondmatev1.PondActionHelper.loadingDialog;
+import static java.security.AccessController.getContext;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.*;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -17,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import androidx.appcompat.app.AlertDialog;
 import org.json.JSONObject;
@@ -37,6 +45,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     private final ArrayList<PondModel> pondList;
     private final String userType;
     private OnPondDeletedListener deleteListener;
+    private androidx.appcompat.app.AlertDialog loadingDialog;
 
     public PondAdapter(Context context, ArrayList<PondModel> pondList, String userType) {
         this.context = context;
@@ -160,106 +169,6 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     }
 
 
-    private void setPondInactive(ViewHolder holder, PondModel pond) {
-        Context context = holder.itemView.getContext();
-
-        new AlertDialog.Builder(context)
-                .setTitle("Set Pond as Inactive")
-                .setMessage("Are you sure you want to stop the progress of \"" + pond.getName() + "\"?\n\n" +
-                        "It will be removed from the active list and moved to Pond History.")
-                .setPositiveButton("Proceed", (dialog, which) -> {
-
-                    String[] options = {"Stop Progress", "Emergency Harvest"};
-                    new AlertDialog.Builder(context)
-                            .setTitle("How do you want to close this pond?")
-                            .setItems(options, (d, selected) -> {
-
-                                boolean isEmergency = (selected == 1); // 1 = Emergency Harvest
-
-                                processInactive(context, holder, pond, isEmergency);
-
-                            })
-                            .show();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    };
-
-    private void processInactive(Context context, ViewHolder holder, PondModel pond, boolean isEmergency) {
-
-        PondSyncManager.fetchPondReportData(pond.getName(), new PondSyncManager.Callback() {
-            @Override
-            public void onSuccess(Object response) {
-                ((Activity) context).runOnUiThread(() -> {
-                    try {
-                        JSONObject json = new JSONObject(String.valueOf(response));
-
-                        // Set remark for PDF + backend
-                        json.put("action", isEmergency ? "EMERGENCY_HARVEST" : "INACTIVE");
-
-                        // Ensure pond object exists
-                        if (!json.has("pond") || json.optJSONObject("pond") == null) {
-                            JSONObject pondObj = new JSONObject();
-                            pondObj.put("id", pond.getId());
-                            pondObj.put("name", pond.getName());
-                            json.put("pond", pondObj);
-                        }
-
-                        // Generate PDF with updated remark
-                        File pdfFile = PondPDFGenerator.generatePDF(context, json, pond.getId());
-                        if (pdfFile == null || !pdfFile.exists()) {
-                            Toast.makeText(context, "Failed to generate report PDF", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        // Upload + deactivate
-                        PondSyncManager.setPondInactive(pond, pdfFile, new PondSyncManager.Callback() {
-                            @Override
-                            public void onSuccess(Object resp) {
-                                ((Activity) context).runOnUiThread(() -> {
-                                    Toast.makeText(context,
-                                            isEmergency ? "Emergency Harvest Completed" : "Pond set as INACTIVE",
-                                            Toast.LENGTH_SHORT).show();
-
-                                    int position = holder.getAdapterPosition();
-                                    if (position >= 0 && position < pondList.size()) {
-                                        pondList.remove(position);
-                                        notifyItemRemoved(position);
-                                    }
-
-                                    if (context instanceof PondDashboardActivity) {
-                                        ((PondDashboardActivity) context).loadHistory(null);
-                                    }
-
-                                    if (deleteListener != null) {
-                                        deleteListener.onPondDeleteRequest(pond, position);
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                ((Activity) context).runOnUiThread(() ->
-                                        Toast.makeText(context, "Error uploading PDF: " + error, Toast.LENGTH_SHORT).show()
-                                );
-                            }
-                        });
-
-                    } catch (Exception e) {
-                        Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                ((Activity) context).runOnUiThread(() ->
-                        Toast.makeText(context, "Error fetching data: " + error, Toast.LENGTH_SHORT).show()
-                );
-            }
-        });
-    }
-
     @Override
     public int getItemCount() {
         return pondList.size();
@@ -304,73 +213,187 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
     private void processEmergencyHarvest(ViewHolder holder, PondModel pond, String reason) {
         Context context = holder.itemView.getContext();
 
-        PondSyncManager.fetchPondReportData(pond.getName(), new PondSyncManager.Callback() {
-            @Override
-            public void onSuccess(Object response) {
-                ((Activity) context).runOnUiThread(() -> {
-                    try {
-                        JSONObject json = new JSONObject(String.valueOf(response));
-
-                        // Mark as emergency harvest
-                        json.put("action", "EMERGENCY_HARVEST");
-                        json.put("emergency_reason", reason); // <-- include the reason
-
-                        if (!json.has("pond") || json.optJSONObject("pond") == null) {
-                            JSONObject pondObj = new JSONObject();
-                            pondObj.put("id", pond.getId());
-                            pondObj.put("name", pond.getName());
-                            json.put("pond", pondObj);
+        // Use the stored PDF report data if available
+        JSONObject json = pond.getPdfReportData();
+        if (json == null) {
+            // fallback: fetch data if not stored
+            PondSyncManager.fetchPondReportData(pond.getName(), new PondSyncManager.Callback() {
+                @Override
+                public void onSuccess(Object response) {
+                    ((Activity) context).runOnUiThread(() -> {
+                        try {
+                            JSONObject json = new JSONObject(String.valueOf(response));
+                            generateEmergencyPDF(holder, pond, reason, json);
+                        } catch (Exception e) {
+                            Toast.makeText(context, "Error parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
+                    });
+                }
 
-                        File pdfFile = PondPDFGenerator.generatePDF(context, json, pond.getId());
-                        if (pdfFile == null || !pdfFile.exists()) {
-                            Toast.makeText(context, "Failed to generate report PDF", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        PondSyncManager.setPondInactive(pond, pdfFile, new PondSyncManager.Callback() {
-                            @Override
-                            public void onSuccess(Object resp) {
-                                ((Activity) context).runOnUiThread(() -> {
-                                    Toast.makeText(context, "Emergency Harvest Completed", Toast.LENGTH_SHORT).show();
-
-                                    int position = holder.getAdapterPosition();
-                                    if (position >= 0 && position < pondList.size()) {
-                                        pondList.remove(position);
-                                        notifyItemRemoved(position);
-                                    }
-
-                                    if (context instanceof PondDashboardActivity) {
-                                        ((PondDashboardActivity) context).loadHistory(null);
-                                    }
-
-                                    if (deleteListener != null) {
-                                        deleteListener.onPondDeleteRequest(pond, position);
-                                    }
-                                });
-                            }
-
-                            @Override
-                            public void onError(String error) {
-                                ((Activity) context).runOnUiThread(() ->
-                                        Toast.makeText(context, "Error uploading PDF: " + error, Toast.LENGTH_SHORT).show()
-                                );
-                            }
-                        });
-
-                    } catch (Exception e) {
-                        Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String error) {
-                ((Activity) context).runOnUiThread(() ->
-                        Toast.makeText(context, "Error fetching data: " + error, Toast.LENGTH_SHORT).show()
-                );
-            }
-        });
+                @Override
+                public void onError(String error) {
+                    ((Activity) context).runOnUiThread(() ->
+                            Toast.makeText(context, "Error fetching data: " + error, Toast.LENGTH_SHORT).show()
+                    );
+                }
+            });
+        } else {
+            generateEmergencyPDF(holder, pond, reason, json);
+        }
     }
 
+    private void generateEmergencyPDF(ViewHolder holder, PondModel pond, String reason, JSONObject json) {
+        Context context = holder.itemView.getContext();
+        showLoadingDialog(context, "Generating emergency harvest report...");
+        try {
+            // Mark as emergency harvest
+            json.put("action", "EMERGENCY_HARVEST");
+            json.put("emergency_reason", reason);
+
+            // Ensure pond object exists
+            if (!json.has("pond") || json.optJSONObject("pond") == null) {
+                JSONObject pondObj = new JSONObject();
+                pondObj.put("id", pond.getId());
+                pondObj.put("name", pond.getName());
+                json.put("pond", pondObj);
+            }
+
+            // Ensure report & expenses sections exist
+            JSONObject report = json.optJSONObject("report");
+            if (report == null) {
+                report = new JSONObject();
+                json.put("report", report);
+            }
+
+            JSONObject expenses = report.optJSONObject("expenses");
+            if (expenses == null) {
+                expenses = new JSONObject();
+                report.put("expenses", expenses);
+            }
+
+            // Load updated PondModel from SharedPreferences to get the computed salary
+            SharedPreferences prefs = context.getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
+            String pondJson = prefs.getString("selected_pond", null);
+            if (pondJson != null) {
+                pond = new Gson().fromJson(pondJson, PondModel.class);
+            }
+
+            // Add caretaker salary from PondModel
+            double totalSalary = pond.getSalaryCost();
+            if (totalSalary > 0) {
+                JSONObject salarySection = new JSONObject();
+                JSONArray salaryDetails = new JSONArray();
+                JSONObject salaryEntry = new JSONObject();
+
+                salaryEntry.put("description", "Caretaker Salary");
+                salaryEntry.put("amount", totalSalary);
+                salaryDetails.put(salaryEntry);
+
+                salarySection.put("details", salaryDetails);
+                salarySection.put("total_cost", totalSalary);
+                expenses.put("Salary", salarySection);
+            }
+
+            Log.d("PDF_DEBUG_JSON", json.toString(4));
+            // Generate PDF
+            File pdfFile = PondPDFGenerator.generatePDF(context, json, pond.getId());
+            if (pdfFile == null || !pdfFile.exists()) {
+                Toast.makeText(context, "Failed to generate report PDF", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Use final variables for lambdas
+            final PondModel pondFinal = pond;
+            final int position = holder.getAdapterPosition();
+            final File pdfFileFinal = pdfFile;
+
+            // Set pond inactive and update UI
+            PondSyncManager.setPondInactive(pondFinal, pdfFileFinal, new PondSyncManager.Callback() {
+                @Override
+                public void onSuccess(Object resp) {
+                    ((Activity) context).runOnUiThread(() -> {
+                        Toast.makeText(context, "Emergency Harvest Completed", Toast.LENGTH_SHORT).show();
+                        hideLoadingDialog(context);
+
+                        if (position >= 0 && position < pondList.size()) {
+                            pondList.remove(position);
+                            notifyItemRemoved(position);
+                        }
+
+                        if (context instanceof PondDashboardActivity) {
+                            ((PondDashboardActivity) context).loadHistory(null);
+                        }
+
+                        if (deleteListener != null) {
+                            deleteListener.onPondDeleteRequest(pondFinal, position);
+                        }
+
+                        if (context instanceof PondDashboardActivity) {
+                            Intent i = new Intent(context, PondDashboardActivity.class);
+                            i.putExtra("pond_name", pondFinal.getName());
+                            i.putExtra("pond_id", pondFinal.getId());
+                            context.startActivity(i);
+
+                            ((Activity) context).overridePendingTransition(0, 0);
+                            ((Activity) context).finish();
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    ((Activity) context).runOnUiThread(() ->
+                            Toast.makeText(context, "Error uploading PDF: " + error, Toast.LENGTH_SHORT).show()
+                    );
+                }
+            });
+
+        } catch (Exception e) {
+            Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    private void showLoadingDialog(Context context, String message) {
+
+        if (loadingDialog != null && loadingDialog.isShowing()) return;
+
+        androidx.appcompat.app.AlertDialog.Builder builder =
+                new androidx.appcompat.app.AlertDialog.Builder(context);
+
+        View dialogView = LayoutInflater.from(context)
+                .inflate(R.layout.dialog_loading, null);
+
+        ImageView fishLoader = dialogView.findViewById(R.id.fishLoader);
+        TextView loadingText = dialogView.findViewById(R.id.loadingText);
+        loadingText.setText(message);
+
+        Animation rotate = AnimationUtils.loadAnimation(context, R.anim.rotate);
+        fishLoader.startAnimation(rotate);
+
+        builder.setView(dialogView);
+        builder.setCancelable(false);
+
+        loadingDialog = builder.create();
+
+        if (context instanceof Activity) {
+            ((Activity) context).runOnUiThread(() -> loadingDialog.show());
+        } else {
+            loadingDialog.show();
+        }
+    }
+
+
+    private void hideLoadingDialog(Context context) {
+        if (loadingDialog != null && loadingDialog.isShowing()) {
+            if (context instanceof Activity) {
+                ((Activity) context).runOnUiThread(() -> loadingDialog.dismiss());
+            } else {
+                loadingDialog.dismiss();
+            }
+        }
+    }
+
+
 }
+

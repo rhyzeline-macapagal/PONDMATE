@@ -77,7 +77,7 @@ public class PondPDFGenerator {
             document.add(new Paragraph("\n"));
 
             // POND DETAILS
-            addPondDetails(document, report);
+            addPondDetails(document, report, data);
 
             // EXPENSES SECTION
             JSONObject expenses = report.optJSONObject("expenses");
@@ -105,7 +105,7 @@ public class PondPDFGenerator {
         return "P " + String.format("%,.2f", value);
     }
 
-    private static void addPondDetails(Document document, JSONObject report) throws Exception {
+    private static void addPondDetails(Document document, JSONObject report, JSONObject rootData) throws Exception {
         JSONObject pondDetails = report.optJSONObject("pond_details");
         if (pondDetails != null) {
             document.add(new Paragraph("POND DETAILS",
@@ -125,9 +125,21 @@ public class PondPDFGenerator {
                 document.add(line);
             }
 
+            String action = rootData.optString("action", "REPORT");
+            if (action.equalsIgnoreCase("EMERGENCY_HARVEST")) {
+                String reason = rootData.optString("emergency_reason", "No reason provided");
+                Log.d("PDF_DEBUG_REASON", "Emergency reason: " + reason); // <-- debug
+                Paragraph reasonParagraph = new Paragraph("Emergency Reason: ", labelFont);
+                reasonParagraph.add(new Phrase(reason, valueFont));
+                reasonParagraph.setSpacingAfter(4f);
+                document.add(reasonParagraph);
+            }
+
             document.add(new Paragraph("\n"));
         }
     }
+
+
 
     private static void addFingerlingsSection(Document document, JSONObject expenses) throws Exception {
         JSONObject fingerlings = expenses.optJSONObject("Fingerlings");

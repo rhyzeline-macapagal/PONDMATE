@@ -1,5 +1,7 @@
     package com.example.pondmatev1;
 
+    import org.json.JSONObject;
+
     import java.text.ParseException;
     import java.text.SimpleDateFormat;
     import java.util.ArrayList;
@@ -29,6 +31,10 @@
         private String caretakerName;
         private boolean assigned;
         private String deviceId;
+        private double salaryCost;
+        private int cycleMonths = 0;
+        private int caretakerCycleMonths;
+        private JSONObject pdfReportData;
 
         private List<ActivityItem> activities = new ArrayList<>();
 
@@ -77,6 +83,14 @@
             return caretakerIds;
         }
 
+        public JSONObject getPdfReportData() {
+            return pdfReportData;
+        }
+
+        public void setPdfReportData(JSONObject pdfReportData) {
+            this.pdfReportData = pdfReportData;
+        }
+
         public void setCaretakerIds(List<String> caretakerIds) {
             this.caretakerIds = caretakerIds;
         }
@@ -96,6 +110,18 @@
 
         public String getId() { return id; }
         public void setId(String id) { this.id = id; }
+
+        public double getSalaryCost() {return salaryCost;}
+
+        public void setSalaryCost(double salaryCost) {this.salaryCost = salaryCost;}
+
+        public int getCycleMonths() {
+            return cycleMonths;
+        }
+
+        public void setCycleMonths(int cycleMonths) {
+            this.cycleMonths = cycleMonths;
+        }
 
         public String getName() { return name; }
         public void setName(String name) { this.name = name; }
