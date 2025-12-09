@@ -9,5 +9,8 @@ public class LightModeAlways extends Application {
         super.onCreate();
         // Force light mode globally
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+        NotificationStreamListener
+                .getInstance(this)
+                .start();
     }
 }

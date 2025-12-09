@@ -3,7 +3,10 @@ package com.example.pondmatev1;
 import static com.example.pondmatev1.PondActionHelper.loadingDialog;
 
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
@@ -21,6 +24,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -36,6 +40,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -54,6 +59,9 @@ public class ActivitiesFragment extends Fragment {
     private int pollInterval = 5000;
     private JsonArray completedActivitiesJson;
 
+    private boolean activitiesLoaded = false;
+    private boolean completedLoaded = false;
+    private String lastRenderedDate = null;
 
     private JsonObject fetchedActivities;
     private ArrayList<String> fetchedNotifications = new ArrayList<>();
@@ -67,7 +75,7 @@ public class ActivitiesFragment extends Fragment {
         calendarView = view.findViewById(R.id.calendarView);
         calendarView.addDecorator(new TodayDecorator());
         SessionManager s = new SessionManager(requireContext());
-        Log.d("SESSION_TEST", "Loaded userId = " + s.getUserId());
+        Log.d("SESSION_TEST", "Loaded username = " + s.getUsername());
 
         activitiesLayout = view.findViewById(R.id.activitiesLayout);
 
@@ -84,6 +92,7 @@ public class ActivitiesFragment extends Fragment {
 
         fetchActivitiesFromServer();
         startNotificationPolling();
+
         return view;
     }
 
@@ -120,6 +129,8 @@ public class ActivitiesFragment extends Fragment {
             }
         });
     }
+
+
 
 
 
@@ -169,6 +180,10 @@ public class ActivitiesFragment extends Fragment {
                     Log.d("DATE_DEBUG", "date_created (final) = " + dateCreated);
 
                     String finalDateCreated = dateCreated;
+                    requireActivity().runOnUiThread(() -> {
+                        setCalendarRange(calendarView, finalDateCreated, fetchedActivities);
+                        activitiesLoaded = true;
+                    });
                 }
 
             } catch (Exception e) {
@@ -225,14 +240,6 @@ public class ActivitiesFragment extends Fragment {
             Log.e("CALENDAR_RANGE", "Error: " + e.getMessage());
         }
     }
-    private void setupCalendarListener() {
-        calendarView.setOnDateChangedListener((widget, date, selected) -> {
-            String formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d",
-                    date.getYear(), date.getMonth() + 1, date.getDay());
-            showActivitiesForDate(formatted);
-        });
-    }
-
     private void showActivitiesForDate(String date) {
         Log.d("ShowActivities", "Rendering activities for date=" + date);
 
@@ -421,19 +428,15 @@ public class ActivitiesFragment extends Fragment {
 
     private void fetchCompletedActivitiesFromServer() {
         Log.d("CompletedFetch", "Fetching completed activities for pond=" + pondId);
+
         new Thread(() -> {
             try {
-
-                SessionManager session = new SessionManager(requireContext());
-                String username = session.getUsername(); // <-- Use username
-                Log.d("CompletedFetch", "Using username=" + username);
-
                 URL url = new URL(
-                        "https://pondmate.alwaysdata.net/get_completed_activities.php?username="
-                                + username + "&pond_id=" + pondId
+                        "https://pondmate.alwaysdata.net/get_completed_activities.php?pond_id=" + pondId
                 );
 
                 Log.d("CompletedFetch", "GET URL = " + url.toString());
+
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
 
@@ -442,46 +445,50 @@ public class ActivitiesFragment extends Fragment {
                 String line;
                 while ((line = in.readLine()) != null) response.append(line);
                 in.close();
+
                 Log.d("CompletedFetch", "RAW SERVER RESPONSE = " + response);
+
                 completedActivitiesJson =
                         JsonParser.parseString(response.toString()).getAsJsonArray();
 
                 requireActivity().runOnUiThread(() -> {
                     CalendarDay selected = calendarView.getSelectedDate();
                     if (selected != null) {
-                        String formatted = String.format("%04d-%02d-%02d",
-                                selected.getYear(), selected.getMonth() + 1, selected.getDay());
+                        String formatted = String.format(Locale.getDefault(),
+                                "%04d-%02d-%02d",
+                                selected.getYear(),
+                                selected.getMonth() + 1,
+                                selected.getDay());
                         showActivitiesForDate(formatted);
                     }
                 });
 
-
             } catch (Exception e) {
-                Log.e("CompletedFetch", e.getMessage());
+                Log.e("CompletedFetch", e.getMessage(), e);
             }
         }).start();
     }
 
 
 
-    public static void sendNotification(String pondId, String title, String message, String scheduledFor, String username, PondSyncManager.Callback callback) {
+
+    public static void sendNotification(String pondsId, String title, String message, String scheduledFor, String username, PondSyncManager.Callback callback) {
         new Thread(() -> {
             try {
                 URL url = new URL("https://pondmate.alwaysdata.net/add_notification.php");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                 conn.setDoOutput(true);
 
-                JSONObject json = new JSONObject();
-                json.put("pond_id", pondId);
-                json.put("title", title);
-                json.put("message", message);
-                json.put("username", username);
-                json.put("scheduled_for", scheduledFor);
+                // ✅ Send as URL-encoded form data
+                String data = "ponds_id=" + URLEncoder.encode(pondsId, "UTF-8")
+                        + "&title=" + URLEncoder.encode(title, "UTF-8")
+                        + "&message=" + URLEncoder.encode(message, "UTF-8")
+                        + "&username=" + URLEncoder.encode(username, "UTF-8")
+                        + "&scheduled_for=" + URLEncoder.encode(scheduledFor, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
-                os.write(json.toString().getBytes("UTF-8"));
+                os.write(data.getBytes("UTF-8"));
                 os.close();
 
                 int responseCode = conn.getResponseCode();
@@ -512,7 +519,9 @@ public class ActivitiesFragment extends Fragment {
                     @Override
                     public void onSuccess(Object response) {
                         try {
-                            JsonArray data = JsonParser.parseString(response.toString()).getAsJsonArray();
+                            JsonObject root = JsonParser.parseString(response.toString()).getAsJsonObject();
+                            JsonArray data = root.getAsJsonArray("notifications");
+
                             ArrayList<JsonObject> newNotifs = new ArrayList<>();
 
                             for (int i = 0; i < data.size(); i++) {
@@ -562,19 +571,61 @@ public class ActivitiesFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        startNotificationPolling();
+        LocalBroadcastManager.getInstance(requireContext())
+                .registerReceiver(notifReceiver, new IntentFilter("POND_NOTIFICATION_UPDATED"));
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (notificationPollRunnable != null) handler.removeCallbacks(notificationPollRunnable);
+        LocalBroadcastManager.getInstance(requireContext())
+                .unregisterReceiver(notifReceiver);
     }
 
     private void showToast(String msg) {
         new Handler(Looper.getMainLooper()).post(() ->
                 Toast.makeText(getContext(), msg, Toast.LENGTH_SHORT).show());
     }
+
+    private BroadcastReceiver notifReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get the new notifications sent by NotificationPoller
+            ArrayList<JsonObject> newNotifs = (ArrayList<JsonObject>) intent.getSerializableExtra("new_notifications");
+            if (newNotifs == null || newNotifs.isEmpty()) return;
+
+            for (JsonObject notif : newNotifs) {
+                String title = notif.get("title").getAsString();
+                String message = notif.get("message").getAsString();
+                String pondName = ""; // optional: fetch if you store pond info
+                int notifId = notif.get("id").getAsInt();
+
+                // Avoid duplicate banners
+                if (notifId <= lastNotifId) continue;
+                lastNotifId = Math.max(lastNotifId, notifId);
+
+                // Show banner
+                NotificationHelper.showActivityDoneNotification(
+                        requireContext(),
+                        pondName,
+                        message,
+                        true,
+                        "",
+                        message.hashCode()
+                );
+            }
+
+            // Update UI silently
+            fetchCompletedActivitiesFromServer();
+            CalendarDay selected = calendarView.getSelectedDate();
+            if (selected != null) {
+                String formatted = String.format(Locale.getDefault(), "%04d-%02d-%02d",
+                        selected.getYear(), selected.getMonth() + 1, selected.getDay());
+                showActivitiesForDate(formatted);
+            }
+        }
+    };
+
 
 
 }

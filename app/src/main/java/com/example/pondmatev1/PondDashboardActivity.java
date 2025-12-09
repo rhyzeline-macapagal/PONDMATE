@@ -151,8 +151,6 @@ public class PondDashboardActivity extends AppCompatActivity{
 
         ImageView notificationIcon = findViewById(R.id.notificationIcon);
         notificationIcon.setOnClickListener(v -> {
-            // Debug toast
-            Toast.makeText(this, "Notification clicked!", Toast.LENGTH_SHORT).show();
 
             // Start NotificationActivity safely
             Intent intent = new Intent(this, NotificationActivity.class);

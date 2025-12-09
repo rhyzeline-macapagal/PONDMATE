@@ -38,7 +38,7 @@ import java.util.Map;
 
 public class BlindFeedingFragment extends DialogFragment {
 
-    private TextView tvFeedType, etFeedCost; // ✅ replaced spinner with TextView
+    private TextView tvFeedType, etFeedCost;
     private EditText etFeedQuantity, etFeedDate;
     private TableLayout tableFeedLogs;
     private Button btnAddFeed, btnCancelFeed;
