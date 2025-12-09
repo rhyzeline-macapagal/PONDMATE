@@ -1,16 +1,10 @@
 package com.example.pondmatev1;
 
-import static androidx.core.content.ContentProviderCompat.requireContext;
-import static com.example.pondmatev1.PondActionHelper.loadingDialog;
-import static java.security.AccessController.getContext;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.view.*;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -19,14 +13,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
-import org.json.JSONException;
-import androidx.appcompat.app.AlertDialog;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -34,10 +28,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
-
-import android.content.SharedPreferences;
-import com.google.gson.Gson;
-
 
 public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
 
@@ -78,7 +68,6 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 holder.pondImage.setImageResource(R.drawable.ic_addpond);
                 holder.pondName.setVisibility(View.GONE);
                 holder.stopIcon.setVisibility(View.GONE);
-
                 holder.itemView.setOnClickListener(v -> {
                     if (context instanceof AppCompatActivity) {
                         AddPondDialogFragment dialog = new AddPondDialogFragment();
@@ -89,9 +78,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                         dialog.show(((AppCompatActivity) context).getSupportFragmentManager(), "AddPondDialog");
                     }
                 });
-            } else {
-                holder.itemView.setVisibility(View.GONE);
-            }
+            } else holder.itemView.setVisibility(View.GONE);
             return;
         }
 
@@ -104,49 +91,34 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                     .centerCrop()
                     .dontAnimate()
                     .into(holder.pondImage);
-        } else {
-            holder.pondImage.setImageResource(R.drawable.pond);
-        }
+        } else holder.pondImage.setImageResource(R.drawable.pond);
 
         holder.pondName.setText(pond.getName());
         holder.pondName.setVisibility(View.VISIBLE);
         holder.itemView.setVisibility(View.VISIBLE);
 
-        // ✅ Highlight card green if it's harvest day or past harvest date
+        // Highlight if harvest day or past
         try {
             if (pond.getDateHarvest() != null && !pond.getDateHarvest().isEmpty()) {
                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
                 Date harvestDate = sdf.parse(pond.getDateHarvest());
                 Date today = new Date();
-
-                if (harvestDate != null && !today.before(harvestDate)) {
-                    // It's harvest day or later → make background green
-                    holder.itemView.setBackgroundColor(Color.parseColor("#C8E6C9")); // light green
-                } else {
-                    // Not harvest day yet → normal background
-                    holder.itemView.setBackgroundColor(Color.WHITE);
-                }
-            } else {
-                // No harvest date set
-                holder.itemView.setBackgroundColor(Color.WHITE);
-            }
+                holder.itemView.setBackgroundColor((harvestDate != null && !today.before(harvestDate))
+                        ? Color.parseColor("#C8E6C9") : Color.WHITE);
+            } else holder.itemView.setBackgroundColor(Color.WHITE);
         } catch (Exception e) {
             e.printStackTrace();
             holder.itemView.setBackgroundColor(Color.WHITE);
         }
 
+        // Emergency harvest icon for owner
         if ("owner".equalsIgnoreCase(userType)) {
             holder.stopIcon.setVisibility(View.VISIBLE);
-            holder.stopIcon.setOnClickListener(v -> showEmergencyHarvestDialog(holder, pond));
+            holder.stopIcon.setOnClickListener(v -> showEmergencyHarvestDialog(holder, pond, position));
+        } else holder.stopIcon.setVisibility(View.GONE);
 
-        } else {
-            holder.stopIcon.setVisibility(View.GONE);
-        }
-
+        // Normal pond click → open MainActivity
         holder.itemView.setOnClickListener(v -> {
-            SharedPreferences prefs = context.getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
-            prefs.edit().putString("selected_pond", new Gson().toJson(pond)).apply();
-
             Intent intent = new Intent(context, MainActivity.class);
             intent.putExtra("pond_id", pond.getId());
             intent.putExtra("pond_name", pond.getName());
@@ -160,14 +132,10 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             intent.putExtra("caretaker_name", pond.getCaretakerName());
             intent.putExtra("mortality_rate", pond.getMortalityRate());
 
-
             context.startActivity(intent);
-            if (context instanceof Activity) {
-                ((Activity) context).overridePendingTransition(R.anim.fade_in, 0);
-            }
+            if (context instanceof Activity) ((Activity) context).overridePendingTransition(R.anim.fade_in, 0);
         });
     }
-
 
     @Override
     public int getItemCount() {
@@ -187,10 +155,8 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
         }
     }
 
-    private void showEmergencyHarvestDialog(ViewHolder holder, PondModel pond) {
+    private void showEmergencyHarvestDialog(ViewHolder holder, PondModel pond, int position) {
         Context context = holder.itemView.getContext();
-
-        // Create an EditText for the user to input the reason
         final android.widget.EditText input = new android.widget.EditText(context);
         input.setHint("Enter reason for emergency harvest");
 
@@ -204,26 +170,24 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                         Toast.makeText(context, "Reason is required", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    processEmergencyHarvest(holder, pond, reason);
+                    processEmergencyHarvest(holder, pond, position, reason);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private void processEmergencyHarvest(ViewHolder holder, PondModel pond, String reason) {
+    private void processEmergencyHarvest(ViewHolder holder, PondModel pond, int position, String reason) {
         Context context = holder.itemView.getContext();
-
-        // Use the stored PDF report data if available
         JSONObject json = pond.getPdfReportData();
+
         if (json == null) {
-            // fallback: fetch data if not stored
             PondSyncManager.fetchPondReportData(pond.getName(), new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object response) {
                     ((Activity) context).runOnUiThread(() -> {
                         try {
                             JSONObject json = new JSONObject(String.valueOf(response));
-                            generateEmergencyPDF(holder, pond, reason, json);
+                            generateEmergencyPDF(holder, pond, position, reason, json);
                         } catch (Exception e) {
                             Toast.makeText(context, "Error parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
@@ -237,20 +201,17 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                     );
                 }
             });
-        } else {
-            generateEmergencyPDF(holder, pond, reason, json);
-        }
+        } else generateEmergencyPDF(holder, pond, position, reason, json);
     }
 
-    private void generateEmergencyPDF(ViewHolder holder, PondModel pond, String reason, JSONObject json) {
+    private void generateEmergencyPDF(ViewHolder holder, PondModel pond, int position, String reason, JSONObject json) {
         Context context = holder.itemView.getContext();
         showLoadingDialog(context, "Generating emergency harvest report...");
+
         try {
-            // Mark as emergency harvest
             json.put("action", "EMERGENCY_HARVEST");
             json.put("emergency_reason", reason);
 
-            // Ensure pond object exists
             if (!json.has("pond") || json.optJSONObject("pond") == null) {
                 JSONObject pondObj = new JSONObject();
                 pondObj.put("id", pond.getId());
@@ -258,7 +219,6 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 json.put("pond", pondObj);
             }
 
-            // Ensure report & expenses sections exist
             JSONObject report = json.optJSONObject("report");
             if (report == null) {
                 report = new JSONObject();
@@ -271,43 +231,36 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                 report.put("expenses", expenses);
             }
 
-            // Load updated PondModel from SharedPreferences to get the computed salary
             SharedPreferences prefs = context.getSharedPreferences("POND_PREF", Context.MODE_PRIVATE);
             String pondJson = prefs.getString("selected_pond", null);
             if (pondJson != null) {
                 pond = new Gson().fromJson(pondJson, PondModel.class);
             }
 
-            // Add caretaker salary from PondModel
             double totalSalary = pond.getSalaryCost();
             if (totalSalary > 0) {
                 JSONObject salarySection = new JSONObject();
                 JSONArray salaryDetails = new JSONArray();
                 JSONObject salaryEntry = new JSONObject();
-
                 salaryEntry.put("description", "Caretaker Salary");
                 salaryEntry.put("amount", totalSalary);
                 salaryDetails.put(salaryEntry);
-
                 salarySection.put("details", salaryDetails);
                 salarySection.put("total_cost", totalSalary);
                 expenses.put("Salary", salarySection);
             }
 
-            Log.d("PDF_DEBUG_JSON", json.toString(4));
-            // Generate PDF
             File pdfFile = PondPDFGenerator.generatePDF(context, json, pond.getId());
             if (pdfFile == null || !pdfFile.exists()) {
                 Toast.makeText(context, "Failed to generate report PDF", Toast.LENGTH_SHORT).show();
+                hideLoadingDialog(context);
                 return;
             }
 
-            // Use final variables for lambdas
             final PondModel pondFinal = pond;
-            final int position = holder.getAdapterPosition();
+            final int posFinal = position;
             final File pdfFileFinal = pdfFile;
 
-            // Set pond inactive and update UI
             PondSyncManager.setPondInactive(pondFinal, pdfFileFinal, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object resp) {
@@ -315,9 +268,9 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                         Toast.makeText(context, "Emergency Harvest Completed", Toast.LENGTH_SHORT).show();
                         hideLoadingDialog(context);
 
-                        if (position >= 0 && position < pondList.size()) {
-                            pondList.remove(position);
-                            notifyItemRemoved(position);
+                        if (posFinal >= 0 && posFinal < pondList.size()) {
+                            pondList.remove(posFinal);
+                            notifyItemRemoved(posFinal);
                         }
 
                         if (context instanceof PondDashboardActivity) {
@@ -325,9 +278,8 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                         }
 
                         if (deleteListener != null) {
-                            deleteListener.onPondDeleteRequest(pondFinal, position);
+                            deleteListener.onPondDeleteRequest(pondFinal, posFinal);
                         }
-
                         if (context instanceof PondDashboardActivity) {
                             Intent i = new Intent(context, PondDashboardActivity.class);
                             i.putExtra("pond_name", pondFinal.getName());
@@ -337,6 +289,7 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
                             ((Activity) context).overridePendingTransition(0, 0);
                             ((Activity) context).finish();
                         }
+
                     });
                 }
 
@@ -349,20 +302,16 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
             });
 
         } catch (Exception e) {
+            hideLoadingDialog(context);
             Toast.makeText(context, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-
     private void showLoadingDialog(Context context, String message) {
-
         if (loadingDialog != null && loadingDialog.isShowing()) return;
 
-        androidx.appcompat.app.AlertDialog.Builder builder =
-                new androidx.appcompat.app.AlertDialog.Builder(context);
-
-        View dialogView = LayoutInflater.from(context)
-                .inflate(R.layout.dialog_loading, null);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_loading, null);
 
         ImageView fishLoader = dialogView.findViewById(R.id.fishLoader);
         TextView loadingText = dialogView.findViewById(R.id.loadingText);
@@ -373,27 +322,15 @@ public class PondAdapter extends RecyclerView.Adapter<PondAdapter.ViewHolder> {
 
         builder.setView(dialogView);
         builder.setCancelable(false);
-
         loadingDialog = builder.create();
-
-        if (context instanceof Activity) {
-            ((Activity) context).runOnUiThread(() -> loadingDialog.show());
-        } else {
-            loadingDialog.show();
-        }
+        if (context instanceof Activity) ((Activity) context).runOnUiThread(() -> loadingDialog.show());
+        else loadingDialog.show();
     }
-
 
     private void hideLoadingDialog(Context context) {
         if (loadingDialog != null && loadingDialog.isShowing()) {
-            if (context instanceof Activity) {
-                ((Activity) context).runOnUiThread(() -> loadingDialog.dismiss());
-            } else {
-                loadingDialog.dismiss();
-            }
+            if (context instanceof Activity) ((Activity) context).runOnUiThread(() -> loadingDialog.dismiss());
+            else loadingDialog.dismiss();
         }
     }
-
-
 }
-

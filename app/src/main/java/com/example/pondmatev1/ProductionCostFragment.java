@@ -115,7 +115,7 @@ public class ProductionCostFragment extends Fragment {
     private TextView tvPondName, tvNextSampling, tvDaysOfCulture, tvLifeStage, tvTotalStocks, tvMortality, tvDFRPerCycle;
     private TextView tvTimeFeeding1, tvTimeFeeding2, tvABWResult, tvDFRResult, tvFeedCost, tvRemainingFeed;
     private EditText etSampledWeight, etNumSamples, etFeedingRate;
-    private TextView tvSurvivalRate; // display-only
+    private TextView tvSurvivalRate, tvSummaryDate; // display-only
     private int time1Minutes = -1, time2Minutes = -1;
     private String formattedTime1, formattedTime2;
 
@@ -218,9 +218,11 @@ public class ProductionCostFragment extends Fragment {
         tvSamplingFeedBreakdown = view.findViewById(R.id.tvSamplingFeedBreakdown);
         LlMaintenanceBreakdown = view.findViewById(R.id.layoutMaintenanceBreakdown);
 
-        computeEstimatedROI();
-
         btnSampling = view.findViewById(R.id.btnSampling);
+
+        tvSummaryDate = view.findViewById(R.id.tvSummaryDate);
+        String today = new SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault()).format(new Date());
+        tvSummaryDate.setText("Summary as of: " + today);
 
         Button btnAddMaintenance = view.findViewById(R.id.btnAddProductionCost);
         btnAddMaintenance.setOnClickListener(v -> showAddMaintenanceDialog());
@@ -1043,36 +1045,36 @@ public class ProductionCostFragment extends Fragment {
 
                         } catch (Exception e) {
                             new Handler(Looper.getMainLooper()).post(() -> showConfirmAddDialog(
-                                    quantity,
-                                    cost,
-                                    feedType,
-                                    dateStr,
-                                    feedingDateMysql,
-                                    pondName,
-                                    tableFeedLogs,
-                                    etFeedQuantity,
-                                    etFeedDate,
-                                    etFeedCost
-                            )
-);
+                                            quantity,
+                                            cost,
+                                            feedType,
+                                            dateStr,
+                                            feedingDateMysql,
+                                            pondName,
+                                            tableFeedLogs,
+                                            etFeedQuantity,
+                                            etFeedDate,
+                                            etFeedCost
+                                    )
+                            );
                         }
                     }
 
                     @Override
                     public void onError(String error) {
                         new Handler(Looper.getMainLooper()).post(() -> showConfirmAddDialog(
-                                quantity,
-                                cost,
-                                feedType,
-                                dateStr,
-                                feedingDateMysql,
-                                pondName,
-                                tableFeedLogs,
-                                etFeedQuantity,
-                                etFeedDate,
-                                etFeedCost
-                        )
-);
+                                        quantity,
+                                        cost,
+                                        feedType,
+                                        dateStr,
+                                        feedingDateMysql,
+                                        pondName,
+                                        tableFeedLogs,
+                                        etFeedQuantity,
+                                        etFeedDate,
+                                        etFeedCost
+                                )
+                        );
                     }
                 });
             }
@@ -1097,7 +1099,7 @@ public class ProductionCostFragment extends Fragment {
             EditText etFeedDate,
             TextView etFeedCost
     )
- {
+    {
         if (!isAdded() || getContext() == null) return;
 
         new android.app.AlertDialog.Builder(requireContext())
@@ -2540,8 +2542,11 @@ public class ProductionCostFragment extends Fragment {
                             PondModel pond2 = new Gson().fromJson(pondJson2, PondModel.class);
                             pond2.setSalaryCost(caretakerCost);
 
+                            Log.d("SALARY_DEBUG", "Saving caretakerMonthly = " + caretakerCost);
+
                             // Save updated PondModel back to SharedPreferences
                             prefs.edit().putString("selected_pond", new Gson().toJson(pond2)).apply();
+                            computeEstimatedROI();
                         }
 
                     });
@@ -2817,6 +2822,9 @@ public class ProductionCostFragment extends Fragment {
             double survivalRate = 100 - mortalityRate;
             String breed = pond.getBreed();
 
+            double salaryForROI = getDoubleFromText(tvSummarySalary);
+            Log.d("ROI_DEBUG", "Using salaryForROI = " + salaryForROI);
+
             PondSyncManager.fetchFarmgatePrice(breed, new PondSyncManager.Callback() {
                 @Override
                 public void onSuccess(Object result) {
@@ -2840,7 +2848,7 @@ public class ProductionCostFragment extends Fragment {
 
                         // Fixed Costs (6 months cycle)
                         double fingerlingsCost = getDoubleFromText(tvSummaryFingerlings);
-                        double salaryCost = getDoubleFromText(tvSummarySalary);
+                        double salaryCost = salaryForROI;
                         double supplies = 1000 * 6;
                         double misc = 1000 * 6;
                         double harvesting = grossSales * 0.02;

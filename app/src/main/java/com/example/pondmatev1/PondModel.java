@@ -37,6 +37,7 @@
         private JSONObject pdfReportData;
 
         private List<ActivityItem> activities = new ArrayList<>();
+        private boolean emergencyHarvested;
 
         // --- Constructors ---
         public PondModel(String id, String name, String breed, int fishCount, double costPerFish,
@@ -89,6 +90,13 @@
 
         public void setPdfReportData(JSONObject pdfReportData) {
             this.pdfReportData = pdfReportData;
+        }
+        public boolean isEmergencyHarvested() {
+            return emergencyHarvested;
+        }
+
+        public void setEmergencyHarvested(boolean emergencyHarvested) {
+            this.emergencyHarvested = emergencyHarvested;
         }
 
         public void setCaretakerIds(List<String> caretakerIds) {

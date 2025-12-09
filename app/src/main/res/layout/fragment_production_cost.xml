@@ -95,6 +95,8 @@
                 android:layout_marginStart="6dp"/>
         </LinearLayout>
 
+
+
         <!-- Pond Information Card -->
         <LinearLayout
             android:id="@+id/pondInformationSection"
@@ -327,8 +329,17 @@
                 android:text="Production Cost Summary"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="#1A237E"
-                android:layout_marginBottom="12dp" />
+                android:textColor="#1A237E"/>
+
+            <TextView
+                android:id="@+id/tvSummaryDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Summary as of: --"
+                android:textSize="12sp"
+                android:textColor="#616161"
+                android:layout_marginBottom="12dp"
+                android:paddingStart="4dp"/>
 
             <!-- Header Row -->
             <LinearLayout
