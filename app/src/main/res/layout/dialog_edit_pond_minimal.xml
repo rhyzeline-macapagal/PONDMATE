@@ -236,6 +236,7 @@
                         android:layout_marginBottom="12dp"
                         android:textColor="#01082D"
                         android:textSize="12sp"
+                        android:visibility="gone"
                         android:gravity="center_vertical|start" />
 
                     <TextView

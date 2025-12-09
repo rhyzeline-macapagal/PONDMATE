@@ -75,16 +75,35 @@ public class NotificationActivity extends AppCompatActivity {
                 JSONArray data = root.getJSONArray("notifications");
                 ArrayList<NotificationItem> freshNotifications = new ArrayList<>();
 
+                // Get selected pond from SharedPreferences
+                String pondName = "Pond";
+                try {
+                    String pondJson = getSharedPreferences("POND_PREF", MODE_PRIVATE)
+                            .getString("selected_pond", null);
+                    if (pondJson != null) {
+                        PondModel pond = new com.google.gson.Gson().fromJson(pondJson, PondModel.class);
+                        if (pond != null) {
+                            pondName = pond.getName();
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
                 for (int i = 0; i < data.length(); i++) {
                     JSONObject n = data.getJSONObject(i);
 
-                    String pondName = "Pond " + n.optInt("ponds_id", 0);
                     String title = n.optString("title", "");
                     String message = n.optString("message", "");
-                    String timestamp = n.optString("scheduled_for", "");
+                    String timestamp = n.optString("created_at", ""); // Use created_at
+                    String timeAgo = formatTimeAgo(timestamp);
 
                     if (!title.isEmpty() && !message.isEmpty()) {
-                        NotificationItem notifItem = new NotificationItem(pondName, title + ": " + message, timestamp);
+                        NotificationItem notifItem = new NotificationItem(
+                                pondName,
+                                title + ": " + message,
+                                timeAgo
+                        );
                         freshNotifications.add(notifItem);
                     }
                 }
@@ -98,6 +117,33 @@ public class NotificationActivity extends AppCompatActivity {
             }
         }).start();
     }
+
+    private String formatTimeAgo(String timestamp) {
+        try {
+            java.text.SimpleDateFormat sdf =
+                    new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+            sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC")); // treat server time as UTC
+
+            java.util.Date notifDate = sdf.parse(timestamp);
+            long diff = System.currentTimeMillis() - notifDate.getTime();
+
+            long seconds = diff / 1000;
+            long minutes = seconds / 60;
+            long hours = minutes / 60;
+            long days = hours / 24;
+
+            if (seconds < 60) return "Just now";
+            else if (minutes < 60) return minutes + " mins ago";
+            else if (hours < 24) return hours + " hrs ago";
+            else return new java.text.SimpleDateFormat(
+                        "MMM dd, yyyy • hh:mm a", java.util.Locale.getDefault()
+                ).format(notifDate);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+
 
     private void displayNotifications(ArrayList<NotificationItem> notifications) {
         notificationLayout.removeAllViews();

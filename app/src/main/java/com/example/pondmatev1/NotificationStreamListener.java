@@ -104,6 +104,13 @@ public class NotificationStreamListener {
 
                     String title = n.get("title").getAsString();
                     String message = n.get("message").getAsString();
+                    String timestamp = n.get("created_at").getAsString();
+                    int pondsId = n.get("ponds_id").getAsInt();
+
+                    String pondName = getPondNameFromPrefs();
+                    String timeAgo = formatTimeAgo(timestamp);
+
+
                     Log.d("NotifStream", "📣 Showing PUSH banner for id=" + id);
 
 
@@ -113,18 +120,39 @@ public class NotificationStreamListener {
 
                     NotificationHelper.showActivityDoneNotification(
                             appContext,
-                            "PondMate",
-                            title + " — " + message,
-                            true,
-                            "",
-                            id
+                            pondName,                  // Pond name from SharedPreferences
+                            title + ": " + message,    // Notification content
+                            true,                      // Some flag (keep as is)
+                            "",                        // No time ago
+                            id                         // Notification ID
                     );
+
+
                 }
 
             } catch (Exception e) {
                 Log.e("NotifStream", "Fetch error", e);
             }
         }).start();
+    }
+    private String getPondNameFromPrefs() {
+        try {
+            String pondJson = appContext
+                    .getSharedPreferences("POND_PREF", Context.MODE_PRIVATE)
+                    .getString("selected_pond", null);
+
+            if (pondJson != null) {
+                // Deserialize using Gson
+                PondModel pond = new com.google.gson.Gson().fromJson(pondJson, PondModel.class);
+                if (pond != null) {
+                    return pond.getName(); // return the pond name directly
+                }
+            }
+        } catch (Exception e) {
+            Log.e("NotifStream", "Failed to read pond name", e);
+        }
+
+        return "Pond: "; // fallback
     }
 
     private void persistLastId(int id) {
@@ -133,6 +161,36 @@ public class NotificationStreamListener {
                 .putInt("last_notif_id", id)
                 .apply();
         Log.d("NotifStream", "💾 Saved lastNotifId=" + id);
-
     }
+
+    private String formatTimeAgo(String timestamp) {
+        try {
+            java.text.SimpleDateFormat sdf =
+                    new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+
+            java.util.Date notifDate = sdf.parse(timestamp);
+            long diff = System.currentTimeMillis() - notifDate.getTime();
+
+            long seconds = diff / 1000;
+            long minutes = seconds / 60;
+            long hours = minutes / 60;
+            long days = hours / 24;
+
+            if (seconds < 60) {
+                return "Just now";
+            } else if (minutes < 60) {
+                return minutes + " mins ago";
+            } else if (hours < 24) {
+                return hours + " hrs ago";
+            } else {
+                return new java.text.SimpleDateFormat(
+                        "MMM dd, yyyy • hh:mm a",
+                        java.util.Locale.getDefault()
+                ).format(notifDate);
+            }
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
 }

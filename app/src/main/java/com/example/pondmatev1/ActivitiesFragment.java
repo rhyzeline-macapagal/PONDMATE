@@ -604,15 +604,6 @@ public class ActivitiesFragment extends Fragment {
                 if (notifId <= lastNotifId) continue;
                 lastNotifId = Math.max(lastNotifId, notifId);
 
-                // Show banner
-                NotificationHelper.showActivityDoneNotification(
-                        requireContext(),
-                        pondName,
-                        message,
-                        true,
-                        "",
-                        message.hashCode()
-                );
             }
 
             // Update UI silently

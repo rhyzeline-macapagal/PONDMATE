@@ -3,8 +3,8 @@
     android:gravity="center"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="@drawable/rounded_corner"
-    android:backgroundTint="@color/almostwhite">
+    android:background="@drawable/rounded_dialog_bg"
+    android:backgroundTint="@color/white">
 
     <ImageView
         android:id="@+id/fishLoader"
